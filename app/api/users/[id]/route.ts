@@ -4,21 +4,62 @@ import User from '@/models/User';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+// GET Public User Profile
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    await dbConnect();
+
+    // Fetch user but exclude sensitive fields like password
+    const user = await User.findById(id).select('-password');
+    
+    if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
+  }
+}
+
+// DELETE User
 // DELETE User
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || (session.user as any).role !== 'super_admin') {
-        return NextResponse.json({ error: 'Unauthorized: Only Super Admin can delete users' }, { status: 403 });
+    const currentUserRole = (session?.user as any)?.role;
+    const currentUserId = (session?.user as any)?.id;
+
+    if (!session || !['super_admin', 'admin'].includes(currentUserRole)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const { id } = await params;
-    await dbConnect();
-    const deletedUser = await User.findByIdAndDelete(id);
 
-    if (!deletedUser) {
+    // Prevent self-deletion
+    if (id === currentUserId) {
+        return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
+    }
+
+    await dbConnect();
+    const targetUser = await User.findById(id);
+
+    if (!targetUser) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    // Role-based deletion logic
+    if (currentUserRole === 'admin') {
+        // Admins cannot delete other Admins or Super Admins
+        if (['admin', 'super_admin'].includes(targetUser.role)) {
+            return NextResponse.json({ error: 'Unauthorized: Cannot delete a superior or peer' }, { status: 403 });
+        }
+    }
+    
+    // Super Admins can delete anyone (except themselves, handled above)
+
+    await User.findByIdAndDelete(id);
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error: any) {

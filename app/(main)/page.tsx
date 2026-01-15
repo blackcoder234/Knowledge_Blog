@@ -5,6 +5,9 @@ import Image from "next/image";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
 import { NewsletterForm } from "@/app/components/NewsletterForm";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import Subscriber from "@/models/Subscriber";
 
 // Fetch posts for the landing page
 async function getLandingData() {
@@ -54,6 +57,21 @@ export const revalidate = 60; // Revalidate every minute
 
 export default async function LandingPage() {
   const { featured, latest } = await getLandingData();
+
+  // Check session for newsletter pre-filling
+  const session = await getServerSession(authOptions);
+  let initialEmail = '';
+  let isSubscribed = false;
+
+  if (session?.user?.email) {
+      initialEmail = session.user.email;
+      // Check if already subscribed
+      await dbConnect();
+      const sub = await Subscriber.findOne({ email: initialEmail });
+      if (sub) {
+          isSubscribed = true;
+      }
+  }
 
   return (
     <div className="bg-background min-h-screen">
@@ -216,7 +234,7 @@ export default async function LandingPage() {
                 </p>
                 
                 <div className="bg-[#121212] border border-white/10 p-2 rounded-xl max-w-md mx-auto relative shadow-2xl">
-                     <NewsletterForm />
+                     <NewsletterForm initialEmail={initialEmail} isSubscribed={isSubscribed} />
                 </div>
 
                 <div className="mt-8 text-xs text-zinc-600">

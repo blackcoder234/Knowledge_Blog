@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Container } from './ui/Container';
 import { Button } from './ui/Button';
@@ -7,6 +8,27 @@ import { useSession, signOut } from 'next-auth/react';
 
 export const Header = () => {
   const { data: session } = useSession();
+  const [userImage, setUserImage] = useState<string | null | undefined>(null);
+
+  useEffect(() => {
+    if (session?.user?.image) {
+        setUserImage(session.user.image);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (session?.user) {
+        // Fetch latest profile validation to ensure image is up to date
+        fetch('/api/user/profile/me')
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (data?.image) {
+                    setUserImage(data.image);
+                }
+            })
+            .catch(err => console.error("Header image sync error", err));
+    }
+  }, [session]);
 
   const navLinks = [
     { label: 'Home', href: '/' },
@@ -45,10 +67,16 @@ export const Header = () => {
                       <div className="text-right">
                           <div className="flex items-center justify-end gap-2 mb-0.5">
                                <div className="text-sm font-bold text-white leading-none">{session.user?.name}</div>
-                               {(session.user as any).role === 'admin' ? (
-                                   <Link href="/admin/dashboard" className="px-1.5 py-0.5 rounded bg-accent text-[10px] font-bold text-black uppercase tracking-wider hover:bg-white transition-colors">
-                                       Admin
+                               {(session.user as any).role === 'admin' || (session.user as any).role === 'super_admin' ? (
+                                   <Link href="/admin/dashboard" className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-black uppercase tracking-wider hover:bg-white transition-colors ${
+                                       (session.user as any).role === 'super_admin' ? 'bg-red-500 text-white hover:text-black' : 'bg-accent'
+                                   }`}>
+                                       {(session.user as any).role === 'super_admin' ? 'Super Admin' : 'Admin'}
                                    </Link>
+                               ) : (session.user as any).role === 'editor' ? (
+                                   <span className="px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-500/50 text-blue-500 text-[10px] font-bold uppercase tracking-wider">
+                                       Editor
+                                   </span>
                                ) : (
                                    <span className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                                        Reader
@@ -57,15 +85,17 @@ export const Header = () => {
                           </div>
                           <button onClick={() => signOut()} className="text-[10px] text-zinc-500 hover:text-red-500 transition-colors uppercase font-bold tracking-wider">Sign Out</button>
                       </div>
-                      <div className="h-10 w-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden relative">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          {session.user?.image ? (
-                             <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
-                          ): (
-                              <div className="h-full w-full flex items-center justify-center text-sm text-white font-bold uppercase">
-                                  {session.user?.name?.charAt(0)}
-                              </div>
-                          )}
+                      <div className="h-10 w-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden relative cursor-pointer hover:border-accent transition-colors group">
+                          <Link href={`/profile/${(session.user as any).id}`}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              {userImage ? (
+                                 <img src={userImage} alt="User" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              ): (
+                                  <div className="h-full w-full flex items-center justify-center text-sm text-white font-bold uppercase">
+                                      {session.user?.name?.charAt(0)}
+                                  </div>
+                              )}
+                          </Link>
                       </div>
                   </div>
                </div>

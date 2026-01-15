@@ -2,80 +2,211 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { Button } from '../../components/ui/Button';
 import { Container } from '../../components/ui/Container';
+import GlobalLoading from '@/app/loading';
+import { useToast } from '@/app/context/ToastContext';
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
+  const { showToast } = useToast();
+
+  const [formData, setFormData] = useState({
+      name: '',
+      title: '',
+      bio: '',
+      qualification: '',
+      occupation: '',
+      location: '',
+      image: ''
+  });
+  const [initialData, setInitialData] = useState({
+      name: '',
+      title: '',
+      bio: '',
+      qualification: '',
+      occupation: '',
+      location: '',
+      image: ''
+  });
+
+  const [passwordData, setPasswordData] = useState({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [passLoading, setPassLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
       if (status === 'unauthenticated') {
           router.push('/login');
       }
-  }, [status, router]);
+      if (session?.user) {
+          const init = {
+              name: session.user.name || '',
+              title: (session.user as any).title || '',
+              bio: (session.user as any).bio || '',
+              qualification: '',
+              occupation: '',
+              location: '',
+              image: session.user.image || ''
+          };
+          
+          fetch('/api/user/profile/me').then(res => { 
+                if(res.ok) return res.json(); 
+                return null;
+          }).then(data => {
+              if (data) {
+                  const fetchedInit = {
+                      name: data.name || '',
+                      title: data.title || '',
+                      bio: data.bio || '',
+                      qualification: data.qualification || '',
+                      occupation: data.occupation || '',
+                      location: data.location || '',
+                      image: data.image || ''
+                  };
+                  setFormData(fetchedInit);
+                  setInitialData(fetchedInit);
+              } else {
+                  setFormData(init);
+                  setInitialData(init);
+              }
+              setLoading(false);
+          }).catch(() => {
+                setFormData(init);
+                setInitialData(init);
+                setLoading(false);
+          });
+      }
+  }, [session, status, router]);
 
-  if (status === 'loading') {
-      return (
-          <Container className="py-20 text-center">
-              <div className="text-zinc-500">Loading profile...</div>
-          </Container>
-      );
-  }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  if (!session) return null;
+  const handlePassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+  };
 
-    const [user, setUser] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(initialData) || selectedImage !== null;
 
-    // Load initial user data specifically (beyond session)
-    useEffect(() => {
-        if (session) {
-            // We could just use session, but fetching fresh data is better for edits
-            // For now, let's assume we can augment session or just fetch self
-             const fetchSelf = async () => {
-                const res = await fetch(`/api/users/${(session.user as any).id || (session.user as any)._id}`, {
-                    // Note: This endpoint might be admin-only currently. 
-                    // Let's rely on session + local state for MVP or assume we add a "me" endpoint.
-                    // Actually, simpler: just use session data initially and update local state
-                });
-                // Since we don't have a dedicated /me endpoint yet, we set from session
-                // Ideally we should add GET /api/user/profile. 
-                // Let's implement that fetch in the Patch route or similar.
-                // For this step, I'll rely on session data + a refresh mechanism.
-            };
-        }
-    }, [session]);
-
-    const handleUpdateProfile = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
         
-        const form = e.target as HTMLFormElement;
-        const name = (form.elements.namedItem('name') as HTMLInputElement).value;
-        const title = (form.elements.namedItem('title') as HTMLInputElement).value;
-        const bio = (form.elements.namedItem('bio') as HTMLTextAreaElement).value;
+        const objectUrl = URL.createObjectURL(file);
+        setImagePreview(objectUrl);
+        setSelectedImage(file);
+    };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!isDirty) return;
+
+        setLoading(true);
         try {
+            let imageUrl = formData.image;
+
+            if (selectedImage) {
+                setUploading(true);
+                const uploadData = new FormData();
+                uploadData.append('file', selectedImage);
+                const uploadRes = await fetch('/api/upload', { method: 'POST', body: uploadData });
+                const uploadJson = await uploadRes.json();
+                
+                if (uploadJson.url) {
+                    imageUrl = uploadJson.url;
+                    setUploading(false);
+                } else {
+                    throw new Error('Image upload failed');
+                }
+            }
+
+            const updatedData = { ...formData, image: imageUrl };
+
             const res = await fetch('/api/user/profile', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, title, bio })
+                body: JSON.stringify(updatedData)
             });
             
             if (res.ok) {
-                alert('Profile updated! Please sign out and in to see changes in session.');
+                showToast('Profile updated successfully', 'success');
+                setFormData(updatedData);
+                setInitialData(updatedData);
+                setSelectedImage(null);
+                setImagePreview(null);
+                await update({ image: imageUrl, name: updatedData.name }); 
                 router.refresh();
             } else {
-                alert('Failed to update profile');
+                showToast('Failed to update profile', 'error');
             }
         } catch (error) {
             console.error(error);
-            alert('Something went wrong');
+            showToast('Something went wrong', 'error');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
+            setUploading(false);
+        }
+    };
+
+    const handlePasswordUpdate = async () => {
+        if (!passwordData.currentPassword || !passwordData.newPassword) {
+            showToast("Please fill in current and new passwords", 'error');
+            return;
+        }
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            showToast("New passwords do not match", 'error');
+            return;
+        }
+
+        setPassLoading(true);
+        try {
+            const res = await fetch('/api/user/password', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    currentPassword: passwordData.currentPassword,
+                    newPassword: passwordData.newPassword
+                })
+            });
+            
+            const json = await res.json();
+            
+            if (res.ok) {
+                showToast("Password updated successfully", 'success');
+                setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            } else {
+                showToast(json.error || "Failed to update password", 'error');
+            }
+        } catch (err) {
+            showToast("Something went wrong", 'error');
+        } finally {
+            setPassLoading(false);
+        }
+    };
+
+    const handleDeactivateAccount = async () => {
+        if (!confirm("Are you ABSOLUTELY sure? This action cannot be undone. All your data will be permanently lost.")) return;
+        
+        try {
+             const res = await fetch('/api/user/delete', { method: 'DELETE' });
+             if (res.ok) {
+                 showToast("Account deleted. Goodbye.", 'success');
+                 signOut({ callbackUrl: '/' });
+             } else {
+                 showToast("Failed to delete account", 'error');
+             }
+        } catch (err) {
+            showToast("Something went wrong", 'error');
         }
     };
 
@@ -83,7 +214,11 @@ export default function ProfilePage() {
         const file = e.target.files?.[0];
         if (!file) return;
     
+        // Optimistic preview
+        const objectUrl = URL.createObjectURL(file);
+        setImagePreview(objectUrl);
         setUploading(true);
+
         const data = new FormData();
         data.append('file', file);
     
@@ -91,27 +226,52 @@ export default function ProfilePage() {
             const res = await fetch('/api/upload', { method: 'POST', body: data });
             const json = await res.json();
             if (json.url) {
-                // Update profile immediately with new image
                 await fetch('/api/user/profile', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: json.url })
                 });
-                // Force reload or manual update of UI ideally
-                window.location.reload(); 
+                
+                // Update session
+                await update({ image: json.url });
+                setImagePreview(null); // Clear preview as session should now have it, or keep it to be safe
             }
         } catch (err) {
-            alert("Upload failed");
+            showToast("Upload failed", 'error');
+            setImagePreview(null); // Revert on failure
         } finally {
             setUploading(false);
         }
     };
 
+  if (status === 'loading') {
+      return <GlobalLoading />;
+  }
+
+  if (!session) return null;
+
   return (
     <Container className="py-20">
-        <div className="mb-12">
-            <h1 className="text-4xl font-bold text-white mb-4">Profile Settings</h1>
-            <p className="text-zinc-400 max-w-2xl">Manage your personal information, security preferences, and account settings.</p>
+        <div className="mb-12 flex justify-between items-start">
+            <div>
+                <h1 className="text-4xl font-bold text-white mb-4">Profile Settings</h1>
+                <p className="text-zinc-400 max-w-2xl">Manage your personal information, security preferences, and account settings.</p>
+            </div>
+            <button 
+                onClick={() => {
+                    if (session?.user && (session.user as any).id) {
+                         router.push(`/profile/${(session.user as any).id}`);
+                    } else {
+                         router.back();
+                    }
+                }}
+                className="p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                title="Close"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -119,16 +279,16 @@ export default function ProfilePage() {
             <div className="md:col-span-1 space-y-6">
                 <div className="bg-card border border-white/5 rounded-xl p-8 text-center bg-[#0D0D0D]">
                     <div className="relative inline-block mb-6">
-                        <div className="h-32 w-32 rounded-full bg-zinc-800 border-4 border-[#121212] flex items-center justify-center text-4xl font-bold text-white overflow-hidden text-clip relative group cursor-pointer shadow-xl mx-auto">
-                            {session.user?.image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={session.user.image} alt={session.user.name || 'User'} className="w-full h-full object-cover" />
+                        <div className="h-32 w-32 rounded-full bg-zinc-800 border-4 border-[#121212] flex items-center justify-center text-4xl font-bold text-white overflow-hidden text-clip relative group cursor-pointer shadow-xl mx-auto transition-transform hover:scale-105 duration-300">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {imagePreview || formData.image || session?.user?.image ? (
+                                <img src={imagePreview || formData.image || session?.user?.image || ''} alt={session?.user?.name || 'User'} className="w-full h-full object-cover" />
                             ) : (
-                                <span>{session.user?.name?.charAt(0)}</span>
+                                <span>{session?.user?.name?.charAt(0)}</span>
                             )}
                             
                             <label className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 cursor-pointer">
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                                <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
                                 {uploading ? (
                                     <span className="text-xs text-white">...</span>
                                 ) : (
@@ -164,14 +324,14 @@ export default function ProfilePage() {
                     <p className="text-sm text-zinc-400 mb-6">{session.user?.email}</p>
                     
                     <div className="flex justify-center gap-2 mb-4">
-                        <span className="text-xs px-3 py-1 bg-white/5 rounded-full border border-white/10 text-zinc-400">San Francisco, CA</span>
+                        <span className="text-xs px-3 py-1 bg-white/5 rounded-full border border-white/10 text-zinc-400">{formData.location || 'Location not set'}</span>
                     </div>
 
                     {((session.user as any).role === 'admin' || (session.user as any).role === 'super_admin') && (
                         <div className="border-t border-white/10 pt-6 mt-6">
                             <Button 
                                 variant="primary" 
-                                className="w-full"
+                                className="w-full cursor-pointer hover:scale-[1.02] transition-transform"
                                 onClick={() => router.push('/admin/dashboard')}
                             >
                                 Enter Admin Dashboard
@@ -186,15 +346,67 @@ export default function ProfilePage() {
                 <div className="bg-card border border-white/5 rounded-xl p-6 bg-[#0D0D0D]">
                     <h3 className="text-lg font-bold text-white mb-6 border-b border-white/5 pb-4">Personal Details</h3>
                     <form className="space-y-4" onSubmit={handleUpdateProfile}>
+                         {/* ... (inside form) ... */}
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div className="space-y-1">
                                 <label className="text-xs font-medium text-zinc-400">Full Name</label>
-                                <input name="name" type="text" defaultValue={session.user?.name || ''} className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" />
+                                <input 
+                                    name="name" 
+                                    type="text" 
+                                    value={formData.name} 
+                                    onChange={handleChange}
+                                    className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                                />
                              </div>
                              <div className="space-y-1">
-                                <label className="text-xs font-medium text-zinc-400">Job Title</label>
-                                <input name="title" type="text" placeholder="e.g. Senior Editor" className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" />
+                                <label className="text-xs font-medium text-zinc-400">Job Title / Role</label>
+                                <input 
+                                    name="title" 
+                                    type="text" 
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="e.g. Senior Editor" 
+                                    className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                                />
                              </div>
+                         </div>
+
+                         {/* New Fields Row */}
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="space-y-1">
+                                <label className="text-xs font-medium text-zinc-400">Highest Qualification</label>
+                                <input 
+                                    name="qualification" 
+                                    type="text" 
+                                    value={formData.qualification} 
+                                    onChange={handleChange}
+                                    placeholder="e.g. PhD in Physics"
+                                    className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                                />
+                             </div>
+                             <div className="space-y-1">
+                                <label className="text-xs font-medium text-zinc-400">Current Occupation</label>
+                                <input 
+                                    name="occupation" 
+                                    type="text" 
+                                    value={formData.occupation}
+                                    onChange={handleChange}
+                                    placeholder="e.g. Freelance Writer" 
+                                    className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                                />
+                             </div>
+                         </div>
+                         
+                         <div className="space-y-1">
+                            <label className="text-xs font-medium text-zinc-400">Location</label>
+                            <input 
+                                name="location" 
+                                type="text" 
+                                value={formData.location}
+                                onChange={handleChange}
+                                placeholder="e.g. London, UK" 
+                                className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                            />
                          </div>
                          <div className="space-y-1">
                             <label className="text-xs font-medium text-zinc-400">Email Address</label>
@@ -202,11 +414,23 @@ export default function ProfilePage() {
                          </div>
                          <div className="space-y-1">
                             <label className="text-xs font-medium text-zinc-400">Bio</label>
-                            <textarea name="bio" rows={4} className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50 text-sm" placeholder="Tell us about yourself..."></textarea>
+                            <textarea 
+                                name="bio" 
+                                rows={4} 
+                                value={formData.bio}
+                                onChange={handleChange}
+                                className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50 text-sm" 
+                                placeholder="Tell us about yourself..."
+                            ></textarea>
                          </div>
                          <div className="pt-4 flex justify-end">
-                             <Button variant="primary" disabled={isLoading}>
-                                 {isLoading ? 'Saving...' : 'Save Changes'}
+                             <Button 
+                                variant="primary" 
+                                disabled={!isDirty || loading}
+                                type="submit"
+                                className={!isDirty || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                             >
+                                 {loading ? 'Saving...' : 'Save Changes'}
                              </Button>
                          </div>
                     </form>
@@ -214,29 +438,66 @@ export default function ProfilePage() {
 
                 <div className="bg-card border border-white/5 rounded-xl p-6 bg-[#0D0D0D]">
                     <h3 className="text-lg font-bold text-white mb-6 border-b border-white/5 pb-4">Security</h3>
-                    <form className="space-y-4">
+                    <div className="space-y-4">
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-zinc-400">Current Password</label>
-                            <input type="password" placeholder="••••••••" className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" />
+                            <input 
+                                name="currentPassword"
+                                type="password" 
+                                value={passwordData.currentPassword}
+                                onChange={handlePassChange}
+                                placeholder="••••••••" 
+                                className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                            />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div className="space-y-1">
                                 <label className="text-xs font-medium text-zinc-400">New Password</label>
-                                <input type="password" placeholder="New password" className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" />
+                                <input 
+                                    name="newPassword"
+                                    type="password" 
+                                    value={passwordData.newPassword}
+                                    onChange={handlePassChange}
+                                    placeholder="New password" 
+                                    className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                                />
                              </div>
                              <div className="space-y-1">
                                 <label className="text-xs font-medium text-zinc-400">Confirm Password</label>
-                                <input type="password" placeholder="Confirm password" className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" />
+                                <input 
+                                    name="confirmPassword"
+                                    type="password" 
+                                    value={passwordData.confirmPassword}
+                                    onChange={handlePassChange}
+                                    placeholder="Confirm password" 
+                                    className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50" 
+                                />
                              </div>
                         </div>
                          <div className="pt-4 flex justify-between items-center">
-                             <button type="button" className="text-xs text-red-500 hover:text-red-400 font-medium">Deactivate Account</button>
-                             <Button variant="outline">Update Password</Button>
+                             <button 
+                                type="button" 
+                                onClick={handleDeactivateAccount}
+                                className="text-xs text-red-500 hover:text-red-400 font-medium cursor-pointer hover:underline transition-all"
+                             >
+                                Deactivate Account
+                             </button>
+                             <Button 
+                                variant="outline" 
+                                onClick={handlePasswordUpdate}
+                                disabled={passLoading}
+                                className="cursor-pointer"
+                             >
+                                 {passLoading ? 'Updating...' : 'Update Password'}
+                             </Button>
                          </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
     </Container>
   );
 }
+
+
+

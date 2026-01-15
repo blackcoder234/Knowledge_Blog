@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Inter, Space_Grotesk } from 'next/font/google'
 import "./globals.css";
 import { AuthProvider } from "./providers";
+import { ToastProvider } from "./context/ToastContext";
 import { VisitorTracker } from "./components/VisitorTracker";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -25,8 +26,10 @@ export default function RootLayout({
         className={`${inter.variable} ${spaceGrotesk.variable} antialiased font-sans bg-background text-white`}
       >
         <AuthProvider>
-          <VisitorTracker />
-          {children}
+          <ToastProvider>
+            <VisitorTracker />
+            {children}
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

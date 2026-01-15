@@ -8,9 +8,10 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    // Check if admin
-    if (!session || (session.user as any).role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check if admin OR super_admin
+    const userRole = (session?.user as any)?.role;
+    if (!session || !['admin', 'super_admin'].includes(userRole)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     await dbConnect();

@@ -4,11 +4,20 @@ import User from '@/models/User';
 import Post from '@/models/Post';
 import Subscriber from '@/models/Subscriber';
 import Visitor from '@/models/Visitor';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const userRole = (session?.user as any)?.role;
+
+    if (!session || !['admin', 'super_admin'].includes(userRole)) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
     await dbConnect();
 
     // 1. Fetch Key Metrics

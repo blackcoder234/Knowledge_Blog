@@ -17,10 +17,20 @@ export default withAuth(
     }
 
     if (isAdminPage && !isUnauthorizedPage) {
+        // [MODIFICATION] Strict check: Don't redirect if we are already on the admin login page!
+        const isAdminLoginPage = req.nextUrl.pathname === '/admin/login';
+
+        if (isAdminLoginPage) {
+             // If we are already on the login page, just let it load.
+             // (Optionally, if they are already logged in, we could redirect to dashboard here, but let's keep it simple)
+             return null;
+        }
+
         if (!isAuth) {
             // If trying to access admin page while not logged in, redirect to login with callback
             const from = req.nextUrl.pathname;
-            return NextResponse.redirect(new URL(`/login?callbackUrl=${from}`, req.url));
+            // Redirect to ADMIN login, not user login
+            return NextResponse.redirect(new URL(`/admin/login?callbackUrl=${from}`, req.url));
         }
         
         const role = token?.role as string;

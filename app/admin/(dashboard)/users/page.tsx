@@ -3,11 +3,13 @@
 import { Button } from '../../../components/ui/Button';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useToast } from '@/app/context/ToastContext';
 
 const UsersPage = () => {
     const { data: session } = useSession();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const { showToast } = useToast();
 
     const fetchUsers = async () => {
         try {
@@ -36,11 +38,12 @@ const UsersPage = () => {
             const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 setUsers(users.filter(u => u._id !== id));
+                showToast('User deleted successfully', 'success');
             } else {
-                alert('Failed to delete user');
+                showToast('Failed to delete user', 'error');
             }
         } catch (error) {
-            alert('Something went wrong');
+            showToast('Something went wrong', 'error');
         }
     };
 
@@ -55,11 +58,12 @@ const UsersPage = () => {
             });
             if (res.ok) {
                  setUsers(users.map(u => u._id === id ? { ...u, role: newRole } : u));
+                 showToast('Role updated successfully', 'success');
             } else {
-                alert('Failed to update role');
+                showToast('Failed to update role', 'error');
             }
         } catch (error) {
-             alert('Something went wrong');
+             showToast('Something went wrong', 'error');
         }
     };
 
@@ -174,18 +178,34 @@ const UsersPage = () => {
                                                 {isSuperAdmin && <option value="super_admin">Super Admin</option>}
                                              </select>
                                             
-                                            {/* Only Super Admin can delete users (or stricter policy) */}
-                                            {isSuperAdmin && (
-                                                <button 
-                                                    onClick={() => handleDelete(user._id)}
-                                                    className="p-2 hover:bg-red-500/10 rounded-lg text-zinc-400 hover:text-red-500 transition-colors" 
-                                                    title="Delete User"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                    </svg>
-                                                </button>
-                                            )}
+                                            {/* Delete Action Logic */}
+                                            {(() => {
+                                                const targetIsSuper = user.role === 'super_admin';
+                                                const targetIsAdmin = user.role === 'admin';
+                                                
+                                                // 1. Super Admin can delete anyone (except themselves, but UI often allows it, backend blocks. Let's hide for self if possible or just show)
+                                                // 2. Admin can delete User/Editor. Cannot delete Admin/SuperAdmin.
+                                                
+                                                const canDelete = isSuperAdmin || (isAdmin && !targetIsAdmin && !targetIsSuper);
+                                                
+                                                // Prevent deleting yourself visually
+                                                const isSelf = (session?.user as any)?.id === user._id;
+
+                                                if (canDelete && !isSelf) {
+                                                    return (
+                                                        <button 
+                                                            onClick={() => handleDelete(user._id)}
+                                                            className="p-2 hover:bg-red-500/10 rounded-lg text-zinc-400 hover:text-red-500 transition-colors" 
+                                                            title="Delete User"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                            </svg>
+                                                        </button>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
                                         ) : (
                                             <span className="text-xs text-zinc-600 italic">Protected</span>

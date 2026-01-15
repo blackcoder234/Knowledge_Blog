@@ -60,6 +60,7 @@ export const RichTextEditor = ({ value, onChange, onImageUpload }: RichTextEdito
             class: 'prose prose-invert max-w-none focus:outline-none min-h-[500px]',
         },
     },
+    immediatelyRender: false, // Fix for SSR hydration mismatch
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },

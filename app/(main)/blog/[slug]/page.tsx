@@ -33,6 +33,9 @@ async function getRelatedPosts(category: string, currentId: any) {
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
+import { NewsletterForm } from "@/app/components/NewsletterForm";
+import Subscriber from "@/models/Subscriber";
+
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const post = await getPost(slug);
@@ -43,6 +46,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const session = await getServerSession(authOptions);
   const isAdmin = (session?.user as any)?.role === 'admin';
+
+  let initialEmail = '';
+  let isSubscribed = false;
+
+  if (session?.user?.email) {
+      initialEmail = session.user.email;
+      // Check if already subscribed
+      await dbConnect();
+      const sub = await Subscriber.findOne({ email: initialEmail });
+      if (sub) {
+          isSubscribed = true;
+      }
+  }
 
   const relatedPosts = await getRelatedPosts(post.category, post._id);
 
@@ -141,10 +157,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     <div className="rounded-xl border border-white/10 bg-gradient-to-b from-card to-zinc-900 p-6 text-center">
                          <h4 className="text-xl font-bold text-white mb-2">Subscribe to News</h4>
                          <p className="text-sm text-muted mb-6">Get the latest posts delivered to your email.</p>
-                         <input type="email" placeholder="Your email" className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 mb-3 text-sm focus:outline-none focus:border-accent" />
-                         <Button variant="primary" className="w-full">
-                            Subscribe
-                         </Button>
+                         <NewsletterForm initialEmail={initialEmail} isSubscribed={isSubscribed} />
                     </div>
                 </aside>
             </div>

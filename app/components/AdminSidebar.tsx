@@ -92,9 +92,16 @@ export const AdminSidebar = () => {
                     <span>AD</span>
                 )}
             </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{session?.user?.name || 'Admin User'}</p>
-                <p className="text-xs text-zinc-500 truncate">{session?.user?.email || 'admin@knowologelog.com'}</p>
+            <div className="flex-1 min-w-0 group">
+                <Link href={`/profile/${(session?.user as any)?.id}`} className="block">
+                    <p className="text-sm font-medium text-white truncate group-hover:text-accent transition-colors">{session?.user?.name || 'Admin User'}</p>
+                    <p className="text-xs text-zinc-500 truncate">{session?.user?.email || 'admin@knowologelog.com'}</p>
+                    {(session?.user as any)?.role === 'super_admin' && (
+                        <span className="inline-block mt-1 text-[10px] bg-red-500/20 text-red-500 px-1.5 rounded font-bold uppercase tracking-wider border border-red-500/20">
+                            Super Admin
+                        </span>
+                    )}
+                </Link>
             </div>
             <button 
                 onClick={() => signOut({ callbackUrl: '/admin/login' })}

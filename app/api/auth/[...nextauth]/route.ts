@@ -24,21 +24,9 @@ export const authOptions: NextAuthOptions = {
                 password: { label: "Password", type: "password" }
             },
             async authorize(credentials, req) {
-                // 1. Check for hardcoded admin first (Optional, but good for failsafe)
-                const adminEmail = process.env.ADMIN_EMAIL;
-                if (credentials?.email === adminEmail && credentials?.password === process.env.ADMIN_PASSWORD) {
-                    return {
-                        id: "super-admin-id",
-                        name: "Super Admin",
-                        email: adminEmail,
-                        image: "https://placehold.co/100x100/FF0000/FFF?text=SA",
-                        role: "super_admin"
-                    };
-                }
-
-                // 2. Check Database for normal users
                 await dbConnect();
                 
+                // 1. Check Database
                 const user = await User.findOne({ email: credentials?.email });
                 if (!user) {
                     throw new Error("Invalid email or password");
@@ -65,7 +53,7 @@ export const authOptions: NextAuthOptions = {
         })
     ],
     pages: {
-        signIn: "/login", // We will use the main login page now
+        signIn: "/login",
         error: "/login",
     },
     callbacks: {
@@ -80,7 +68,7 @@ export const authOptions: NextAuthOptions = {
                             name: user.name,
                             email: user.email,
                             image: user.image,
-                            role: 'user', // Default role
+                            role: 'user', 
                         });
                     }
                     return true;
@@ -91,27 +79,27 @@ export const authOptions: NextAuthOptions = {
             }
             return true;
         },
-        async jwt({ token, user, account }: any) {
+        async jwt({ token, user, trigger, session }: any) {
+            // Initial Sign In
             if (user) {
-                // For credentials, user already has role from authorize
-                if (user.role) {
-                     token.role = user.role;
-                     token.id = user.id;
-                } 
-                // For social, we need to fetch it (or it was just created)
-                else if (user.email) {
-                    await dbConnect();
-                    const dbUser = await User.findOne({ email: user.email });
-                    if (dbUser) {
-                        token.role = dbUser.role;
-                        token.id = dbUser._id.toString();
-                    }
-                }
+                token.role = user.role;
+                token.id = user.id;
             }
+
+            // Sync with DB on every check
+            if (token.email) {
+                 await dbConnect();
+                 const dbUser = await User.findOne({ email: token.email });
+                 if (dbUser) {
+                     token.role = dbUser.role;
+                     token.id = dbUser._id.toString();
+                 }
+            }
+
             return token;
         },
         async session({ session, token }: any) {
-            if (session?.user) {
+             if (session?.user) {
                 (session.user as any).role = token.role;
                 (session.user as any).id = token.id;
             }
