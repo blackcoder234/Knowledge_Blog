@@ -1,35 +1,73 @@
 "use client";
 
-import { useState } from 'react';
-import { Button } from './ui/Button';
+import { useState } from "react";
+import { Button } from "./ui/Button";
+
+import { useToast } from "../context/ToastContext";
 
 export const ContactForm = () => {
+  const { showToast } = useToast();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    subject: '',
-    message: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    subject: "",
+    message: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Handle form submission logic here
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        showToast("Message sent successfully!", "success");
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        showToast("Failed to send message. Please try again.", "error");
+      }
+    } catch (error) {
+      showToast("Something went wrong.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const inputClasses = "w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-accent/50 transition-colors";
+  const inputClasses =
+    "w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-accent/50 transition-colors";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1">
-          <label htmlFor="firstName" className="block text-sm font-medium text-zinc-400 mb-1.5">First Name</label>
+          <label
+            htmlFor="firstName"
+            className="block text-sm font-medium text-zinc-400 mb-1.5"
+          >
+            First Name
+          </label>
           <input
             type="text"
             id="firstName"
@@ -42,7 +80,12 @@ export const ContactForm = () => {
           />
         </div>
         <div className="flex-1">
-          <label htmlFor="lastName" className="block text-sm font-medium text-zinc-400 mb-1.5">Last Name</label>
+          <label
+            htmlFor="lastName"
+            className="block text-sm font-medium text-zinc-400 mb-1.5"
+          >
+            Last Name
+          </label>
           <input
             type="text"
             id="lastName"
@@ -57,7 +100,12 @@ export const ContactForm = () => {
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-zinc-400 mb-1.5">Email</label>
+        <label
+          htmlFor="email"
+          className="block text-sm font-medium text-zinc-400 mb-1.5"
+        >
+          Email
+        </label>
         <input
           type="email"
           id="email"
@@ -71,7 +119,12 @@ export const ContactForm = () => {
       </div>
 
       <div>
-        <label htmlFor="subject" className="block text-sm font-medium text-zinc-400 mb-1.5">Subject</label>
+        <label
+          htmlFor="subject"
+          className="block text-sm font-medium text-zinc-400 mb-1.5"
+        >
+          Subject
+        </label>
         <select
           id="subject"
           name="subject"
@@ -80,7 +133,9 @@ export const ContactForm = () => {
           className={`${inputClasses} appearance-none`}
           required
         >
-          <option value="" disabled>Select a subject</option>
+          <option value="" disabled>
+            Select a subject
+          </option>
           <option value="general">General Inquiry</option>
           <option value="support">Technical Support</option>
           <option value="collaboration">Collaboration</option>
@@ -89,7 +144,12 @@ export const ContactForm = () => {
       </div>
 
       <div>
-        <label htmlFor="message" className="block text-sm font-medium text-zinc-400 mb-1.5">Message</label>
+        <label
+          htmlFor="message"
+          className="block text-sm font-medium text-zinc-400 mb-1.5"
+        >
+          Message
+        </label>
         <textarea
           id="message"
           name="message"
@@ -102,8 +162,13 @@ export const ContactForm = () => {
         />
       </div>
 
-      <Button variant="primary" size="lg" className="mt-2 w-full md:w-auto">
-        Send Message
+      <Button
+        variant="primary"
+        size="lg"
+        className="mt-2 w-full md:w-auto"
+        disabled={loading}
+      >
+        {loading ? "Sending..." : "Send Message"}
       </Button>
     </form>
   );

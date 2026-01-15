@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Inter, Space_Grotesk } from 'next/font/google'
+import { Inter, Space_Grotesk, Lora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./providers";
 import { ToastProvider } from "./context/ToastContext";
 import { VisitorTracker } from "./components/VisitorTracker";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' })
-
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space",
+});
+const lora = Lora({ subsets: ["latin"], variable: "--font-lora" });
 
 export const metadata: Metadata = {
   title: "KnowledgeLog - Tech & Future Blog",
-  description: "A fullstack blog website for sharing knowledge about the future of technology, AI, and science.",
+  description:
+    "A fullstack blog website for sharing knowledge about the future of technology, AI, and science.",
 };
 
 export default function RootLayout({
@@ -23,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} antialiased font-sans bg-background text-white`}
+        className={`${inter.variable} ${spaceGrotesk.variable} ${lora.variable} antialiased font-sans bg-background text-white`}
       >
         <AuthProvider>
           <ToastProvider>

@@ -11,237 +11,231 @@ import Subscriber from "@/models/Subscriber";
 
 // Fetch posts for the landing page
 async function getLandingData() {
-    await dbConnect();
-    
-    // Featured: Latest published featured post
-    const featured = await Post.findOne({ featured: true })
-        .sort({ createdAt: -1 })
-        .populate('author', 'name image')
-        .lean();
+  await dbConnect();
 
-    // Latest: 6 latest published posts (excluding the featured one if it exists)
-    const query: any = {};
-    if (featured) {
-        query._id = { $ne: featured._id };
-    }
+  // Latest: 3 latest published posts (no featured logic needed per new design)
+  const latest = await Post.find({})
+    .sort({ createdAt: -1 })
+    .limit(3)
+    .populate("author", "name image")
+    .lean();
 
-    const latest = await Post.find(query)
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .populate('author', 'name image')
-        .lean();
-
-    return { 
-        featured: featured ? {
-            ...featured,
-            _id: featured._id.toString(),
-            createdAt: featured.createdAt.toISOString(),
-            author: { 
-                name: featured.author?.name || 'Unknown', 
-                image: featured.author?.image || '/placeholder-user.jpg' 
-            }
-        } : null,
-        latest: latest.map((p: any) => ({
-            ...p,
-            _id: p._id.toString(),
-            createdAt: p.createdAt.toISOString(),
-            author: { 
-                name: p.author?.name || 'Unknown', 
-                image: p.author?.image || '/placeholder-user.jpg' 
-            }
-        }))
-    };
+  return {
+    latest: latest.map((p: any) => ({
+      ...p,
+      _id: p._id.toString(),
+      createdAt: p.createdAt.toISOString(),
+      author: {
+        name: p.author?.name || "Unknown",
+        image: p.author?.image || "/placeholder-user.jpg",
+      },
+    })),
+  };
 }
 
 export const revalidate = 60; // Revalidate every minute
 
 export default async function LandingPage() {
-  const { featured, latest } = await getLandingData();
+  const { latest } = await getLandingData();
 
   // Check session for newsletter pre-filling
   const session = await getServerSession(authOptions);
-  let initialEmail = '';
+  let initialEmail = "";
   let isSubscribed = false;
 
   if (session?.user?.email) {
-      initialEmail = session.user.email;
-      // Check if already subscribed
-      await dbConnect();
-      const sub = await Subscriber.findOne({ email: initialEmail });
-      if (sub) {
-          isSubscribed = true;
-      }
+    initialEmail = session.user.email;
+    await dbConnect();
+    const sub = await Subscriber.findOne({ email: initialEmail });
+    if (sub) {
+      isSubscribed = true;
+    }
   }
 
   return (
     <div className="bg-background min-h-screen">
-        
-        {/* Full-screen Hero Section */}
-        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-            {/* Background Effects */}
-            <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-[#000] to-[#000] opacity-80"></div>
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-                {/* Animated Grid or Particles could go here */}
+      {/* 1. Balanced Hero Section (Text Left, Visual Right) */}
+      {/* 1. Balanced Hero Section (Text Left, Visual Right) */}
+      <section className="relative pt-20 pb-20 md:pt-32 md:pb-32 border-b border-white/5 overflow-hidden">
+        <Container>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8 z-10">
+              <h1 className="text-5xl md:text-7xl font-serif font-medium text-white tracking-tight leading-[1.1]">
+                Perspectives on the <br />
+                <span className="italic text-zinc-400">future directly.</span>
+              </h1>
+
+              <p className="text-lg md:text-xl text-zinc-400 max-w-lg leading-relaxed font-light">
+                A collection of essays and notes on{" "}
+                <span className="text-zinc-200">Technology</span>,{" "}
+                <span className="text-zinc-200">Science</span>, and{" "}
+                <span className="text-zinc-200">Culture</span>. Deep dives into
+                the ideas shaping our world.
+              </p>
+
+              <div className="flex flex-wrap gap-4">
+                <Link href="/blog">
+                  <Button
+                    size="lg"
+                    className="h-14 px-8 rounded-full text-lg bg-white text-black hover:bg-zinc-200 font-medium tracking-wide transition-all"
+                  >
+                    Start Reading
+                  </Button>
+                </Link>
+              </div>
             </div>
 
-            <Container className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div className="space-y-8 text-center lg:text-left">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold uppercase tracking-widest animate-fade-in-up">
-                        <span className="w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-                        The Future of Tech
-                    </div>
-                    
-                    <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[1.1]">
-                        Explore the <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-yellow-200">Frontier</span> of Human Knowledge.
-                    </h1>
-                    
-                    <p className="text-lg md:text-xl text-zinc-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                        Daily deep dives into Artificial Intelligence, Quantum Mechanics, and Astrophysics. Curated for the curious mind.
-                    </p>
-                    
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                        <Link href="/blog">
-                             <Button size="lg" className="w-full sm:w-auto px-8 py-6 text-lg">
-                                Start Reading
-                            </Button>
-                        </Link>
-                         <Link href="/about">
-                             <Button variant="outline" size="lg" className="w-full sm:w-auto px-8 py-6 text-lg">
-                                About Us
-                            </Button>
-                         </Link>
-                    </div>
+            {/* Right Side Visual - Abstract Tech/Organic Image */}
+            <div className="relative h-[400px] md:h-[600px] w-full hidden lg:block">
+              <div className="absolute inset-0 bg-gradient-to-tr from-accent/10 to-transparent rounded-full blur-[100px] -z-10"></div>
+              <Image
+                src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop"
+                alt="Abstract Form"
+                fill
+                className="object-contain opacity-90 grayscale hover:grayscale-0 transition-all duration-1000"
+                priority
+              />
+            </div>
+          </div>
+        </Container>
+      </section>
 
-                    <div className="pt-8 flex items-center justify-center lg:justify-start gap-4 text-xs text-zinc-500 font-medium tracking-wide uppercase">
-                        <span>Trusted by engineers at</span>
-                        <div className="h-px w-8 bg-zinc-800"></div>
-                        <span className="text-zinc-400">Google</span>
-                        <span className="text-zinc-400">SpaceX</span>
-                        <span className="text-zinc-400">MIT</span>
-                    </div>
-                </div>
+      {/* 2. Topics Strip (Interactive Pills) */}
+      <section className="border-b border-white/5 bg-[#050505]">
+        <Container>
+          <div className="py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+            <span className="text-sm font-medium text-zinc-500 uppercase tracking-widest">
+              Browse by Topic:
+            </span>
+            <div className="flex flex-wrap justify-center gap-3">
+              {[
+                { name: "Technology", icon: "⚡" },
+                { name: "Science", icon: "🧬" },
+                { name: "Culture", icon: "🗣️" },
+                { name: "Philosophy", icon: "👁️" },
+              ].map((topic) => (
+                <Link
+                  key={topic.name}
+                  href={`/blog?genre=${topic.name}`}
+                  className="group flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/10 hover:border-accent/50 bg-[#0A0A0A] hover:bg-accent/10 transition-all"
+                >
+                  <span className="text-base group-hover:scale-110 transition-transform">
+                    {topic.icon}
+                  </span>
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white">
+                    {topic.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <Link
+              href="/blog"
+              className="text-xs text-accent hover:underline decoration-accent underline-offset-4 uppercase tracking-widest font-bold"
+            >
+              View All Categories &rarr;
+            </Link>
+          </div>
+        </Container>
+      </section>
 
-                {/* Hero Feature Card (Glassmorphism) */}
-                <div className="relative hidden lg:block perspective-1000 group">
-                     <div className="absolute -inset-1 bg-gradient-to-r from-accent to-purple-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                     {featured ? (
-                         <Link href={`/blog/${featured.slug}`} className="block relative bg-[#0D0D0D] border border-white/10 rounded-2xl overflow-hidden hover:transform hover:scale-[1.02] transition-all duration-500 shadow-2xl">
-                            <div className="relative h-64 w-full">
-                                <Image src={featured.image} alt={featured.title} fill className="object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
-                                <div className="absolute top-4 left-4 bg-accent text-black text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                                    Featured
-                                </div>
-                            </div>
-                            <div className="p-8">
-                                <h3 className="text-2xl font-bold text-white mb-4 line-clamp-2 leading-tight group-hover:text-accent transition-colors">
-                                    {featured.title}
-                                </h3>
-                                <p className="text-zinc-400 line-clamp-3 mb-6">
-                                    {featured.excerpt}
-                                </p>
-                                <div className="flex items-center gap-3">
-                                    <div className="h-8 w-8 rounded-full overflow-hidden bg-zinc-800">
-                                         <Image src={featured.author.image} alt={featured.author.name} width={32} height={32} className="object-cover" />
-                                    </div>
-                                    <div className="text-xs">
-                                        <p className="text-white font-medium">{featured.author.name}</p>
-                                        <p className="text-zinc-500">{new Date(featured.createdAt).toLocaleDateString()}</p>
-                                    </div>
-                                </div>
-                            </div>
-                         </Link>
-                     ) : (
-                         <div className="h-96 w-full flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl">
-                             <p className="text-zinc-500">No featured posts yet.</p>
-                         </div>
-                     )}
-                </div>
-            </Container>
-        </section>
+      {/* 3. Latest 3 Articles (Full Color, Clean Grid) */}
+      <section className="py-24 bg-[#0A0A0A]">
+        <Container>
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+            <div>
+              <span className="text-accent text-xs font-bold uppercase tracking-widest mb-2 block">
+                Recently Published
+              </span>
+              <h2 className="text-3xl md:text-5xl font-serif text-white tracking-tight">
+                Latest <span className="text-zinc-500 italic">Writing</span>
+              </h2>
+            </div>
+            <Link
+              href="/blog"
+              className="px-6 py-2 rounded-full border border-white/10 text-sm font-medium text-white hover:bg-white hover:text-black transition-all"
+            >
+              View Archive &rarr;
+            </Link>
+          </div>
 
-        {/* Latest Articles Section */}
-        <section className="py-24 border-t border-white/5 bg-[#0A0A0A]">
-            <Container>
-                <div className="flex justify-between items-end mb-16">
-                    <div>
-                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">Latest Insights</h2>
-                        <p className="text-zinc-400">Fresh thinking from our editorial team.</p>
-                    </div>
-                    <Link href="/blog" className="hidden md:flex items-center text-accent hover:text-white transition-colors text-sm font-bold uppercase tracking-widest gap-2">
-                        View All Posts 
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                    </Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {latest.map((post: any) => (
+              <Link
+                key={post._id}
+                href={`/blog/${post.slug}`}
+                className="group block"
+              >
+                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl mb-6 bg-zinc-900 border border-white/5 shadow-2xl">
+                  <Image
+                    src={post.image}
+                    alt={post.title}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  {/* Category Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 bg-black/60 backdrop-blur-md text-[10px] uppercase font-bold text-white border border-white/10 rounded-full shadow-lg">
+                      {post.category}
+                    </span>
+                  </div>
                 </div>
+                <div>
+                  <div className="flex items-center gap-3 text-xs text-zinc-500 mb-3 font-medium">
+                    <span className="text-accent">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-zinc-700"></span>
+                    <span>{post.readTime || "5 min read"}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-white group-hover:text-accent transition-colors leading-tight mb-3">
+                    {post.title}
+                  </h3>
+                  <p className="text-sm text-zinc-400 line-clamp-2 leading-relaxed">
+                    {post.excerpt}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Container>
+      </section>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {latest.map((post: any) => (
-                        <Link key={post._id} href={`/blog/${post.slug}`} className="group block bg-[#121212] border border-white/5 rounded-xl overflow-hidden hover:border-accent/30 transition-all duration-300">
-                            <div className="relative h-56 w-full overflow-hidden">
-                                <Image 
-                                    src={post.image} 
-                                    alt={post.title} 
-                                    fill 
-                                    className="object-cover transform group-hover:scale-110 transition duration-700" 
-                                />
-                                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
-                                <div className="absolute top-4 left-4">
-                                     <span className="px-2 py-1 bg-black/80 backdrop-blur text-[10px] font-bold text-white uppercase tracking-wider rounded border border-white/10">
-                                        {post.category}
-                                     </span>
-                                </div>
-                            </div>
-                            <div className="p-6">
-                                <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
-                                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                                    <span>•</span>
-                                    <span>{post.readTime || '5 min read'}</span>
-                                </div>
-                                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-accent transition-colors leading-snug">
-                                    {post.title}
-                                </h3>
-                                <p className="text-sm text-zinc-400 line-clamp-2">
-                                    {post.excerpt}
-                                </p>
-                            </div>
-                        </Link>
-                    ))}
-                    {latest.length === 0 && (
-                         <div className="col-span-3 text-center py-20 bg-white/5 border border-white/10 rounded-lg">
-                             <p className="text-zinc-500">No posts found.</p>
-                         </div>
-                    )}
-                </div>
+      {/* 4. Impact / Stats Section (New) */}
+      {/* 4. Purpose / Mission Statement (Replaces Stats) */}
+      <section className="py-24 border-y border-white/5 bg-[#050505]">
+        <Container>
+          <div className="max-w-3xl mx-auto text-center space-y-8">
+            <h3 className="text-2xl md:text-3xl font-serif leading-relaxed text-zinc-200">
+              "KnowledgeLog exists to separate signal from noise. We explore the
+              intersections of logic and creativity, bringing you thoughtful
+              analysis on the things that matter."
+            </h3>
+            <div className="w-16 h-px bg-accent/50 mx-auto"></div>
+          </div>
+        </Container>
+      </section>
 
-                <div className="mt-12 text-center md:hidden">
-                    <Link href="/blog">
-                         <Button variant="outline" className="w-full">View All Posts</Button>
-                    </Link>
-                </div>
-            </Container>
-        </section>
+      {/* 5. Newsletter Section (Clean & Minimal) */}
+      <section
+        id="newsletter"
+        className="py-32 border-t border-white/5 bg-black relative overflow-hidden"
+      >
+        <Container className="relative z-10 max-w-2xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-serif text-white mb-6">
+            Weekly Digest
+          </h2>
+          <p className="text-base text-zinc-400 mb-10 leading-relaxed font-light">
+            One email per week. No algorithms, just new ideas.
+          </p>
 
-        {/* Newsletter Section */}
-        <section className="py-24 border-t border-white/5 bg-[#000000] relative overflow-hidden">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-accent/5 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <Container className="relative z-10 max-w-4xl mx-auto text-center">
-                <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Stay Ahead of the Curve</h2>
-                <p className="text-lg text-zinc-400 mb-10 max-w-2xl mx-auto">
-                    Get a weekly curation of the most significant breakthroughs in technology and science, delivered straight to your inbox. No spam, ever.
-                </p>
-                
-                <div className="bg-[#121212] border border-white/10 p-2 rounded-xl max-w-md mx-auto relative shadow-2xl">
-                     <NewsletterForm initialEmail={initialEmail} isSubscribed={isSubscribed} />
-                </div>
-
-                <div className="mt-8 text-xs text-zinc-600">
-                    By subscribing, you agree to our Privacy Policy and Terms of Service.
-                </div>
-            </Container>
-        </section>
+          <div className="max-w-md mx-auto">
+            <NewsletterForm
+              initialEmail={initialEmail}
+              isSubscribed={isSubscribed}
+            />
+          </div>
+        </Container>
+      </section>
     </div>
   );
 }

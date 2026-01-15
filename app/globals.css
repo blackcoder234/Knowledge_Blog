@@ -10,6 +10,8 @@
   --border: #262626;
 
   --font-inter: var(--font-inter);
+  --font-space: var(--font-space);
+  --font-lora: var(--font-lora);
 }
 
 @theme inline {
@@ -23,6 +25,8 @@
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: var(--font-lora), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-display: var(--font-space), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
