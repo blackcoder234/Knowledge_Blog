@@ -5,7 +5,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms of Use - KnowledgeLog",
   description:
-    "Read our Terms of Use to understand the rules and regulations for using KnowledgeLog.",
+    "Terms outlining the rules for using KnowledgeLog, including content ownership, user conduct, and liability disclaimers.",
 };
 
 export default function TermsPage() {
@@ -16,93 +16,127 @@ export default function TermsPage() {
           Terms of Use
         </h1>
         <p className="text-zinc-400 mb-12 text-lg">
-          Last Updated: January 1, 2026
+          Last Updated: February 2nd, 2026
         </p>
 
         <div className="prose prose-invert prose-zinc max-w-none">
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              1. Agreement to Terms
+              1. Acceptance of Terms
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              These Terms of Use constitute a legally binding agreement made
-              between you, whether personally or on behalf of an entity (“you”)
-              and KnowledgeLog (“we,” “us” or “our”), concerning your access to
-              and use of the KnowledgeLog website as well as any other media
-              form, media channel, mobile website or mobile application related,
-              linked, or otherwise connected thereto (collectively, the “Site”).
+              By accessing and using <strong>knowledgelog.blog</strong> (the
+              "Site"), you accept and agree to be bound by the terms and
+              provision of this agreement. In addition, when using this Site's
+              particular services, you shall be subject to any posted guidelines
+              or rules applicable to such services.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              2. Intellectual Property Rights
+              2. Intellectual Property
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              Unless otherwise indicated, the Site is our proprietary property
-              and all source code, databases, functionality, software, website
-              designs, audio, video, text, photographs, and graphics on the Site
-              (collectively, the “Content”) and the trademarks, service marks,
-              and logos contained therein (the “Marks”) are owned or controlled
-              by us or licensed to us, and are protected by copyright and
-              trademark laws.
+              <strong>Our Content:</strong> All content published on this Site,
+              including articles, images, logos, graphics, and code, is the
+              intellectual property of KnowledgeLog (or its licensors) and is
+              protected by copyright laws. You may not republish, sell, rent, or
+              sub-license material from the website without our explicit written
+              permission.
+            </p>
+            <p className="text-zinc-300 leading-relaxed">
+              <strong>Your License to Us:</strong> By posting comments or
+              submitting content to the Site, you grant KnowledgeLog a
+              non-exclusive, royalty-free license to use, reproduce, and edit
+              your comments in the context of the discussion threads.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              3. User Representations
+              3. User Conduct
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              By using the Site, you represent and warrant that: (1) all
-              registration information you submit will be true, accurate,
-              current, and complete; (2) you will maintain the accuracy of such
-              information and promptly update such registration information as
-              necessary; (3) you have the legal capacity and you agree to comply
-              with these Terms of Use.
+              If you create an account or post comments, you are responsible for
+              maintaining the security of your account and for all activities
+              that occur under it. You agree NOT to use the Site to:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-zinc-300">
+              <li>
+                Upload or distribute content that is unlawful, defamatory,
+                harassing, abusive, fraudulent, or obscene.
+              </li>
+              <li>Upload viruses or malicious code.</li>
+              <li>
+                Attempt to gain unauthorized access to our servers or user
+                accounts.
+              </li>
+              <li>Engage in spamming or excessive commercial promotion.</li>
+            </ul>
+            <p className="text-zinc-300 leading-relaxed mt-4">
+              We reserve the right to{" "}
+              <strong>terminate or suspend access</strong> to our service
+              immediately, without prior notice or liability, for any reason
+              whatsoever, including without limitation if you breach the Terms.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              4. Prohibited Activities
+              4. Disclaimer of Warranties
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              You may not access or use the Site for any purpose other than that
-              for which we make the Site available. The Site may not be used in
-              connection with any commercial endeavors except those that are
-              specifically endorsed or approved by us.
+              The Site is provided on an "AS IS" and "AS AVAILABLE" basis.
+              KnowledgeLog makes no representations or warranties of any kind,
+              express or implied, as to the operation of the Site or the
+              information, content, materials, or products included on this
+              Site. You expressly agree that your use of this Site is at your
+              sole risk.
+            </p>
+            <p className="text-zinc-300 leading-relaxed">
+              While we strive for accuracy in our editorial content, we do not
+              guarantee that all information is complete, accurate, or
+              up-to-date.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              5. Disclaimer
+              5. Limitation of Liability
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              The site is provided on an as-is and as-available basis. You agree
-              that your use of the site and our services will be at your sole
-              risk. To the fullest extent permitted by law, we disclaim all
-              warranties, express or implied, in connection with the site and
-              your use thereof.
+              In no event shall KnowledgeLog, nor its directors, employees,
+              partners, agents, suppliers, or affiliates, be liable for any
+              indirect, incidental, special, consequential or punitive damages,
+              including without limitation, loss of profits, data, use,
+              goodwill, or other intangible losses, resulting from (i) your
+              access to or use of or inability to access or use the Service;
+              (ii) any conduct or content of any third party on the Service.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              6. Contact Us
+              6. Governing Law
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              In order to resolve a complaint regarding the Site or to receive
-              further information regarding use of the Site, please contact us
-              at:{" "}
-              <a
-                href="mailto:legal@knowledgelog.com"
-                className="text-accent underline"
-              >
-                legal@knowledgelog.com
-              </a>
+              These Terms shall be governed and construed in accordance with the
+              laws of India, without regard to its conflict of law provisions.
             </p>
+          </section>
+
+          <section className="border-t border-white/10 pt-8 mt-12">
+            <h2 className="text-xl font-bold text-white mb-2">Legal Contact</h2>
+            <p className="text-zinc-400">
+              For any legal concerns or notices, please reach out to:
+            </p>
+            <a
+              href="mailto:legal@knowledgelog.blog"
+              className="text-2xl md:text-3xl font-serif text-accent hover:text-white transition-colors mt-4 inline-block"
+            >
+              legal@knowledgelog.blog
+            </a>
           </section>
         </div>
       </Container>

@@ -5,7 +5,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy - KnowledgeLog",
   description:
-    "Read our Privacy Policy to understand how we collect, use, and protect your data.",
+    "Comprehensive details on how KnowledgeLog collects, stores, and protects user data, including Google Auth, newsletter subscriptions, and analytics.",
 };
 
 export default function PrivacyPage() {
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="text-zinc-400 mb-12 text-lg">
-          Last Updated: January 1, 2026
+          Last Updated: February 2nd, 2026
         </p>
 
         <div className="prose prose-invert prose-zinc max-w-none">
@@ -25,102 +25,177 @@ export default function PrivacyPage() {
               1. Introduction
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              Welcome to KnowledgeLog. We respect your privacy and are committed
-              to protecting your personal data. This privacy policy will inform
-              you as to how we look after your personal data when you visit our
-              website (regardless of where you visit it from) and tell you about
-              your privacy rights and how the law protects you.
+              At KnowledgeLog, we prioritize the privacy and security of our
+              readers. This Privacy Policy outlines the types of personal
+              information we collect, how it is used, and the steps we take to
+              safeguard it. By accessing <strong>knowledgelog.blog</strong>, you
+              agree to the practices described in this policy.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              2. The Data We Collect
+              2. Information We Collect
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  A. Information You Voluntarily Provide
+                </h3>
+                <ul className="list-disc pl-6 space-y-2 text-zinc-300">
+                  <li>
+                    <strong>Newsletter Subscription:</strong> When you subscribe
+                    to our weekly digest, we collect your email address to send
+                    you updates. We do not sell this list to third parties.
+                  </li>
+                  <li>
+                    <strong>User Accounts:</strong> If you sign in via Google
+                    Authentication (NextAuth), we collect your name, email
+                    address, and profile picture to create your user profile and
+                    facilitate features like commenting and bookmarking.
+                  </li>
+                  <li>
+                    <strong>Communications:</strong> If you contact us directly
+                    via our contact form, we collect your name, email, and the
+                    contents of your message.
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  B. Information Collected Automatically
+                </h3>
+                <ul className="list-disc pl-6 space-y-2 text-zinc-300">
+                  <li>
+                    <strong>Log Data:</strong> Like most websites, we collect
+                    log files that include IP addresses, browser type, ISP,
+                    date/time stamps, and referring pages. This helps us analyze
+                    trends and improve site performance.
+                  </li>
+                  <li>
+                    <strong>Cookies:</strong> We use cookies to maintain your
+                    session (if logged in) and to remember your preferences. See
+                    our{" "}
+                    <Link
+                      href="/cookies"
+                      className="text-accent hover:underline"
+                    >
+                      Cookie Policy
+                    </Link>{" "}
+                    for more details.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              3. How We Use Your Information
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              We may collect, use, store and transfer different kinds of
-              personal data about you which we have grouped together follows:
+              We use the collected data for the following specific purposes:
             </p>
-            <ul className="list-disc pl-6 space-y-2 text-zinc-300 mb-4">
+            <ul className="list-disc pl-6 space-y-2 text-zinc-300">
+              <li>To provide, operate, and maintain knowledgelog.blog.</li>
               <li>
-                <strong>Identity Data:</strong> includes first name, last name,
-                username or similar identifier.
+                To improve user experience by analyzing how you use our website.
               </li>
               <li>
-                <strong>Contact Data:</strong> includes email address.
+                To communicate with you, specifically via our newsletter (if
+                subscribed) or to respond to inquiries.
               </li>
-              <li>
-                <strong>Technical Data:</strong> includes internet protocol (IP)
-                address, your login data, browser type and version, time zone
-                setting and location, browser plug-in types and versions,
-                operating system and platform.
-              </li>
-              <li>
-                <strong>Usage Data:</strong> includes information about how you
-                use our website, products and services.
-              </li>
+              <li>To prevent fraud and ensure the security of our platform.</li>
             </ul>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              3. How We Use Your Data
+              4. Third-Party Services & Data Sharing
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              We will only use your personal data when the law allows us to.
-              Most commonly, we will use your personal data in the following
-              circumstances:
+              We rely on trusted third-party providers to run our services. We
+              ensure these partners adhere to strict data protection standards:
             </p>
-            <ul className="list-disc pl-6 space-y-2 text-zinc-300 mb-4">
-              <li>To provide the content and services you request.</li>
+            <ul className="list-disc pl-6 space-y-2 text-zinc-300">
               <li>
-                To improve our website, products/services, marketing, and
-                customer relationships.
+                <strong>Google (OAuth):</strong> Used for secure authentication.
+                Their privacy policy applies to your Google account data.
               </li>
-              <li>To manage your account and subscription.</li>
+              <li>
+                <strong>MongoDB (Database):</strong> Used to securely store user
+                profiles, comments, and post data.
+              </li>
+              <li>
+                <strong>Vercel (Hosting):</strong> Our infrastructure provider
+                processing web requests.
+              </li>
             </ul>
-          </section>
-
-          <section className="mb-10">
-            <h2 className="text-2xl font-bold text-white mb-4">4. Cookies</h2>
-            <p className="text-zinc-300 leading-relaxed mb-4">
-              You can set your browser to refuse all or some browser cookies, or
-              to alert you when websites set or access cookies. If you disable
-              or refuse cookies, please note that some parts of this website may
-              become inaccessible or not function properly. For more information
-              about the cookies we use, please see our{" "}
-              <Link href="/cookies" className="text-accent hover:underline">
-                Cookie Policy
-              </Link>
-              .
+            <p className="text-zinc-300 leading-relaxed mt-4">
+              We <strong>never</strong> sell your personal data to advertisers
+              or data brokers.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              5. Data Security
+              5. Data Retention & Deletion
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              We have put in place appropriate security measures to prevent your
-              personal data from being accidentally lost, used or accessed in an
-              unauthorized way, altered or disclosed.
+              We retain your personal information only for as long as is
+              necessary to fulfill the purposes outlined in this Privacy Policy.
             </p>
-          </section>
-
-          <section className="mb-10">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              6. Contact Us
-            </h2>
-            <p className="text-zinc-300 leading-relaxed mb-4">
-              If you have any questions about this privacy policy or our privacy
-              practices, please contact us at:{" "}
+            <p className="text-zinc-300 leading-relaxed">
+              <strong>Right to Forget:</strong> You may request the deletion of
+              your account and associated data (comments, profile info) at any
+              time by contacting us at{" "}
               <a
-                href="mailto:privacy@knowledgelog.com"
+                href="mailto:privacy@knowledgelog.blog"
                 className="text-accent underline"
               >
-                privacy@knowledgelog.com
+                privacy@knowledgelog.blog
               </a>
+              . We will process your request within 30 days.
             </p>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              6. Children's Privacy
+            </h2>
+            <p className="text-zinc-300 leading-relaxed mb-4">
+              KnowledgeLog does not knowingly collect any Personal Identifiable
+              Information from children under the age of 13. If you think that
+              your child provided this kind of information on our website, we
+              strongly encourage you to contact us immediately, and we will do
+              our best efforts to promptly remove such information.
+            </p>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              7. Changes to This Policy
+            </h2>
+            <p className="text-zinc-300 leading-relaxed mb-4">
+              We may update our Privacy Policy from time to time. We will notify
+              you of any changes by posting the new Privacy Policy on this page
+              and updating the "Last Updated" date.
+            </p>
+          </section>
+
+          <section className="border-t border-white/10 pt-8 mt-12">
+            <h2 className="text-xl font-bold text-white mb-2">Contact Us</h2>
+            <p className="text-zinc-400">
+              If you have any questions about this Privacy Policy, please
+              contact us at:
+            </p>
+            <a
+              href="mailto:legal@knowledgelog.blog"
+              className="text-2xl md:text-3xl font-serif text-accent hover:text-white transition-colors mt-4 inline-block"
+            >
+              legal@knowledgelog.blog
+            </a>
           </section>
         </div>
       </Container>

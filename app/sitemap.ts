@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next';
 import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
 
-const BASE_URL = 'https://knowledgelog.com'; // Replace with actual production URL
+const BASE_URL = 'https://knowledgelog.blog'; // Production URL
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await dbConnect();

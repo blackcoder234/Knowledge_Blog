@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     default: "KnowledgeLog - Tech, Science & Culture",
     template: "%s | KnowledgeLog",
   },
+  alternates: {
+    canonical: "./",
+  },
   description:
     "A digital publication decoding the signals in Technology, Science, and Culture. Deep dives into the ideas shaping our world.",
   keywords: [
@@ -30,13 +33,13 @@ export const metadata: Metadata = {
     "blog",
     "analysis",
   ],
-  authors: [{ name: "KnowledgeLog Team", url: "https://knowledgelog.com" }],
+  authors: [{ name: "KnowledgeLog Team", url: "https://knowledgelog.blog" }],
   creator: "KnowledgeLog",
-  metadataBase: new URL("https://knowledgelog.com"),
+  metadataBase: new URL("https://knowledgelog.blog"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://knowledgelog.com",
+    url: "https://knowledgelog.blog",
     title: "KnowledgeLog - Tech, Science & Culture",
     description:
       "A digital publication decoding the signals in Technology, Science, and Culture.",
@@ -61,6 +64,9 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+  },
+  verification: {
+    google: "YOUR_GOOGLE_VERIFICATION_CODE", // Replace this after getting code from GSC
   },
 };
 

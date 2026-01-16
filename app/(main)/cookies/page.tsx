@@ -5,7 +5,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Cookie Policy - KnowledgeLog",
   description:
-    "Learn about how KnowledgeLog uses cookies and similar technologies.",
+    "Explanation of the specific cookies used by KnowledgeLog, primarily for authentication and essential site functionality.",
 };
 
 export default function CookiesPage() {
@@ -16,111 +16,125 @@ export default function CookiesPage() {
           Cookie Policy
         </h1>
         <p className="text-zinc-400 mb-12 text-lg">
-          Last Updated: January 1, 2026
+          Last Updated: February 2nd, 2026
         </p>
 
         <div className="prose prose-invert prose-zinc max-w-none">
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              1. Use of Cookies
+              1. What Are Cookies?
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              A "cookie" is a string of information which assigns you a unique
-              identification that a website stores on your computer. Your
-              browser then provides that unique identification to use each time
-              you submit a query to the Site. We use cookies on the Site to,
-              among other things, keep track of services you have used, record
-              registration information, record your user preferences, keep you
-              logged into the Site, facilitate purchase procedures, and track
-              the pages you visit. Cookies help us understand how the Site is
-              being used and improve your user experience.
+              Cookies are small text files placed on your device by websites you
+              visit. They are widely used to make websites work more efficiently
+              and to provide information to the owners of the site. At
+              KnowledgeLog, we keep our use of cookies to a strict minimum,
+              focusing on functionality rather than tracking.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              2. Types of Cookies
+              2. Cookies We Use
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              The following types of cookies may be used when you visit the
-              Site:
+              We primarily use cookies for{" "}
+              <strong>Essential Functionality</strong>. Here is a breakdown:
             </p>
+
             <div className="space-y-6">
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  Advertising Cookies
+              <div className="bg-zinc-900 border border-white/5 p-6 rounded-xl">
+                <h3 className="text-xl font-bold text-white mb-2 text-accent">
+                  Essential / Strictly Necessary
                 </h3>
-                <p className="text-zinc-300">
-                  Advertisers and ad servers may place cookies on your computer
-                  to display advertisements that are most likely to be of
-                  interest to you. These cookies allow advertisers and ad
-                  servers to gather information about your visits to the Site
-                  and other websites, alternate the ads sent to a specific
-                  computer, and track how often an ad has been viewed and by
-                  whom.
+                <p className="text-zinc-300 mb-4">
+                  These cookies are required for the website to function. They
+                  cannot be switched off.
                 </p>
+                <ul className="list-disc pl-6 space-y-2 text-zinc-400 text-sm">
+                  <li>
+                    <strong className="text-white">
+                      next-auth.session-token
+                    </strong>
+                    : Used by our authentication system to keep you logged in
+                    securely.
+                  </li>
+                  <li>
+                    <strong className="text-white">next-auth.csrf-token</strong>
+                    : Used to prevent Cross-Site Request Forgery (CSRF) attacks,
+                    protecting your account.
+                  </li>
+                  <li>
+                    <strong className="text-white">
+                      next-auth.callback-url
+                    </strong>
+                    : Redirects you to the correct page after you log in.
+                  </li>
+                </ul>
               </div>
-              <div>
+
+              <div className="bg-zinc-900 border border-white/5 p-6 rounded-xl">
                 <h3 className="text-xl font-bold text-white mb-2">
-                  Analytics Cookies
+                  Performance & Analytics (Optional)
                 </h3>
-                <p className="text-zinc-300">
-                  Analytics cookies monitor how users reached the Site, and how
-                  they interact with and move around once on the Site. These
-                  cookies let us know what features on the Site are working the
-                  best and what features on the Site can be improved.
+                <p className="text-zinc-300 mb-4">
+                  We verify site traffic to understand which articles are
+                  popular. We do not use invasive ad-tracking pixels.
                 </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  Personalization Cookies
-                </h3>
-                <p className="text-zinc-300">
-                  Personalization cookies are used to recognize repeat visitors
-                  to the Site. We use these cookies to record your browsing
-                  history, the pages you have visited, and your settings and
-                  preferences each time you visit the Site.
-                </p>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  Security Cookies
-                </h3>
-                <p className="text-zinc-300">
-                  Security cookies help identify and prevent security risks. We
-                  use these cookies to authenticate users and protect user data
-                  from unauthorized parties.
-                </p>
+                <ul className="list-disc pl-6 space-y-2 text-zinc-400 text-sm">
+                  <li>
+                    <strong className="text-white">_vercel_insights</strong>:
+                    Anonymous analytics provided by our hosting platform to
+                    measure site speed and visitor counts.
+                  </li>
+                </ul>
               </div>
             </div>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">
-              3. Control of Cookies
+              3. Managing Cookies
             </h2>
             <p className="text-zinc-300 leading-relaxed mb-4">
-              Most browsers are set to accept cookies by default. However, you
-              can remove or reject cookies in your browser’s settings. Please be
-              aware that such action could affect the availability and
-              functionality of the Site.
+              Most web browsers allow some control of most cookies through the
+              browser settings. To find out more about cookies, including how to
+              see what cookies have been set and how to manage and delete them,
+              visit{" "}
+              <a
+                href="https://www.aboutcookies.org"
+                target="_blank"
+                className="text-accent hover:underline"
+              >
+                www.aboutcookies.org
+              </a>{" "}
+              or{" "}
+              <a
+                href="https://www.allaboutcookies.org"
+                target="_blank"
+                className="text-accent hover:underline"
+              >
+                www.allaboutcookies.org
+              </a>
+              .
+            </p>
+            <p className="text-zinc-300 leading-relaxed">
+              Please note: Deleting the <strong>next-auth.session-token</strong>{" "}
+              cookie will log you out of your account immediately.
             </p>
           </section>
 
-          <section className="mb-10">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              4. Privacy Policy
-            </h2>
-            <p className="text-zinc-300 leading-relaxed mb-4">
-              For more information about how we use information collected by
-              cookies and other tracking technologies, please refer to our{" "}
-              <Link href="/privacy" className="text-accent hover:underline">
-                Privacy Policy
-              </Link>{" "}
-              posted on the Site. This Cookie Policy is part of and is
-              incorporated into our Privacy Policy. By using the Site, you agree
-              to be bound by this Cookie Policy and our Privacy Policy.
+          <section className="border-t border-white/10 pt-8 mt-12">
+            <h2 className="text-xl font-bold text-white mb-2">Questions?</h2>
+            <p className="text-zinc-400">
+              If you have any questions about our use of cookies, please email:
             </p>
+            <a
+              href="mailto:privacy@knowledgelog.blog"
+              className="text-2xl md:text-3xl font-serif text-accent hover:text-white transition-colors mt-4 inline-block"
+            >
+              privacy@knowledgelog.blog
+            </a>
           </section>
         </div>
       </Container>

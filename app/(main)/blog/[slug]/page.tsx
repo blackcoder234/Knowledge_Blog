@@ -13,6 +13,16 @@ import { SocialShare } from "@/app/components/blog/SocialShare";
 import { Metadata } from "next";
 
 export const revalidate = 60;
+export const dynamicParams = true; // Allow new posts not generated at build time
+
+export async function generateStaticParams() {
+  await dbConnect();
+  const posts = await Post.find({}).select("slug").lean();
+
+  return posts.map((post: any) => ({
+    slug: post.slug,
+  }));
+}
 
 export async function generateMetadata({
   params,
@@ -206,7 +216,7 @@ export default async function BlogPostPage({
               </div>
               <div className="flex gap-4">
                 <SocialShare
-                  url={`https://knowledgelog.com/blog/${slug}`}
+                  url={`https://knowledgelog.blog/blog/${slug}`}
                   title={post.title}
                   postId={post._id.toString()}
                   initialLikes={post.likes || 0}

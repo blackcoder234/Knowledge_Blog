@@ -1,7 +1,7 @@
 
 import { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://knowledgelog.com'; // Replace with actual production URL
+const BASE_URL = 'https://knowledgelog.blog'; // Production URL
 
 export default function robots(): MetadataRoute.Robots {
   return {
