@@ -58,7 +58,7 @@ export default function AboutPage() {
             <span className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent font-bold tracking-widest text-xs uppercase border border-accent/20 mb-4">
               The Knowledge Engine
             </span>
-            <h1 className="text-5xl md:text-6xl font-black text-white leading-tight tracking-tight">
+            <h1 className="text-5xl md:text-6xl font-serif font-bold text-white leading-tight tracking-tight">
               A place to write, think, and learn —{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-yellow-500">
                 slowly and clearly.
@@ -114,7 +114,7 @@ export default function AboutPage() {
             </div>
 
             <div className="space-y-8 order-1 lg:order-2">
-              <h2 className="text-4xl font-bold text-white">
+              <h2 className="text-4xl font-serif font-bold text-white">
                 Not a Content Farm. <br />A Sanctuary for Thought.
               </h2>
               <div className="space-y-6 text-zinc-400 text-lg leading-relaxed">
@@ -152,7 +152,7 @@ export default function AboutPage() {
       <section className="py-24 bg-[#080808] border-y border-white/5">
         <Container>
           <div className="mb-16 text-center max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-serif font-bold text-white mb-4">
               How We Think and Write
             </h2>
             <p className="text-zinc-400">
@@ -189,7 +189,7 @@ export default function AboutPage() {
             <span className="text-accent text-xs font-bold uppercase tracking-widest mb-2 block">
               Our Team
             </span>
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 className="text-4xl font-serif font-bold text-white mb-4">
               Meet the Creators
             </h2>
             <p className="text-zinc-400 text-lg">
@@ -283,12 +283,12 @@ export default function AboutPage() {
       {/* 6. Footer CTA Area */}
       <section className="py-24 border-t border-white/5 bg-[#0A0A0A] relative text-center">
         <Container className="relative z-10">
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Read. Learn. Build.
+          <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6">
+            Write. Think. Learn.
           </h2>
           <p className="text-zinc-400 mb-10 max-w-xl mx-auto">
-            Join our newsletter to get the latest posts delivered to your inbox,
-            or explore the archive.
+            Join the conversation. Get the latest essays and notes delivered to
+            your inbox.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link href="/blog">

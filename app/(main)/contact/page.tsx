@@ -13,7 +13,7 @@ export default function ContactPage() {
               Let's Connect
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6 leading-tight">
               Get in Touch with <br /> the{" "}
               <span className="text-accent">Future</span>
             </h1>
@@ -42,7 +42,7 @@ export default function ContactPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-1">
+                  <h3 className="text-lg font-serif font-bold text-white mb-1">
                     Chat to us
                   </h3>
                   <p className="text-muted mb-2 text-sm">
@@ -80,7 +80,7 @@ export default function ContactPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-1">
+                  <h3 className="text-lg font-serif font-bold text-white mb-1">
                     Visit us
                   </h3>
                   <p className="text-muted mb-2 text-sm">
@@ -110,7 +110,9 @@ export default function ContactPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-1">Socials</h3>
+                  <h3 className="text-lg font-serif font-bold text-white mb-1">
+                    Socials
+                  </h3>
                   <div className="flex gap-4 mt-2">
                     {[
                       {

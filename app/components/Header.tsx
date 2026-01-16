@@ -54,9 +54,10 @@ export const Header = () => {
       <Container>
         <div className="flex h-20 items-center justify-between">
           {/* Logo */}
+          {/* Logo */}
           <Link
             href="/"
-            className="text-2xl font-bold tracking-tight text-white z-50 relative"
+            className="text-2xl font-serif font-bold tracking-tight text-white z-50 relative"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             KnowledgeLog

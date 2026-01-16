@@ -10,7 +10,46 @@ import { notFound } from "next/navigation";
 import { CommentsSection } from "@/app/components/blog/CommentsSection";
 import { SocialShare } from "@/app/components/blog/SocialShare";
 
+import { Metadata } from "next";
+
 export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPost(slug);
+
+  if (!post) {
+    return {
+      title: "Article Not Found",
+      description: "The requested article could not be found.",
+    };
+  }
+
+  return {
+    title: post.title,
+    description: post.excerpt || post.title,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      images: [post.image],
+      type: "article",
+      publishedTime: post.createdAt
+        ? new Date(post.createdAt).toISOString()
+        : undefined,
+      authors: [post.author?.name || "KnowledgeLog Team"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+      images: [post.image],
+    },
+  };
+}
 
 // Fetch post by slug
 async function getPost(slug: string) {
@@ -110,7 +149,7 @@ export default async function BlogPostPage({
             )}
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 max-w-4xl leading-tight">
+          <h1 className="text-4xl md:text-6xl font-serif font-medium text-white mb-6 max-w-4xl leading-tight">
             {post.title}
           </h1>
 
@@ -143,12 +182,12 @@ export default async function BlogPostPage({
           {/* Main Content */}
           <article className="lg:col-span-8">
             {/* Intro (Bold) */}
-            <p className="text-xl font-medium text-white mb-8 border-b border-white/10 pb-8">
+            <p className="text-xl font-medium text-white/90 mb-10 border-b border-white/10 pb-10 leading-relaxed">
               {post.excerpt}
             </p>
 
             <div
-              className="prose prose-invert prose-lg max-w-none text-zinc-300 headings:text-white headings:font-bold strong:text-white blockquote:border-l-accent blockquote:bg-white/5 blockquote:py-4 blockquote:pl-6 blockquote:rounded-r-lg code:text-accent code:bg-white/5 code:p-1 code:rounded ProseMirror"
+              className="prose prose-invert prose-lg text-zinc-300 prose-headings:font-serif prose-headings:text-white prose-headings:font-medium prose-strong:text-white prose-blockquote:border-l-accent prose-blockquote:bg-white/5 prose-blockquote:py-4 prose-blockquote:pl-6 prose-blockquote:not-italic prose-code:text-accent prose-code:bg-white/5 prose-code:p-1 prose-code:rounded ProseMirror"
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
@@ -180,32 +219,6 @@ export default async function BlogPostPage({
           </article>
 
           <aside className="lg:col-span-4 space-y-12 h-fit sticky top-24">
-            {/* About Author Widget */}
-            {/* <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-8">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
-                Written By
-              </h4>
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-full border border-white/20 overflow-hidden relative">
-                  <Image
-                    src={post.author.image}
-                    alt={post.author.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <h5 className="text-white font-bold text-lg leading-tight">
-                    {post.author.name}
-                  </h5>
-                  <p className="text-zinc-400 text-xs uppercase tracking-wide font-medium mt-1">
-                    {post.author.role}
-                  </p>
-                </div>
-              </div>
-            </div> */}
-
             {/* Table of Contents */}
             <div className="hidden lg:block">
               <TableOfContents />
@@ -214,7 +227,7 @@ export default async function BlogPostPage({
             {/* Newsletter Widget - Premium Look */}
             <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-zinc-900 to-black p-8 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-accent/10 transition-colors"></div>
-              <h4 className="text-xl font-bold text-white mb-2 font-display relative z-10">
+              <h4 className="text-xl font-serif font-medium text-white mb-2 relative z-10">
                 KnowledgeLog Weekly
               </h4>
               <p className="text-sm text-zinc-400 mb-6 relative z-10 leading-relaxed">

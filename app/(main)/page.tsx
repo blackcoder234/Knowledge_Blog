@@ -13,7 +13,7 @@ import Subscriber from "@/models/Subscriber";
 async function getLandingData() {
   await dbConnect();
 
-  // Latest: 3 latest published posts (no featured logic needed per new design)
+  // Latest: 3 latest published posts
   const latest = await Post.find({})
     .sort({ createdAt: -1 })
     .limit(3)
@@ -54,49 +54,63 @@ export default async function LandingPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      {/* 1. Balanced Hero Section (Text Left, Visual Right) */}
-      {/* 1. Balanced Hero Section (Text Left, Visual Right) */}
-      <section className="relative pt-20 pb-20 md:pt-32 md:pb-32 border-b border-white/5 overflow-hidden">
+      {/* 
+        1) Hero / Editorial Introduction
+        - 2 Column Grid
+        - Updated Image: Abstract Light/Glass
+      */}
+      <section className="relative pt-24 pb-20 md:pt-36 md:pb-32 border-b border-white/5 overflow-hidden">
         <Container>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8 z-10">
-              <h1 className="text-5xl md:text-7xl font-serif font-medium text-white tracking-tight leading-[1.1]">
-                Perspectives on the <br />
-                <span className="italic text-zinc-400">future directly.</span>
+            {/* Left Content */}
+            <div className="z-10 order-2 lg:order-1">
+              <h1 className="text-5xl md:text-7xl font-serif font-medium text-white tracking-tight leading-[1.1] mb-8">
+                Clarity in a generic <br />
+                <span className="italic text-zinc-400">world of noise.</span>
               </h1>
 
-              <p className="text-lg md:text-xl text-zinc-400 max-w-lg leading-relaxed font-light">
-                A collection of essays and notes on{" "}
-                <span className="text-zinc-200">Technology</span>,{" "}
-                <span className="text-zinc-200">Science</span>, and{" "}
-                <span className="text-zinc-200">Culture</span>. Deep dives into
-                the ideas shaping our world.
+              <p className="text-xl md:text-2xl text-zinc-300 font-light leading-relaxed max-w-lg text-balance mb-10">
+                KnowledgeLog explores the intersections of technology, science,
+                and culture. We prioritize depth over speed and explanation over
+                sensation.
               </p>
 
               <div className="flex flex-wrap gap-4">
-                <Link href="/blog">
+                <Link href="#recent-writing">
                   <Button
                     size="lg"
-                    className="h-14 px-8 rounded-full text-lg bg-white text-black hover:bg-zinc-200 font-medium tracking-wide transition-all"
+                    className="rounded-full text-base font-medium px-8"
                   >
                     Start Reading
+                  </Button>
+                </Link>
+                <Link href="/about">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="rounded-full text-base font-medium px-8 border-white/20 hover:bg-white/10"
+                  >
+                    Our Mission
                   </Button>
                 </Link>
               </div>
             </div>
 
-            {/* Right Side Visual - Abstract Tech/Organic Image */}
-            <div className="relative h-[400px] md:h-[600px] w-full hidden lg:block">
-              <div className="absolute inset-0 bg-gradient-to-tr from-accent/10 to-transparent rounded-full blur-[100px] -z-10"></div>
+            {/* Right Image - Conceptual Theme: Abstract Light/Structure */}
+            <div className="relative order-1 lg:order-2 h-[400px] md:h-[500px] w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-accent/5 group">
+              <div className="absolute inset-0 bg-gradient-to-tr from-background/40 via-transparent to-transparent z-10 pointer-events-none"></div>
               <Image
-                src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop"
-                alt="Abstract Form"
+                src="/images/hero_floating_pages.png"
+                alt="Clarity in Noise - Architectural"
                 fill
-                className="object-contain opacity-90 grayscale hover:grayscale-0 transition-all duration-1000"
+                className="object-cover opacity-90 group-hover:scale-110 transition-transform duration-1000 ease-in-out"
                 priority
               />
             </div>
           </div>
+
+          {/* Background Glow */}
+          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[800px] h-[800px] bg-accent/5 rounded-full blur-[120px] -z-10 pointer-events-none opacity-40 mix-blend-screen"></div>
         </Container>
       </section>
 
@@ -200,17 +214,58 @@ export default async function LandingPage() {
         </Container>
       </section>
 
-      {/* 4. Impact / Stats Section (New) */}
-      {/* 4. Purpose / Mission Statement (Replaces Stats) */}
-      <section className="py-24 border-y border-white/5 bg-[#050505]">
+      {/* 4. Philosophy Section */}
+      <section className="py-20 bg-[#050505] border-y border-white/5">
         <Container>
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <h3 className="text-2xl md:text-3xl font-serif leading-relaxed text-zinc-200">
-              "KnowledgeLog exists to separate signal from noise. We explore the
-              intersections of logic and creativity, bringing you thoughtful
-              analysis on the things that matter."
-            </h3>
-            <div className="w-16 h-px bg-accent/50 mx-auto"></div>
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <span className="text-accent text-xs font-bold uppercase tracking-widest">
+              Our Philosophy
+            </span>
+            <p className="text-2xl md:text-3xl font-serif leading-relaxed text-zinc-300 italic">
+              "We believe that understanding the world requires patience. In an
+              age of instant reactions, we choose reflection, clarity, and
+              depth."
+            </p>
+          </div>
+        </Container>
+      </section>
+
+      {/* 5. Impact / Stats Section */}
+      <section className="py-20 border-b border-white/5 bg-[#050505]">
+        <Container>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-white/10">
+            <div className="p-4">
+              <div className="text-4xl md:text-5xl font-black text-white mb-2 font-display">
+                50k+
+              </div>
+              <div className="text-xs text-zinc-500 uppercase tracking-widest font-bold">
+                Monthly Readers
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="text-4xl md:text-5xl font-black text-white mb-2 font-display">
+                120+
+              </div>
+              <div className="text-xs text-zinc-500 uppercase tracking-widest font-bold">
+                Countries Reach
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="text-4xl md:text-5xl font-black text-white mb-2 font-display">
+                500+
+              </div>
+              <div className="text-xs text-zinc-500 uppercase tracking-widest font-bold">
+                Articles Published
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="text-4xl md:text-5xl font-black text-white mb-2 font-display">
+                Top 10
+              </div>
+              <div className="text-xs text-zinc-500 uppercase tracking-widest font-bold">
+                Tech Blogs 2024
+              </div>
+            </div>
           </div>
         </Container>
       </section>
@@ -218,14 +273,13 @@ export default async function LandingPage() {
       {/* 5. Newsletter Section (Clean & Minimal) */}
       <section
         id="newsletter"
-        className="py-32 border-t border-white/5 bg-black relative overflow-hidden"
+        className="py-24 border-t border-white/5 bg-black relative overflow-hidden"
       >
-        <Container className="relative z-10 max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-serif text-white mb-6">
-            Weekly Digest
-          </h2>
-          <p className="text-base text-zinc-400 mb-10 leading-relaxed font-light">
-            One email per week. No algorithms, just new ideas.
+        <Container className="relative z-10 max-w-xl mx-auto text-center">
+          <h2 className="text-3xl font-serif text-white mb-4">Stay Updated</h2>
+          <p className="text-zinc-400 mb-8 font-light leading-relaxed">
+            Join our readership. We send one email per week with our latest
+            essays and notes. No spam, ever.
           </p>
 
           <div className="max-w-md mx-auto">

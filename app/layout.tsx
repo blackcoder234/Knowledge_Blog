@@ -14,9 +14,54 @@ const spaceGrotesk = Space_Grotesk({
 const lora = Lora({ subsets: ["latin"], variable: "--font-lora" });
 
 export const metadata: Metadata = {
-  title: "KnowledgeLog - Tech & Future Blog",
+  title: {
+    default: "KnowledgeLog - Tech, Science & Culture",
+    template: "%s | KnowledgeLog",
+  },
   description:
-    "A fullstack blog website for sharing knowledge about the future of technology, AI, and science.",
+    "A digital publication decoding the signals in Technology, Science, and Culture. Deep dives into the ideas shaping our world.",
+  keywords: [
+    "technology",
+    "science",
+    "culture",
+    "philosophy",
+    "future",
+    "editorial",
+    "blog",
+    "analysis",
+  ],
+  authors: [{ name: "KnowledgeLog Team", url: "https://knowledgelog.com" }],
+  creator: "KnowledgeLog",
+  metadataBase: new URL("https://knowledgelog.com"),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://knowledgelog.com",
+    title: "KnowledgeLog - Tech, Science & Culture",
+    description:
+      "A digital publication decoding the signals in Technology, Science, and Culture.",
+    siteName: "KnowledgeLog",
+    images: [
+      {
+        url: "/images/og-default.jpg",
+        width: 1200,
+        height: 630,
+        alt: "KnowledgeLog - Clarity in a Noise World",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KnowledgeLog - Tech, Science & Culture",
+    description:
+      "A digital publication decoding the signals in Technology, Science, and Culture.",
+    images: ["/images/og-default.jpg"],
+    creator: "@knowledgelog",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

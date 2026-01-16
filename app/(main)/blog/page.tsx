@@ -8,6 +8,14 @@ import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
 import Category from "@/models/Category";
 
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "All Essays & Notes",
+  description:
+    "Browse our complete archive of articles on Technology, Science, and Culture.",
+};
+
 export const revalidate = 0; // Dynamic for search
 
 async function getBlogData(searchParams: {

@@ -10,7 +10,7 @@ export const Footer = () => {
           <div className="flex flex-col gap-4">
             <Link
               href="/"
-              className="text-2xl font-bold tracking-tight text-white mb-2"
+              className="text-2xl font-serif font-bold tracking-tight text-white mb-2"
             >
               KnowledgeLog
             </Link>
@@ -183,6 +183,14 @@ export const Footer = () => {
                   className="hover:text-accent transition-colors"
                 >
                   Terms of Use
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/cookies"
+                  className="hover:text-accent transition-colors"
+                >
+                  Cookie Policy
                 </Link>
               </li>
             </ul>
