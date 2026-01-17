@@ -49,10 +49,10 @@ export default function ContactPage() {
                     Our friendly team is here to help.
                   </p>
                   <a
-                    href="mailto:hello@futuretech.com"
+                    href="mailto:contact.knowledgelog@gmail.com"
                     className="text-white hover:text-accent font-medium transition-colors"
                   >
-                    hello@futuretech.com
+                    contact.knowledgelog@gmail.com
                   </a>
                 </div>
               </div>

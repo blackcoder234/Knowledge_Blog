@@ -132,10 +132,10 @@ export default function TermsPage() {
               For any legal concerns or notices, please reach out to:
             </p>
             <a
-              href="mailto:legal@knowledgelog.blog"
+              href="mailto:contact.knowledgelog@gmail.com"
               className="text-2xl md:text-3xl font-serif text-accent hover:text-white transition-colors mt-4 inline-block"
             >
-              legal@knowledgelog.blog
+              contact.knowledgelog@gmail.com
             </a>
           </section>
         </div>

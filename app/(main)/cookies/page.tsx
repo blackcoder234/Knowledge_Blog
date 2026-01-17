@@ -130,10 +130,10 @@ export default function CookiesPage() {
               If you have any questions about our use of cookies, please email:
             </p>
             <a
-              href="mailto:privacy@knowledgelog.blog"
+              href="mailto:contact.knowledgelog@gmail.com"
               className="text-2xl md:text-3xl font-serif text-accent hover:text-white transition-colors mt-4 inline-block"
             >
-              privacy@knowledgelog.blog
+              contact.knowledgelog@gmail.com
             </a>
           </section>
         </div>
