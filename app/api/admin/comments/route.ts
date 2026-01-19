@@ -31,11 +31,8 @@ export async function GET(req: Request) {
 export async function DELETE(req: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || ((session.user as any).role !== 'admin' && (session.user as any).role !== 'super_admin')) {
-             // Editors can generally view but maybe not delete? 
-             // Industry standard: Editors usually CAN manage comments. I will allow editor.
-             if ((session.user as any).role !== 'editor')
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        if (!session || ((session.user as any).role !== 'admin' && (session.user as any).role !== 'super_admin' && (session.user as any).role !== 'editor')) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
         const { searchParams } = new URL(req.url);
