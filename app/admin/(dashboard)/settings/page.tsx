@@ -1,65 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "../../../components/ui/Button";
-import { useToast } from "../../../context/ToastContext"; // Adjust path if needed
-
-interface SettingsData {
-  siteName: string;
-  tagline: string;
-  maintenanceMode: boolean;
-  postsPerPage: number;
-  seoDescription: string;
-  seoKeywords: string[];
-  socialLinks: {
-    twitter: string;
-    facebook: string;
-    instagram: string;
-    linkedin: string;
-    github: string;
-  };
-}
-
-const DEFAULT_SETTINGS: SettingsData = {
-  siteName: "",
-  tagline: "",
-  maintenanceMode: false,
-  postsPerPage: 10,
-  seoDescription: "",
-  seoKeywords: [],
-  socialLinks: {
-    twitter: "",
-    facebook: "",
-    instagram: "",
-    linkedin: "",
-    github: "",
-  },
-};
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { AlertTriangle, Power, Save, Hammer } from "lucide-react";
+import { useToast } from "@/app/context/ToastContext";
+import { useRouter } from "next/navigation";
+import GlobalLoading from "@/app/loading";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("general");
-  const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  // Use toast safely - if context is missing, we fallback to console/alert
-  // Assuming useToast returns { showToast: (msg, type) => void }
-  const { showToast } = useToast() || { showToast: console.log };
+  const [updating, setUpdating] = useState(false);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   useEffect(() => {
+    if (status === "loading") return;
+
+    const role = (session?.user as any)?.role;
+    if (role !== "admin" && role !== "super_admin") {
+      router.replace("/admin/dashboard");
+      return;
+    }
+
     fetchSettings();
-  }, []);
+  }, [session, status, router]);
 
   const fetchSettings = async () => {
     try {
       const res = await fetch("/api/admin/settings");
       if (res.ok) {
         const data = await res.json();
-        setSettings({
-          ...DEFAULT_SETTINGS, // safety defaults
-          ...data,
-          socialLinks: { ...DEFAULT_SETTINGS.socialLinks, ...data.socialLinks },
-        });
+        setMaintenanceMode(!!data.maintenance_mode);
       }
     } catch (error) {
       console.error("Failed to load settings", error);
@@ -68,267 +41,95 @@ export default function SettingsPage() {
     }
   };
 
-  const handleChange = (field: keyof SettingsData | string, value: any) => {
-    // Handle nested updates for socialLinks
-    if (field.startsWith("socialLinks.")) {
-      const key = field.split(".")[1];
-      setSettings((prev) => ({
-        ...prev,
-        socialLinks: {
-          ...prev.socialLinks,
-          [key]: value,
-        },
-      }));
-    } else {
-      setSettings((prev) => ({ ...prev, [field]: value }));
-    }
-  };
+  const toggleMaintenance = async () => {
+    setUpdating(true);
+    const newValue = !maintenanceMode;
 
-  const handleSave = async () => {
-    setSaving(true);
     try {
       const res = await fetch("/api/admin/settings", {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify({
+          key: "maintenance_mode",
+          value: newValue,
+        }),
       });
 
       if (res.ok) {
-        showToast("Settings updated successfully", "success");
+        setMaintenanceMode(newValue);
+        showToast(
+          newValue ? "Maintenance Mode ENABLED" : "Maintenance Mode DISABLED",
+          "success",
+        );
       } else {
-        throw new Error("Failed to save");
+        throw new Error("Failed to update");
       }
     } catch (error) {
-      showToast("Failed to save settings", "error");
+      showToast("Failed to update settings", "error");
     } finally {
-      setSaving(false);
+      setUpdating(false);
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-zinc-500">Loading settings...</div>;
+    return <GlobalLoading />;
   }
 
   return (
-    <div className="max-w-4xl animate-fade-in font-sans">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-        <p className="text-zinc-400">
-          Configure global site settings and preferences.
+    <div className="p-6 w-full space-y-8 animate-fade-in font-sans min-h-screen max-w-4xl mx-auto">
+      <div className="flex flex-col gap-2 border-b border-zinc-800 pb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
+          <Hammer className="text-zinc-500" />
+          System Settings
+        </h1>
+        <p className="text-zinc-400 text-sm">
+          Manage global application configuration.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Settings Navigation */}
-        <div className="lg:col-span-1">
-          <nav className="flex flex-col space-y-1 sticky top-8">
-            {["General", "SEO & Meta", "Social Links"].map((tab) => {
-              const id = tab
-                .toLowerCase()
-                .replace(/ & /g, "-")
-                .replace(/ /g, "-");
-              return (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === id
-                      ? "bg-cyan-500/10 text-cyan-400"
-                      : "text-zinc-400 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Settings Content */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* General Settings */}
-          <div
-            className={`space-y-6 ${activeTab === "general" ? "block" : "hidden"}`}
-          >
-            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm">
-              <h2 className="text-lg font-bold text-white mb-6 border-b border-zinc-800 pb-4">
-                General Information
-              </h2>
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                    Site Title
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.siteName}
-                    onChange={(e) => handleChange("siteName", e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                    Tagline
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.tagline}
-                    onChange={(e) => handleChange("tagline", e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
-                  />
-                </div>
-              </div>
+      <div className="grid gap-6">
+        {/* Maintenance Mode Card */}
+        <div
+          className={`p-6 rounded-2xl border transition-all duration-300 ${maintenanceMode ? "bg-yellow-500/10 border-yellow-500/30" : "bg-zinc-900/40 border-zinc-800"}`}
+        >
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <h3
+                className={`text-xl font-bold flex items-center gap-2 ${maintenanceMode ? "text-yellow-400" : "text-white"}`}
+              >
+                <AlertTriangle size={24} />
+                Maintenance Mode
+              </h3>
+              <p className="text-zinc-400 text-sm max-w-lg">
+                When enabled, the public website renders a "Under Construction"
+                page. Admin routes (`/admin`) remain accessible to staff.
+              </p>
             </div>
 
-            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm">
-              <h2 className="text-lg font-bold text-white mb-6 border-b border-zinc-800 pb-4">
-                Content & Display
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-zinc-800 rounded-lg bg-zinc-950/30">
-                  <div>
-                    <div className="text-sm font-medium text-white">
-                      Maintenance Mode
-                    </div>
-                    <div className="text-xs text-zinc-500">
-                      Disable access for non-admin users
-                    </div>
-                  </div>
-                  <button
-                    onClick={() =>
-                      handleChange("maintenanceMode", !settings.maintenanceMode)
-                    }
-                    className={`h-6 w-11 rounded-full relative transition-colors ${settings.maintenanceMode ? "bg-cyan-500" : "bg-zinc-700"}`}
-                  >
-                    <div
-                      className={`absolute top-1 h-4 w-4 bg-white rounded-full transition-transform ${settings.maintenanceMode ? "left-6" : "left-1"}`}
-                    ></div>
-                  </button>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                    Posts Per Page
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <input
-                      type="number"
-                      value={settings.postsPerPage}
-                      onChange={(e) =>
-                        handleChange("postsPerPage", parseInt(e.target.value))
-                      }
-                      className="w-24 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
-                    />
-                    <span className="text-xs text-zinc-500">
-                      Default pagination limit for blog archives.
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="pt-6 flex justify-end">
-                <Button
-                  variant="primary"
-                  onClick={handleSave}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save General Settings"}
-                </Button>
-              </div>
-            </div>
+            <button
+              onClick={toggleMaintenance}
+              disabled={updating}
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black ${
+                maintenanceMode
+                  ? "bg-yellow-500 hover:bg-yellow-400 focus:ring-yellow-500"
+                  : "bg-zinc-700 hover:bg-zinc-600 focus:ring-cyan-500"
+              }`}
+            >
+              <span
+                className={`${
+                  maintenanceMode ? "translate-x-7" : "translate-x-1"
+                } inline-block h-6 w-6 transform rounded-full bg-white transition-transform`}
+              />
+            </button>
           </div>
 
-          {/* SEO Settings */}
-          <div
-            className={`space-y-6 ${activeTab === "seo-meta" ? "block" : "hidden"}`}
-          >
-            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm">
-              <h2 className="text-lg font-bold text-white mb-6 border-b border-zinc-800 pb-4">
-                Global SEO
-              </h2>
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                    Meta Description (Default)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={settings.seoDescription}
-                    onChange={(e) =>
-                      handleChange("seoDescription", e.target.value)
-                    }
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-colors text-sm leading-relaxed"
-                  ></textarea>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                    Keywords (Comma separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.seoKeywords.join(", ")}
-                    onChange={(e) =>
-                      handleChange(
-                        "seoKeywords",
-                        e.target.value.split(",").map((s) => s.trim()),
-                      )
-                    }
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
-                  />
-                </div>
-              </div>
+          {maintenanceMode && (
+            <div className="mt-6 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20 text-yellow-200 text-sm flex items-center gap-3">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+              Site is currently in OFF-LINE mode. Public users cannot access
+              content.
             </div>
-            <div className="pt-6 flex justify-end">
-              <Button variant="primary" onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : "Save SEO Settings"}
-              </Button>
-            </div>
-          </div>
-
-          {/* Social Links Settings */}
-          <div
-            className={`space-y-6 ${activeTab === "social-links" ? "block" : "hidden"}`}
-          >
-            <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm">
-              <h2 className="text-lg font-bold text-white mb-6 border-b border-zinc-800 pb-4">
-                Social Media Connections
-              </h2>
-              <div className="space-y-4">
-                {["Twitter", "Facebook", "Instagram", "LinkedIn", "GitHub"].map(
-                  (platform) => (
-                    <div key={platform} className="flex items-center gap-4">
-                      <div className="w-24 text-sm font-medium text-zinc-400">
-                        {platform}
-                      </div>
-                      <input
-                        type="text"
-                        value={
-                          settings.socialLinks[
-                            platform.toLowerCase() as keyof typeof settings.socialLinks
-                          ] || ""
-                        }
-                        onChange={(e) =>
-                          handleChange(
-                            `socialLinks.${platform.toLowerCase()}`,
-                            e.target.value,
-                          )
-                        }
-                        placeholder={`https://${platform.toLowerCase()}.com/...`}
-                        className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
-                      />
-                    </div>
-                  ),
-                )}
-              </div>
-              <div className="pt-6 flex justify-end">
-                <Button
-                  variant="primary"
-                  onClick={handleSave}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save Social Links"}
-                </Button>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

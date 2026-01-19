@@ -133,6 +133,47 @@ export async function GET(request: Request) {
         { $sort: { count: -1 } }
     ]);
 
+    // NEW: Countries
+    const countries = await Visitor.aggregate([
+        { $match: { lastSeen: { $gte: startDate } } },
+        { $group: { _id: "$country", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+    ]);
+
+    // NEW: Live Users (Active in last 15 mins)
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const liveUsers = await Visitor.countDocuments({ lastSeen: { $gte: fifteenMinutesAgo } });
+
+    // NEW: Average Session Duration (Approximation)
+    // Group PageViews by IP (User)
+    // Calculate difference between first and last pageview in the period
+    const sessionStats = await PageView.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: "$ip",
+          firstVisit: { $min: "$createdAt" },
+          lastVisit: { $max: "$createdAt" },
+          views: { $sum: 1 }
+        }
+      },
+      {
+         $project: {
+           duration: { $subtract: ["$lastVisit", "$firstVisit"] },
+           views: 1
+         }
+      },
+      {
+        $group: {
+          _id: null,
+          avgDuration: { $avg: "$duration" } // in milliseconds
+        }
+      }
+    ]);
+
+    const avgSessionDuration = sessionStats.length > 0 ? Math.round(sessionStats[0].avgDuration / 1000) : 0; // seconds
+
     return NextResponse.json({
         history, // Page Views
         historyNew, // New Users
@@ -141,13 +182,16 @@ export async function GET(request: Request) {
             total: totalInRange, // Unique Active Users
             new: newInRange,
             returning: returningInRange,
-            bounceRate
+            bounceRate,
+            live: liveUsers,
+            avgDuration: avgSessionDuration
         },
         pages,
         referrers,
         devices,
         os,
-        browsers
+        browsers,
+        countries
     });
 
   } catch (error) {

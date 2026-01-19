@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Contact from "@/models/Contact";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(req: Request) {
   try {
@@ -30,15 +32,12 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session || !['admin', 'super_admin'].includes((session.user as any)?.role)) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
         await dbConnect();
-        // Assuming admin protection is handled by middleware or check session here if needed, 
-        // strictly speaking this should be protected.
-        // For simplicity, letting it be open or checking basic header if required, 
-        // but typically used in Admin page which handles auth.
-        // Let's rely on the Admin page's server-side fetching/protection logic usually,
-        // but since this is an API route, anyone can hit it.
-        // Let's stick to basic fetching for now.
-        
         const contacts = await Contact.find().sort({ createdAt: -1 });
         return NextResponse.json(contacts);
     } catch (error) {

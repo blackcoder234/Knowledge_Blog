@@ -18,29 +18,23 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
+// Update Interface
 interface Stats {
   totalVisitors: number;
   activeUsers: number;
+  registeredUsers: number;
+  subscribers: number;
   deviceStats: { _id: string; count: number }[];
   browserStats: { _id: string; count: number }[];
   osStats: { _id: string; count: number }[];
   countryStats: { _id: string; count: number }[];
   referrerStats: { _id: string; count: number }[];
   recentVisits: any[];
-  topPosts: any[]; // Added
-  uptime: number; // in seconds
+  topPosts: any[];
+  uptime: number;
   dbStatus: boolean;
   unreadMessages: number;
-}
-
-function formatUptime(seconds: number) {
-  if (!seconds) return "0s";
-  const d = Math.floor(seconds / (3600 * 24));
-  const h = Math.floor((seconds % (3600 * 24)) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h ${m}m`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m ${Math.floor(seconds % 60)}s`;
+  maintenanceMode: boolean; // New
 }
 
 export default function DashboardPage() {
@@ -53,20 +47,25 @@ export default function DashboardPage() {
   const fetchStats = useCallback(async () => {
     try {
       const start = performance.now();
-      const res = await fetch("/api/admin/stats");
+
+      // Parallel fetch stats and settings
+      const [resStats, resSettings] = await Promise.all([
+        fetch("/api/admin/stats"),
+        fetch("/api/admin/settings"),
+      ]);
+
       const end = performance.now();
       setLatency(Math.round(end - start));
 
-      if (res.ok) {
-        const data = await res.json();
-        // Transform data to match Stats interface if necessary, or ensure API returns this structure.
-        // For now, assuming API returns compatible data or we map it.
-        // Based on existing stats API, we might need to adjust or update the API.
-        // Ideally, we should update the API to support this, but here we will try to use what we get or mock missing parts safely.
+      if (resStats.ok) {
+        const data = await resStats.json();
+        const settingsData = resSettings.ok ? await resSettings.json() : {};
 
         const safeData: Stats = {
           totalVisitors: data.metrics?.visitors || data.totalVisitors || 0,
-          activeUsers: data.activeUsers || 0, // Need to implement active users logic
+          activeUsers: data.activeUsers || 0,
+          registeredUsers: data.metrics?.users || 0,
+          subscribers: data.metrics?.subscribers || 0,
           deviceStats: data.deviceStats || [],
           browserStats: data.browserStats || [],
           osStats: data.osStats || [],
@@ -75,8 +74,9 @@ export default function DashboardPage() {
           recentVisits: data.recentVisits || [],
           topPosts: data.topPosts || [],
           uptime: data.uptime || 0,
-          dbStatus: data.dbStatus !== false, // assume true unless explicitly false
+          dbStatus: data.dbStatus !== false,
           unreadMessages: data.unreadMessages || 0,
+          maintenanceMode: !!settingsData.maintenance_mode, // New
         };
         setStats(safeData);
       }
@@ -97,40 +97,38 @@ export default function DashboardPage() {
     fetchStats();
   };
 
-  if (loading && !stats) {
-    return (
-      <div className="flex items-center justify-center h-screen w-full">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-zinc-800 border-t-cyan-500 rounded-full animate-spin"></div>
-          <p className="text-zinc-500 font-mono text-xs animate-pulse">
-            Initializing Analytics Module...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Fallback if stats fail to load
-  if (!stats)
-    return (
-      <div className="p-8 text-red-500">Failed to load analytics data.</div>
-    );
-
   return (
     <div className="p-6 w-full space-y-8 animate-fade-in font-sans">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-3">
             Network Overwatch
+            {stats?.maintenanceMode && (
+              <span className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded font-black tracking-widest uppercase animate-pulse">
+                Maintenance Mode
+              </span>
+            )}
           </h1>
           <p className="text-zinc-500 flex items-center gap-2 text-sm">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            Real-time Traffic Monitoring Active
+            {stats?.maintenanceMode ? (
+              <>
+                <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                <span className="text-yellow-500 font-bold">
+                  Public Site Offline • Development In Progress
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                Real-time Traffic Monitoring Active
+              </>
+            )}
           </p>
         </div>
 
         <div className="flex gap-2 items-center">
+          {/* ... buttons ... */}
           <button
             onClick={handleRefresh}
             className="bg-zinc-900 border border-zinc-800 p-2 rounded-lg text-zinc-400 hover:text-white hover:border-zinc-600 transition-all active:scale-95 group"
@@ -143,18 +141,6 @@ export default function DashboardPage() {
           </button>
 
           <div className="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg text-xs text-zinc-400 hidden md:block">
-            MSG:{" "}
-            <span
-              className={
-                stats.unreadMessages > 0
-                  ? "text-red-400 font-bold animate-pulse"
-                  : "text-zinc-500"
-              }
-            >
-              {stats.unreadMessages}
-            </span>
-          </div>
-          <div className="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg text-xs text-zinc-400 hidden md:block">
             LATENCY:{" "}
             <span
               className={latency < 200 ? "text-green-400" : "text-yellow-400"}
@@ -165,9 +151,9 @@ export default function DashboardPage() {
           <div className="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg text-xs text-zinc-400 hidden md:block">
             DB:{" "}
             <span
-              className={stats.dbStatus ? "text-green-400" : "text-red-400"}
+              className={stats?.dbStatus ? "text-green-400" : "text-red-400"}
             >
-              {stats.dbStatus ? "CONNECTED" : "OFFLINE"}
+              {stats?.dbStatus ? "CONNECTED" : "OFFLINE"}
             </span>
           </div>
         </div>
@@ -176,36 +162,36 @@ export default function DashboardPage() {
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          label="Total Users"
-          value={stats.totalVisitors}
-          icon={Users}
+          label="Total Leads"
+          value={stats?.totalVisitors}
+          icon={Activity}
           color="text-cyan-400"
           bg="bg-cyan-500/10"
           borderColor="border-cyan-500/20"
         />
         <StatsCard
+          label="Registered Users"
+          value={stats?.registeredUsers}
+          icon={Users}
+          color="text-indigo-400"
+          bg="bg-indigo-500/10"
+          borderColor="border-indigo-500/20"
+        />
+        <StatsCard
+          label="Subscribers"
+          value={stats?.subscribers}
+          icon={Share2}
+          color="text-pink-400"
+          bg="bg-pink-500/10"
+          borderColor="border-pink-500/20"
+        />
+        <StatsCard
           label="Live Users"
-          value={stats.activeUsers}
+          value={stats?.activeUsers}
           icon={Zap}
           color="text-yellow-400"
           bg="bg-yellow-500/10"
           borderColor="border-yellow-500/20"
-        />
-        <StatsCard
-          label="Active Regions"
-          value={stats.countryStats.length}
-          icon={Globe}
-          color="text-violet-400"
-          bg="bg-violet-500/10"
-          borderColor="border-violet-500/20"
-        />
-        <StatsCard
-          label="System Uptime"
-          value={formatUptime(stats.uptime)}
-          icon={Activity}
-          color="text-green-400"
-          bg="bg-green-500/10"
-          borderColor="border-green-500/20"
         />
       </div>
 
@@ -214,23 +200,23 @@ export default function DashboardPage() {
         <BreakdownCard
           title="Top Countries"
           icon={Globe}
-          data={stats.countryStats}
+          data={stats?.countryStats}
         />
         <BreakdownCard
           title="Traffic Sources"
           icon={Share2}
-          data={stats.referrerStats}
+          data={stats?.referrerStats}
         />
         <BreakdownCard
           title="Device Distribution"
           icon={Monitor}
-          data={stats.deviceStats}
+          data={stats?.deviceStats}
         />
         <BreakdownCard
           title="Top Content"
           icon={Globe}
           data={
-            stats.topPosts?.map((p: any) => ({
+            stats?.topPosts?.map((p: any) => ({
               _id: p.title,
               count: p.views,
             })) || []
@@ -260,7 +246,7 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/50">
-              {stats.recentVisits.map((visit: any, i: number) => (
+              {stats?.recentVisits?.map((visit: any, i: number) => (
                 <tr
                   key={i}
                   className="hover:bg-zinc-900/30 transition-colors group"
@@ -288,7 +274,7 @@ export default function DashboardPage() {
               ))}
             </tbody>
           </table>
-          {stats.recentVisits.length === 0 && (
+          {stats?.recentVisits?.length === 0 && (
             <div className="p-8 text-center text-zinc-500 text-sm">
               No recent traffic recorded.
             </div>

@@ -4,6 +4,7 @@ import { Button } from "@/app/components/ui/Button";
 import { RichTextEditor } from "@/app/components/editor/RichTextEditor";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/app/context/ToastContext";
 import {
   Image as ImageIcon,
   X,
@@ -33,6 +34,7 @@ export default function PostEditor({
   isEdit = false,
 }: PostEditorProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [showSeoPreview, setShowSeoPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -141,7 +143,7 @@ export default function PostEditor({
       throw new Error("No URL returned");
     } catch (err) {
       console.error("Upload failed", err);
-      alert("Image upload failed");
+      showToast("Image upload failed", "error");
       return "";
     } finally {
       setUploading(false);
@@ -150,11 +152,29 @@ export default function PostEditor({
 
   const handleSubmit = async (targetStatus?: string) => {
     if (!formData.title || !formData.slug) {
-      alert("Title and Slug are required.");
+      showToast("Title and Slug are required.", "error");
       return;
     }
 
     const finalStatus = targetStatus || formData.status;
+
+    // Validation for Publishing
+    if (finalStatus === "published") {
+      if (!formData.image) {
+        showToast(
+          "A Featured Image is required to publish this post.",
+          "error",
+        );
+        return;
+      }
+      if (!formData.excerpt) {
+        showToast(
+          "A short excerpt/description is required before publishing.",
+          "error",
+        );
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     try {
@@ -175,16 +195,19 @@ export default function PostEditor({
       });
 
       if (res.ok) {
-        // alert(`Post ${isEdit ? "updated" : "created"} successfully!`);
+        showToast(
+          `Post ${isEdit ? "updated" : "created"} successfully!`,
+          "success",
+        );
         router.push("/admin/posts");
         router.refresh();
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to save");
+        showToast(error.error || "Failed to save", "error");
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+      showToast("Something went wrong", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -198,6 +221,22 @@ export default function PostEditor({
   const selectMediaItem = (url: string) => {
     setFormData((prev) => ({ ...prev, [targetImageField]: url }));
     setIsMediaModalOpen(false);
+  };
+
+  const handlePreview = () => {
+    if (!formData.slug) {
+      showToast("Please add a URL slug first.", "error");
+      return;
+    }
+    if (!isEdit && !initialData?._id) {
+      showToast(
+        "Please 'Save Draft' at least once to generate a preview.",
+        "error",
+      );
+      return;
+    }
+    // Open in new tab
+    window.open(`/blog/${formData.slug}`, "_blank");
   };
 
   const filteredMedia = mediaLibrary.filter((item) =>
@@ -348,7 +387,12 @@ export default function PostEditor({
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="hidden md:flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden md:flex gap-2"
+            onClick={handlePreview}
+          >
             <Globe size={16} /> Preview
           </Button>
 

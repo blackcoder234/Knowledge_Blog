@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
@@ -62,6 +63,26 @@ const sidebarLinks = [
           strokeLinecap="round"
           strokeLinejoin="round"
           d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "Comments",
+    href: "/admin/comments",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+        className="w-5 h-5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
         />
       </svg>
     ),
@@ -173,9 +194,31 @@ const sidebarLinks = [
   },
 ];
 
+// ... (sidebarLinks array remains same)
+
 export const AdminSidebar = () => {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch("/api/admin/stats");
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.unreadMessages || 0);
+        }
+      } catch (error) {
+        console.error("Failed to fetch notifs", error);
+      }
+    };
+
+    fetchUnread();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <aside className="w-64 border-r border-white/10 bg-[#0D0D0D] flex flex-col fixed top-0 left-0 h-full z-20">
@@ -194,25 +237,29 @@ export const AdminSidebar = () => {
             const role = (session?.user as any)?.role;
             const isSuperOrAdmin = role === "admin" || role === "super_admin";
 
+            // Restricted links for non-admins (Editors)
             if (
               link.label === "Users" ||
               link.label === "Settings" ||
               link.label === "Analytics" ||
-              link.label === "Messages" ||
-              link.label === "Media"
+              link.label === "Messages"
             ) {
               return isSuperOrAdmin;
             }
-            // Everyone (including editors) sees Dashboard, Posts, Create Post
+
+            // Editors can see: Dashboard, Posts, Create Post, Media
             return true;
           })
           .map((link) => {
             const isActive = pathname === link.href;
+            const isMessages = link.label === "Messages";
+            const showNotification = isMessages && unreadCount > 0;
+
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all relative ${
                   isActive
                     ? "bg-accent/10 text-accent"
                     : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -220,6 +267,14 @@ export const AdminSidebar = () => {
               >
                 {link.icon}
                 {link.label}
+
+                {/* Blinking Notification Dot */}
+                {showNotification && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
               </Link>
             );
           })}

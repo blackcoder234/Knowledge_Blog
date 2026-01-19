@@ -156,12 +156,16 @@ export default async function BlogPostPage({
       <ViewCounter slug={slug} />
       {/* Full Width Hero */}
       <div className="relative w-full h-[500px]">
-        <Image
-          src={post.image}
-          alt={post.title}
-          fill
-          className="object-cover opacity-60"
-        />
+        {post.image ? (
+          <Image
+            src={post.image}
+            alt={post.title}
+            fill
+            className="object-cover opacity-60"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-black opacity-80" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
         <Container className="relative h-full flex flex-col justify-end pb-16">

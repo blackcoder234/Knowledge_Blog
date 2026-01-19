@@ -14,6 +14,7 @@ import {
   MousePointer,
   Monitor,
   Chrome,
+  Sparkles,
 } from "lucide-react";
 
 // Types matching the API response
@@ -26,12 +27,15 @@ interface AnalyticsData {
     new: number;
     returning: number;
     bounceRate: string | number;
+    live?: number;
+    avgDuration?: number;
   };
   pages: { _id: string; count: number }[];
   referrers: { _id: string; count: number }[];
   devices: { _id: string; count: number }[];
   os: { _id: string; count: number }[];
   browsers: { _id: string; count: number }[];
+  countries: { _id: string; count: number }[];
 }
 
 const RANGES = [
@@ -75,12 +79,15 @@ export default function AnalyticsPage() {
             new: json.stats?.new || 0,
             returning: json.stats?.returning || 0,
             bounceRate: json.stats?.bounceRate || 0,
+            live: json.stats?.live || 0,
+            avgDuration: json.stats?.avgDuration || 0,
           },
           pages: json.pages || [],
           referrers: json.referrers || [],
           devices: json.devices || [],
           os: json.os || [],
           browsers: json.browsers || [],
+          countries: json.countries || [],
         };
         setData(safeData);
       } else {
@@ -266,6 +273,15 @@ export default function AnalyticsPage() {
     }
   };
 
+  // Format Duration helper
+  const formatDuration = (sec: number) => {
+    if (!sec) return "0s";
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
   return (
     <div className="p-6 w-full space-y-8 animate-fade-in font-sans min-h-screen">
       {/* Header & Controls */}
@@ -275,8 +291,12 @@ export default function AnalyticsPage() {
             Traffic Analytics
           </h1>
           <p className="text-zinc-400 flex items-center gap-2 text-sm">
-            <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
-            Live User Behavior Tracking
+            <span
+              className={`w-2 h-2 rounded-full ${data?.stats?.live && data.stats.live > 0 ? "bg-green-500 animate-pulse" : "bg-zinc-600"}`}
+            ></span>
+            {data?.stats?.live
+              ? `${data.stats.live} Users Active Now`
+              : "Live Tracking"}
           </p>
         </div>
 
@@ -360,30 +380,30 @@ export default function AnalyticsPage() {
                   borderColor="border-cyan-500/20"
                 />
                 <StatsCard
-                  label="New Visitors"
-                  value={data.stats.new.toLocaleString()}
-                  icon={Users}
-                  color="text-green-400"
-                  bg="bg-green-500/10"
-                  borderColor="border-green-500/20"
-                  trend={calculateTrend(data.historyNew || [])}
+                  label="Avg. Session"
+                  value={formatDuration(data.stats.avgDuration || 0)}
+                  icon={Clock}
+                  color="text-amber-400"
+                  bg="bg-amber-500/10"
+                  borderColor="border-amber-500/20"
                 />
                 <StatsCard
                   label="Returning"
                   value={data.stats.returning.toLocaleString()}
-                  icon={Clock}
+                  icon={Users}
                   color="text-violet-400"
                   bg="bg-violet-500/10"
                   borderColor="border-violet-500/20"
                   trend={calculateTrend(data.historyReturning || [])}
                 />
                 <StatsCard
-                  label="Bounce Rate"
-                  value={`${data.stats.bounceRate}%`}
-                  icon={MousePointer}
-                  color="text-pink-400"
-                  bg="bg-pink-500/10"
-                  borderColor="border-pink-500/20"
+                  label="New Visitors"
+                  value={data.stats.new.toLocaleString()}
+                  icon={Sparkles}
+                  color="text-green-400"
+                  bg="bg-green-500/10"
+                  borderColor="border-green-500/20"
+                  trend={calculateTrend(data.historyNew || [])}
                 />
               </div>
 
@@ -687,6 +707,18 @@ export default function AnalyticsPage() {
                   items={data.browsers.map((b) => ({
                     label: b._id || "Unknown",
                     count: b.count,
+                  }))}
+                  total={data.stats.total}
+                />
+
+                {/* Top Countries */}
+                <BreakdownCard
+                  title="Top Countries"
+                  icon={Globe}
+                  iconColor="text-indigo-400"
+                  items={data.countries.map((c) => ({
+                    label: c._id || "Unknown",
+                    count: c.count,
                   }))}
                   total={data.stats.total}
                 />

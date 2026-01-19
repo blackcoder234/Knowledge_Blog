@@ -55,6 +55,16 @@ export default withAuth(
             return NextResponse.redirect(new URL('/admin/unauthorized', req.url));
         }
     }
+
+    // Add pathname to header for Server Components to read
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-pathname', req.nextUrl.pathname);
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   },
   {
     callbacks: {
