@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import cloudinary from '@/lib/cloudinary';
+import dbConnect from '@/lib/db';
+import Media from '@/models/Media';
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +19,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    await dbConnect();
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -39,9 +43,23 @@ export async function POST(request: Request) {
       ).end(buffer);
     });
 
+    // Save to Database
+    const newMedia = await Media.create({
+        url: result.secure_url,
+        publicId: result.public_id,
+        filename: file.name,
+        format: result.format,
+        size: result.bytes,
+        width: result.width,
+        height: result.height,
+        folder: folderName,
+        altText: ''
+    });
+
     return NextResponse.json({ 
         url: result.secure_url,
-        public_id: result.public_id 
+        public_id: result.public_id,
+        media_id: newMedia._id
     });
 
   } catch (error: any) {

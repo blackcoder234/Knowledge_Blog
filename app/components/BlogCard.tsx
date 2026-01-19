@@ -1,15 +1,15 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import { Button } from './ui/Button';
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "./ui/Button";
 
 interface BlogPost {
-  id: string;
+  slug: string;
   title: string;
   excerpt: string;
   date: string;
   category: string;
   imageUrl: string;
-  likes: number; 
+  likes: number;
   views: number;
 }
 
@@ -18,8 +18,8 @@ export const BlogCard = ({ post }: { post: BlogPost }) => {
     <div className="group flex flex-col overflow-hidden rounded-2xl bg-card border border-white/5 transition-all hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5">
       {/* Image Container */}
       <div className="relative h-48 w-full overflow-hidden">
-        <Image 
-          src={post.imageUrl} 
+        <Image
+          src={post.imageUrl}
           alt={post.title}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -32,37 +32,58 @@ export const BlogCard = ({ post }: { post: BlogPost }) => {
       {/* Content */}
       <div className="flex flex-1 flex-col p-6">
         <div className="flex items-center gap-3 text-xs text-muted mb-3">
-            <span>{post.date}</span>
-            <span className="h-1 w-1 rounded-full bg-accent"></span>
-            <span>{post.views} views</span>
+          <span>{post.date}</span>
+          <span className="h-1 w-1 rounded-full bg-accent"></span>
+          <span>{post.views} views</span>
         </div>
-        
+
         <h3 className="mb-3 text-xl font-bold leading-tight text-white group-hover:text-accent transition-colors">
-          <Link href={`/blog/${post.id}`}>
-            {post.title}
-          </Link>
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
         </h3>
-        
-        <p className="mb-6 line-clamp-2 text-sm text-muted">
-          {post.excerpt}
-        </p>
+
+        <p className="mb-6 line-clamp-2 text-sm text-muted">{post.excerpt}</p>
 
         <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-4">
-            <div className="flex items-center gap-2 text-sm text-muted">
-                <button className="flex items-center gap-1 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                    </svg>
-                    {post.likes}
-                </button>
-            </div>
-            
-            <Link href={`/blog/${post.id}`} className="flex items-center gap-1 text-sm font-medium text-accent hover:underline">
-                Read More
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                </svg>
-            </Link>
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <button className="flex items-center gap-1 hover:text-white transition-colors">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-4 h-4"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                />
+              </svg>
+              {post.likes}
+            </button>
+          </div>
+
+          <Link
+            href={`/blog/${post.slug}`}
+            className="flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+          >
+            Read More
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-3 h-3"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              />
+            </svg>
+          </Link>
         </div>
       </div>
     </div>

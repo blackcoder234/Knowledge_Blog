@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import Post from '@/models/Post';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -17,7 +18,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Fetch Authored Posts (Matching by name since we embedded author details)
+    const posts = await Post.find({ 
+        "author.name": user.name, 
+        status: 'published' 
+    })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .lean();
+
+    return NextResponse.json({
+        ...user.toObject(),
+        posts: posts.map(p => ({
+            ...p,
+            _id: p._id.toString(),
+            createdAt: p.createdAt.toISOString()
+        }))
+    });
   } catch (error: any) {
     return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
   }

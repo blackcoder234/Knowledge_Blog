@@ -17,7 +17,7 @@ export const dynamicParams = true; // Allow new posts not generated at build tim
 
 export async function generateStaticParams() {
   await dbConnect();
-  const posts = await Post.find({}).select("slug").lean();
+  const posts = await Post.find({ status: "published" }).select("slug").lean();
 
   return posts.map((post: any) => ({
     slug: post.slug,
@@ -39,25 +39,48 @@ export async function generateMetadata({
     };
   }
 
+  const title = post.seoTitle || post.title;
+  const description = post.seoDescription || post.excerpt || post.title;
+  const image = post.ogImage || post.image;
+  const canonical =
+    post.canonicalUrl || `https://knowledgelog.blog/blog/${slug}`;
+  const robots: Metadata["robots"] = post.noindex
+    ? { index: false, follow: false }
+    : {
+        index: true,
+        follow: true,
+        "max-snippet": -1,
+        "max-image-preview": "large",
+        "max-video-preview": -1,
+      };
+
   return {
-    title: post.title,
-    description: post.excerpt || post.title,
+    title: title,
+    description: description,
     openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      images: [post.image],
+      title: title,
+      description: description,
+      images: [image],
       type: "article",
+      url: canonical,
       publishedTime: post.createdAt
         ? new Date(post.createdAt).toISOString()
+        : undefined,
+      modifiedTime: post.updatedAt
+        ? new Date(post.updatedAt).toISOString()
         : undefined,
       authors: [post.author?.name || "KnowledgeLog Team"],
     },
     twitter: {
       card: "summary_large_image",
-      title: post.title,
-      description: post.excerpt,
-      images: [post.image],
+      title: title,
+      description: description,
+      images: [image],
     },
+    alternates: {
+      canonical: canonical,
+    },
+    robots: robots,
   };
 }
 
@@ -74,6 +97,7 @@ async function getRelatedPosts(category: string, currentId: any) {
   const related = await Post.find({
     category,
     _id: { $ne: currentId },
+    status: "published",
   })
     .limit(3)
     .lean();
@@ -85,6 +109,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 import { NewsletterForm } from "@/app/components/NewsletterForm";
 import Subscriber from "@/models/Subscriber";
+import { ViewCounter } from "@/app/components/blog/ViewCounter";
+import { ReadingProgress } from "@/app/components/blog/ReadingProgress";
+import { AuthorBio } from "@/app/components/blog/AuthorBio";
 
 export default async function BlogPostPage({
   params,
@@ -93,13 +120,20 @@ export default async function BlogPostPage({
 }) {
   const { slug } = await params;
   const post = await getPost(slug);
+  const session = await getServerSession(authOptions);
+
+  const userRole = (session?.user as any)?.role;
+  const isAdmin = userRole === "admin";
+  const canPreview = ["admin", "super_admin", "editor"].includes(userRole);
 
   if (!post) {
     notFound();
   }
 
-  const session = await getServerSession(authOptions);
-  const isAdmin = (session?.user as any)?.role === "admin";
+  // Hide unpublished posts from public
+  if (post.status !== "published" && !canPreview) {
+    notFound();
+  }
 
   let initialEmail = "";
   let isSubscribed = false;
@@ -118,6 +152,8 @@ export default async function BlogPostPage({
 
   return (
     <div className="bg-background min-h-screen pt-20">
+      <ReadingProgress />
+      <ViewCounter slug={slug} />
       {/* Full Width Hero */}
       <div className="relative w-full h-[500px]">
         <Image
@@ -201,6 +237,8 @@ export default async function BlogPostPage({
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
+            <AuthorBio author={post.author} />
+
             {/* Tags & Share */}
             <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap gap-4 justify-between items-center">
               <div className="flex gap-2">
@@ -262,7 +300,7 @@ export default async function BlogPostPage({
                 <BlogCard
                   key={related._id}
                   post={{
-                    id: related._id.toString(),
+                    slug: related.slug,
                     title: related.title,
                     excerpt: related.excerpt,
                     date: new Date(related.createdAt).toLocaleDateString(),

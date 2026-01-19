@@ -1,5 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+// ... (imports remain the same)
+
 export interface IPost extends Document {
   title: string;
   slug: string;
@@ -17,6 +19,13 @@ export interface IPost extends Document {
   views: number;
   likes: number;
   featured: boolean;
+  status: 'draft' | 'published' | 'archived';
+  // SEO Metadata
+  seoTitle?: string;
+  seoDescription?: string;
+  canonicalUrl?: string;
+  ogImage?: string;
+  noindex?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,9 +48,18 @@ const PostSchema: Schema = new Schema(
     views: { type: Number, default: 0 },
     likes: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
+    status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
+    // SEO Fields
+    seoTitle: { type: String },
+    seoDescription: { type: String },
+    canonicalUrl: { type: String },
+    ogImage: { type: String },
+    noindex: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+// ... (export remains the same)
 
 // Prevent overwrite model error in development
 export default mongoose.models.Post || mongoose.model<IPost>('Post', PostSchema);

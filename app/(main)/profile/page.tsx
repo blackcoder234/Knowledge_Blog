@@ -400,9 +400,19 @@ export default function ProfilePage() {
               </span>
             </div>
 
-            {((session.user as any).role === "admin" ||
-              (session.user as any).role === "super_admin") && (
-              <div className="border-t border-white/10 pt-6 mt-6">
+            <div className="border-t border-white/10 pt-6 mt-6 space-y-3">
+              <Button
+                variant="outline"
+                className="w-full cursor-pointer hover:bg-white/5"
+                onClick={() =>
+                  router.push(`/profile/${(session.user as any).id}`)
+                }
+              >
+                View Public Profile
+              </Button>
+
+              {((session.user as any).role === "admin" ||
+                (session.user as any).role === "super_admin") && (
                 <Button
                   variant="primary"
                   className="w-full cursor-pointer hover:scale-[1.02] transition-transform"
@@ -410,8 +420,8 @@ export default function ProfilePage() {
                 >
                   Enter Admin Dashboard
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 

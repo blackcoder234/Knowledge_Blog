@@ -4,83 +4,24 @@ import { Button } from "@/app/components/ui/Button";
 import { RichTextEditor } from "@/app/components/editor/RichTextEditor";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Image as ImageIcon,
+  X,
+  Check,
+  Search,
+  Globe,
+  Layout,
+  FileText,
+  ChevronDown,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Icons
-const Icons = {
-  Settings: () => (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  ),
-  Eye: () => (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ),
-  Search: () => (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  ),
-  Check: () => (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  ),
-  Sparkles: () => (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-    </svg>
-  ),
-};
+// Interface for Media Items
+interface MediaItem {
+  _id: string;
+  url: string;
+  filename: string;
+}
 
 interface PostEditorProps {
   initialData?: any;
@@ -96,6 +37,16 @@ export default function PostEditor({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // Media Modal State
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [manualImageUrl, setManualImageUrl] = useState("");
+  const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [mediaSearchTerm, setMediaSearchTerm] = useState("");
+  const [targetImageField, setTargetImageField] = useState<"image" | "ogImage">(
+    "image",
+  );
+
   // Form State
   const [formData, setFormData] = useState({
     title: "",
@@ -105,7 +56,14 @@ export default function PostEditor({
     category: "Artificial Intelligence",
     tags: "",
     image: "",
+    status: "draft", // draft, published, archived
     featured: false,
+    // SEO Fields
+    seoTitle: "",
+    seoDescription: "",
+    canonicalUrl: "",
+    ogImage: "",
+    noindex: false,
   });
 
   useEffect(() => {
@@ -120,25 +78,53 @@ export default function PostEditor({
           ? initialData.tags.join(", ")
           : initialData.tags || "",
         image: initialData.image || "",
+        status: initialData.status || "draft",
         featured: initialData.featured || false,
+        seoTitle: initialData.seoTitle || "",
+        seoDescription: initialData.seoDescription || "",
+        canonicalUrl: initialData.canonicalUrl || "",
+        ogImage: initialData.ogImage || "",
+        noindex: initialData.noindex || false,
       });
     }
   }, [initialData]);
+
+  // Fetch Media when modal opens
+  useEffect(() => {
+    if (isMediaModalOpen && mediaLibrary.length === 0) {
+      setLoadingMedia(true);
+      fetch("/api/admin/media")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setMediaLibrary(data);
+        })
+        .catch((err) => console.error(err))
+        .finally(() => setLoadingMedia(false));
+    }
+  }, [isMediaModalOpen]);
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >,
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    if (
+      type === "checkbox" &&
+      (e.target as HTMLInputElement).checked !== undefined
+    ) {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData((prev) => ({ ...prev, [name]: checked }) as any);
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }) as any);
+    }
   };
 
   const handleContentChange = (value: string) => {
     setFormData((prev) => ({ ...prev, content: value }));
   };
 
-  // Reusable Upload Helper
+  // Reusable Upload Helper (Direct Upload)
   const uploadFile = async (file: File): Promise<string> => {
     setUploading(true);
     const data = new FormData();
@@ -151,11 +137,8 @@ export default function PostEditor({
         body: data,
       });
       const json = await res.json();
-      if (json.url) {
-        return json.url;
-      } else {
-        throw new Error("No URL returned");
-      }
+      if (json.url) return json.url;
+      throw new Error("No URL returned");
     } catch (err) {
       console.error("Upload failed", err);
       alert("Image upload failed");
@@ -165,24 +148,13 @@ export default function PostEditor({
     }
   };
 
-  // Featured Image Handler
-  const handleFeaturedImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const url = await uploadFile(file);
-    if (url) {
-      setFormData((prev) => ({ ...prev, image: url }));
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.title || !formData.slug || !formData.content) {
-      alert("Please fill in required fields");
+  const handleSubmit = async (targetStatus?: string) => {
+    if (!formData.title || !formData.slug) {
+      alert("Title and Slug are required.");
       return;
     }
+
+    const finalStatus = targetStatus || formData.status;
 
     setIsSubmitting(true);
     try {
@@ -194,6 +166,7 @@ export default function PostEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          status: finalStatus,
           tags: formData.tags
             .split(",")
             .map((t) => t.trim())
@@ -202,16 +175,12 @@ export default function PostEditor({
       });
 
       if (res.ok) {
-        alert(
-          isEdit
-            ? "Post updated successfully!"
-            : "Post published successfully!",
-        );
-        router.push("/admin/posts"); // Redirect to posts list
+        // alert(`Post ${isEdit ? "updated" : "created"} successfully!`);
+        router.push("/admin/posts");
         router.refresh();
       } else {
         const error = await res.json();
-        alert(error.error || "Failed to publish");
+        alert(error.error || "Failed to save");
       }
     } catch (err) {
       console.error(err);
@@ -221,78 +190,188 @@ export default function PostEditor({
     }
   };
 
+  const openMediaModal = (field: "image" | "ogImage") => {
+    setTargetImageField(field);
+    setIsMediaModalOpen(true);
+  };
+
+  const selectMediaItem = (url: string) => {
+    setFormData((prev) => ({ ...prev, [targetImageField]: url }));
+    setIsMediaModalOpen(false);
+  };
+
+  const filteredMedia = mediaLibrary.filter((item) =>
+    item.filename.toLowerCase().includes(mediaSearchTerm.toLowerCase()),
+  );
+
   return (
-    <div className="max-w-[1600px] mx-auto pb-20">
+    <div className="max-w-[1600px] mx-auto pb-20 font-sans animate-fade-in relative">
+      {/* Media Selection Modal */}
+      <AnimatePresence>
+        {isMediaModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-zinc-900 border border-zinc-800 w-full max-w-4xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+            >
+              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <ImageIcon size={18} className="text-cyan-400" />
+                  Select Media
+                </h3>
+                <button
+                  onClick={() => setIsMediaModalOpen(false)}
+                  className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-zinc-500" />
+                </button>
+              </div>
+
+              <div className="p-4 border-b border-zinc-800 flex gap-4 bg-zinc-900">
+                <div className="relative flex-1">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                    size={16}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search media..."
+                    value={mediaSearchTerm}
+                    onChange={(e) => setMediaSearchTerm(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50"
+                  />
+                </div>
+                <input
+                  type="file"
+                  id="modal-upload"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const url = await uploadFile(file);
+                    if (url) {
+                      setMediaLibrary((prev) => [
+                        { _id: "temp", url, filename: file.name },
+                        ...prev,
+                      ]);
+                      // Optionally allow immediate fetch refresh
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="modal-upload"
+                  className="bg-white text-black px-4 py-2 rounded-lg text-sm font-bold cursor-pointer hover:bg-zinc-200 transition-colors flex items-center gap-2"
+                >
+                  {uploading ? "Uploading..." : "Upload New"}
+                </label>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 bg-zinc-950/50">
+                {loadingMedia ? (
+                  <div className="text-center py-20 text-zinc-500">
+                    Loading media library...
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {filteredMedia.map((item) => (
+                      <div
+                        key={item._id}
+                        onClick={() => selectMediaItem(item.url)}
+                        className="aspect-square relative group cursor-pointer border-2 border-transparent hover:border-cyan-500 rounded-xl overflow-hidden bg-black/50"
+                      >
+                        <img
+                          src={item.url}
+                          alt={item.filename}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-zinc-800 bg-zinc-900 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Or paste URL here..."
+                  value={manualImageUrl}
+                  onChange={(e) => setManualImageUrl(e.target.value)}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (manualImageUrl) selectMediaItem(manualImageUrl);
+                  }}
+                >
+                  Use URL
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Header Actions */}
       <div className="sticky top-0 z-30 bg-[#000000]/80 backdrop-blur-xl border-b border-white/10 -mx-8 px-8 py-4 mb-8 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="h-10 w-10 bg-accent rounded-lg flex items-center justify-center text-black font-bold">
-            P
+          <div
+            onClick={() => router.back()}
+            className="cursor-pointer hover:opacity-80"
+          >
+            <div className="h-10 w-10 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center justify-center text-cyan-500 font-bold">
+              <FileText size={20} />
+            </div>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">
+            <h1 className="text-xl font-bold text-white font-sans">
               {isEdit ? "Edit Post" : "Create New Post"}
             </h1>
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <span
-                className={`h-2 w-2 rounded-full ${isEdit ? "bg-green-500" : "bg-yellow-500"}`}
+                className={`h-2 w-2 rounded-full ${
+                  formData.status === "published"
+                    ? "bg-green-500"
+                    : formData.status === "archived"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
+                }`}
               ></span>
-              {isEdit ? "Editing Mode" : "Draft - Unsaved changes"}
+              <span className="capitalize">{formData.status} Mode</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" className="hidden md:flex gap-2">
-            <Icons.Eye /> Preview
+            <Globe size={16} /> Preview
           </Button>
+
           <div className="h-6 w-px bg-white/10 mx-1"></div>
 
-          {isEdit && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="text-red-500 hover:bg-red-500/10 hover:text-red-600"
-              onClick={async () => {
-                if (
-                  !confirm(
-                    "Are you sure you want to delete this post? This action cannot be undone.",
-                  )
-                )
-                  return;
-                setIsSubmitting(true);
-                try {
-                  const res = await fetch(`/api/posts/${initialData._id}`, {
-                    method: "DELETE",
-                  });
-                  if (res.ok) {
-                    router.push("/admin/posts");
-                    router.refresh();
-                  } else {
-                    const json = await res.json();
-                    alert(json.error || "Failed to delete");
-                  }
-                } catch (e) {
-                  alert("Error deleting post");
-                } finally {
-                  setIsSubmitting(false);
-                }
-              }}
-              disabled={isSubmitting}
-            >
-              Delete
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleSubmit("draft")}
+            disabled={isSubmitting}
+            className="text-zinc-300 border-zinc-700 hover:bg-zinc-800"
+          >
+            Save Draft
+          </Button>
 
           <Button
             variant="primary"
             size="sm"
-            className="px-6"
-            onClick={handleSubmit}
+            className="px-6 bg-cyan-500 hover:bg-cyan-400 text-black font-bold"
+            onClick={() => handleSubmit("published")}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Saving..." : isEdit ? "Update Post" : "Publish"}
+            {isSubmitting ? "Publishing..." : "Publish Now"}
           </Button>
         </div>
       </div>
@@ -308,13 +387,13 @@ export default function PostEditor({
               value={formData.title}
               onChange={handleChange}
               placeholder="Post Title"
-              className="w-full bg-transparent border-none px-0 py-2 text-5xl md:text-6xl font-black tracking-tight text-white placeholder:text-zinc-800 focus:outline-none focus:ring-0 focus:placeholder:text-zinc-600 transition-all font-display"
+              className="w-full bg-transparent border-none px-0 py-2 text-4xl md:text-5xl font-black tracking-tight text-white placeholder:text-zinc-800 focus:outline-none focus:ring-0 focus:placeholder:text-zinc-700 transition-all font-sans"
             />
 
             <div className="flex flex-col gap-4 pl-1">
               {/* Slug Section */}
               <div className="flex items-center gap-3 text-zinc-500 text-sm font-mono group">
-                <span className="text-accent/50 group-hover:text-accent transition-colors">
+                <span className="text-cyan-500/50 group-hover:text-cyan-500 transition-colors">
                   GET
                 </span>
                 <span>/blog/</span>
@@ -325,14 +404,8 @@ export default function PostEditor({
                     value={formData.slug}
                     onChange={handleChange}
                     placeholder="url-slug-goes-here"
-                    className="w-full bg-white/5 border border-white/5 rounded-md px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-accent/50 focus:bg-white/10 transition-colors"
+                    className="w-full bg-white/5 border border-white/5 rounded-md px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-colors"
                   />
-                  <button
-                    className="absolute right-1 p-1 hover:bg-white/10 rounded text-accent"
-                    title="Generate with AI"
-                  >
-                    <Icons.Sparkles />
-                  </button>
                 </div>
               </div>
 
@@ -347,7 +420,7 @@ export default function PostEditor({
                   onChange={handleChange}
                   rows={2}
                   placeholder="Enter a compelling summary for search results and social cards..."
-                  className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg p-4 text-zinc-300 text-sm leading-relaxed focus:outline-none focus:border-accent/50 resize-none"
+                  className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg p-4 text-zinc-300 text-sm leading-relaxed focus:outline-none focus:border-cyan-500/50 resize-none font-sans"
                 ></textarea>
               </div>
             </div>
@@ -358,42 +431,112 @@ export default function PostEditor({
             onChange={handleContentChange}
             onImageUpload={uploadFile}
           />
+
+          {/* SEO Metadata Settings */}
+          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-8 space-y-6">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Search size={18} className="text-cyan-500" /> SEO Configuration
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                  SEO Title
+                </label>
+                <input
+                  type="text"
+                  name="seoTitle"
+                  value={formData.seoTitle}
+                  onChange={handleChange}
+                  placeholder={formData.title || "Default: Post Title"}
+                  className="w-full bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                  Canonical URL
+                </label>
+                <input
+                  type="text"
+                  name="canonicalUrl"
+                  value={formData.canonicalUrl}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  className="w-full bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                SEO Description
+              </label>
+              <textarea
+                name="seoDescription"
+                value={formData.seoDescription}
+                onChange={handleChange}
+                rows={2}
+                placeholder={formData.excerpt || "Default: Post Excerpt"}
+                className="w-full bg-[#121212] border border-white/10 rounded-lg p-4 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
+              ></textarea>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                  OpenGraph Image (Social Card)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="ogImage"
+                    value={formData.ogImage}
+                    onChange={handleChange}
+                    placeholder={formData.image || "Default: Featured Image"}
+                    className="flex-1 bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => openMediaModal("ogImage")}
+                    className="border-white/10 text-zinc-300"
+                  >
+                    Select
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-6">
+                <div className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="noindex"
+                    name="noindex"
+                    checked={formData.noindex}
+                    onChange={handleChange}
+                    className="h-4 w-4 bg-[#121212] border-red-500/50 rounded text-red-500 focus:ring-offset-0 focus:ring-0"
+                  />
+                  <div>
+                    <label
+                      htmlFor="noindex"
+                      className="block text-sm font-bold text-red-400"
+                    >
+                      NoIndex (Hide from Google)
+                    </label>
+                    <p className="text-[10px] text-red-400/70">
+                      Enable this to prevent search engines from indexing this
+                      page.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Sidebar Settings Column */}
         <div className="space-y-6">
-          {/* SEO Score Card */}
-          <div className="bg-card border border-white/5 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-white text-sm uppercase tracking-wider">
-                SEO Score
-              </h3>
-              <div className="text-2xl font-bold text-yellow-500">
-                76
-                <span className="text-xs text-zinc-500 font-normal">/100</span>
-              </div>
-            </div>
-            <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-4">
-              <div className="bg-yellow-500 h-full w-[76%]"></div>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2 text-green-400">
-                <Icons.Check />{" "}
-                <span className="text-zinc-400">Keyword in title</span>
-              </li>
-              <li className="flex items-center gap-2 text-green-400">
-                <Icons.Check />{" "}
-                <span className="text-zinc-400">Meta description present</span>
-              </li>
-              <li className="flex items-center gap-2 text-zinc-600">
-                <div className="h-4 w-4 rounded-full border border-zinc-600"></div>{" "}
-                <span className="text-zinc-500">
-                  Internal links count (0/3)
-                </span>
-              </li>
-            </ul>
-          </div>
-
           <div className="bg-card border border-white/5 rounded-xl p-6 space-y-6">
             <div>
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">
@@ -408,7 +551,7 @@ export default function PostEditor({
                     name="category"
                     value={formData.category}
                     onChange={handleChange}
-                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
                   >
                     <option>Artificial Intelligence</option>
                     <option>Quantum Computing</option>
@@ -431,7 +574,7 @@ export default function PostEditor({
                     value={formData.tags}
                     onChange={handleChange}
                     placeholder="Add tags..."
-                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
                   />
                 </div>
                 <div className="flex items-center gap-2 pt-2">
@@ -453,31 +596,36 @@ export default function PostEditor({
 
             <div className="pt-4 border-t border-white/5">
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">
-                Assets
+                Featured Asset
               </label>
-              <div className="relative border border-dashed border-white/10 rounded-lg p-6 text-center hover:border-accent/50 transition-colors cursor-pointer bg-white/[0.02]">
-                <input
-                  type="file"
-                  onChange={handleFeaturedImageUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  accept="image/*"
-                />
-                {uploading ? (
-                  <div className="text-accent text-sm">Uploading...</div>
-                ) : formData.image ? (
-                  <div className="text-green-500 text-sm truncate">
-                    {formData.image.split("/").pop()}
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-zinc-400 text-sm font-medium mb-1">
-                      Featured Image
-                    </div>
-                    <div className="text-[10px] text-zinc-600 uppercase">
-                      Drop or Click
-                    </div>
-                  </>
-                )}
+              <div className="space-y-3">
+                {/* Image Preview */}
+                <div
+                  className="relative border border-dashed border-white/10 rounded-lg h-40 flex flex-col items-center justify-center overflow-hidden bg-black/20 group cursor-pointer hover:border-cyan-500/50 transition-all"
+                  onClick={() => openMediaModal("image")}
+                >
+                  {formData.image ? (
+                    <>
+                      <img
+                        src={formData.image}
+                        className="w-full h-full object-cover"
+                        alt="Featured"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <span className="text-xs font-bold text-white">
+                          Change Image
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="text-zinc-600 mb-2" />
+                      <span className="text-xs text-zinc-500">
+                        Select Image
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -490,7 +638,7 @@ export default function PostEditor({
               <h3 className="text-sm font-bold text-white">
                 Google Search Preview
               </h3>
-              <Icons.Search />
+              <Search size={16} />
             </div>
             {showSeoPreview && (
               <div className="mt-4 pt-4 border-t border-white/5">

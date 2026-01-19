@@ -14,7 +14,7 @@ async function getLandingData() {
   await dbConnect();
 
   // Latest: 3 latest published posts
-  const latest = await Post.find({})
+  const latest = await Post.find({ status: "published" })
     .sort({ createdAt: -1 })
     .limit(3)
     .populate("author", "name image")

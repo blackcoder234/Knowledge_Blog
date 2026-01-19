@@ -8,8 +8,8 @@ const BASE_URL = 'https://knowledgelog.blog'; // Production URL
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await dbConnect();
   
-  // Fetch all posts with slugs and update times
-  const posts = await Post.find({}).select('slug updatedAt').lean();
+  // Fetch all posts with slugs and update times, excluding noindex posts
+  const posts = await Post.find({ noindex: { $ne: true } }).select('slug updatedAt').lean();
 
   const blogEntries: MetadataRoute.Sitemap = posts.map((post: any) => ({
     url: `${BASE_URL}/blog/${post.slug}`,

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import localFont from "next/font/local";
 import { Inter, Space_Grotesk, Lora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./providers";
 import { ToastProvider } from "./context/ToastContext";
-import { VisitorTracker } from "./components/VisitorTracker";
+import ClientTracker from "./components/ClientTracker";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({
@@ -82,7 +83,9 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ToastProvider>
-            <VisitorTracker />
+            <Suspense fallback={null}>
+              <ClientTracker />
+            </Suspense>
             {children}
           </ToastProvider>
         </AuthProvider>

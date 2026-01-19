@@ -64,12 +64,12 @@ async function getBlogData(searchParams: {
         .filter((c) => c.genre === searchParams.genre)
         .map((c) => c.name);
       allowedCategoryNames = allowedCategoryNames.filter((name) =>
-        genreNames.includes(name)
+        genreNames.includes(name),
       );
     }
 
     // 3. Build Query
-    const query: any = {};
+    const query: any = { status: "published" };
     if (searchParams.q) {
       query.$or = [
         { title: { $regex: searchParams.q, $options: "i" } },
@@ -120,7 +120,7 @@ async function getBlogData(searchParams: {
       .populate("author", "name image")
       .lean();
 
-    const latestBreaking = await Post.findOne()
+    const latestBreaking = await Post.findOne({ status: "published" })
       .sort({ createdAt: -1 })
       .select("title slug")
       .lean();
