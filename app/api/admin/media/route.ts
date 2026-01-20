@@ -10,13 +10,13 @@ export async function GET(request: Request) {
     const session = await getServerSession(authOptions);
     const userRole = (session?.user as any)?.role;
 
-    if (!session || !['admin', 'super_admin'].includes(userRole)) {
+    if (!session || !['admin', 'super_admin', 'editor'].includes(userRole)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     await dbConnect();
     
-    const media = await Media.find().sort({ createdAt: -1 }); // Future: pagination
+    const media = await Media.find({ folder: { $ne: 'avatars' } }).sort({ createdAt: -1 }); // Future: pagination
     
     return NextResponse.json(media);
   } catch (error) {
@@ -30,7 +30,7 @@ export async function DELETE(request: Request) {
     const session = await getServerSession(authOptions);
     const userRole = (session?.user as any)?.role;
 
-    if (!session || !['admin', 'super_admin'].includes(userRole)) {
+    if (!session || !['admin', 'super_admin', 'editor'].includes(userRole)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

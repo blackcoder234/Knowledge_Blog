@@ -110,10 +110,21 @@ export default async function PostsPage(props: {
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`inline-block px-2 py-1 rounded-full text-xs font-bold ${post.featured ? "bg-yellow-500/10 text-yellow-500" : "bg-green-500/10 text-green-500"}`}
+                      className={`inline-block px-2 py-1 rounded-full text-xs font-bold capitalize ${
+                        post.status === "published"
+                          ? "bg-green-500/10 text-green-500"
+                          : post.status === "draft"
+                            ? "bg-zinc-500/10 text-zinc-500"
+                            : "bg-red-500/10 text-red-500"
+                      }`}
                     >
-                      {post.featured ? "Featured" : "Published"}
+                      {post.status}
                     </span>
+                    {post.featured && (
+                      <span className="ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                        Featured
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     {new Date(post.createdAt).toLocaleDateString()}

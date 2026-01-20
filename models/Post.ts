@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from "mongoose";
 
 // ... (imports remain the same)
 
@@ -8,6 +8,7 @@ export interface IPost extends Document {
   excerpt: string;
   content: string;
   category: string;
+  language: string;
   image: string;
   author: {
     name: string;
@@ -19,7 +20,7 @@ export interface IPost extends Document {
   views: number;
   likes: number;
   featured: boolean;
-  status: 'draft' | 'published' | 'archived';
+  status: "draft" | "published" | "archived";
   // SEO Metadata
   seoTitle?: string;
   seoDescription?: string;
@@ -37,6 +38,7 @@ const PostSchema: Schema = new Schema(
     excerpt: { type: String, required: true },
     content: { type: String, required: true },
     category: { type: String, required: true },
+    language: { type: String, default: "English" }, // Added language field
     image: { type: String, required: true },
     author: {
       name: { type: String, required: true },
@@ -48,7 +50,11 @@ const PostSchema: Schema = new Schema(
     views: { type: Number, default: 0 },
     likes: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
-    status: { type: String, enum: ['draft', 'published', 'archived'], default: 'draft' },
+    status: {
+      type: String,
+      enum: ["draft", "published", "archived"],
+      default: "draft",
+    },
     // SEO Fields
     seoTitle: { type: String },
     seoDescription: { type: String },
@@ -56,10 +62,11 @@ const PostSchema: Schema = new Schema(
     ogImage: { type: String },
     noindex: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ... (export remains the same)
 
 // Prevent overwrite model error in development
-export default mongoose.models.Post || mongoose.model<IPost>('Post', PostSchema);
+export default mongoose.models.Post ||
+  mongoose.model<IPost>("Post", PostSchema);

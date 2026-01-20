@@ -38,6 +38,7 @@ export default function PostEditor({
   const [showSeoPreview, setShowSeoPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false); // Track unsaved changes
 
   // Media Modal State
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -49,6 +50,10 @@ export default function PostEditor({
     "image",
   );
 
+  // Category State
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
   // Form State
   const [formData, setFormData] = useState({
     title: "",
@@ -56,6 +61,7 @@ export default function PostEditor({
     excerpt: "",
     content: "",
     category: "Artificial Intelligence",
+    language: "English", // Default language
     tags: "",
     image: "",
     status: "draft", // draft, published, archived
@@ -69,6 +75,7 @@ export default function PostEditor({
   });
 
   useEffect(() => {
+    // 1. Load from DB (Initial Data)
     if (initialData) {
       setFormData({
         title: initialData.title || "",
@@ -76,6 +83,7 @@ export default function PostEditor({
         excerpt: initialData.excerpt || "",
         content: initialData.content || "",
         category: initialData.category || "Artificial Intelligence",
+        language: initialData.language || "English",
         tags: Array.isArray(initialData.tags)
           ? initialData.tags.join(", ")
           : initialData.tags || "",
@@ -88,8 +96,100 @@ export default function PostEditor({
         ogImage: initialData.ogImage || "",
         noindex: initialData.noindex || false,
       });
+      setIsDirty(false);
+
+      // 2. Check for LocalStorage Draft (After loading DB data)
+      const storageKey = `post_draft_${initialData._id}`;
+      const localDraft = localStorage.getItem(storageKey);
+      if (localDraft) {
+        try {
+          const parsed = JSON.parse(localDraft);
+          // Simple check: is local content different?
+          if (
+            parsed.content !== initialData.content ||
+            parsed.title !== initialData.title
+          ) {
+            const userWantsRestore = window.confirm(
+              "Found an unsaved draft on this device that is newer than the database version. Would you like to restore it?",
+            );
+            if (userWantsRestore) {
+              setFormData(parsed);
+              setIsDirty(true);
+              showToast("Restored unsaved local draft", "success");
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse local draft", e);
+        }
+      }
+    } else if (!isEdit) {
+      // New Post: Check for 'new' draft
+      const storageKey = `post_draft_new`;
+      const localDraft = localStorage.getItem(storageKey);
+      if (localDraft) {
+        try {
+          const parsed = JSON.parse(localDraft);
+          if (parsed.title || parsed.content) {
+            setFormData(parsed);
+            setIsDirty(true);
+            showToast("Restored unsaved new post", "success");
+          }
+        } catch (e) {}
+      }
     }
-  }, [initialData]);
+  }, [initialData, isEdit]);
+
+  // Auto-Save Effect
+  useEffect(() => {
+    if (!isDirty) return;
+
+    const storageKey = `post_draft_${initialData?._id || "new"}`;
+    const timer = setTimeout(() => {
+      localStorage.setItem(storageKey, JSON.stringify(formData));
+    }, 1000); // Save every 1s of inactivity
+
+    return () => clearTimeout(timer);
+  }, [formData, isDirty, initialData]);
+
+  // Prevent Navigation if Dirty
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  // Fetch Categories based on Language
+  useEffect(() => {
+    setLoadingCategories(true);
+    fetch(`/api/categories?language=${formData.language}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategories(data);
+          // Auto-select first category if current one isn't available in new language
+          // Only if we have data, to prevent resetting on initial load if async is slow
+          if (data.length > 0) {
+            const hasCurrent = data.some(
+              (c: any) => c.name === formData.category,
+            );
+            if (!hasCurrent && !isEdit) {
+              // Only auto-switch for new posts or if strictly invalid.
+              // For edit, we might want to keep the old one even if invalid temporarily?
+              // Let's just default to first one if invalid.
+              // Actually, checking !hasCurrent is enough.
+              setFormData((prev) => ({ ...prev, category: data[0].name }));
+            }
+          }
+        }
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingCategories(false));
+  }, [formData.language, isEdit]); // isEdit dependency to avoid overwriting heavily on mount? Maybe not needed if logic is sound.
 
   // Fetch Media when modal opens
   useEffect(() => {
@@ -118,12 +218,15 @@ export default function PostEditor({
       const checked = (e.target as HTMLInputElement).checked;
       setFormData((prev) => ({ ...prev, [name]: checked }) as any);
     } else {
+      // Form Field Change
       setFormData((prev) => ({ ...prev, [name]: value }) as any);
+      setIsDirty(true);
     }
   };
 
   const handleContentChange = (value: string) => {
     setFormData((prev) => ({ ...prev, content: value }));
+    setIsDirty(true);
   };
 
   // Reusable Upload Helper (Direct Upload)
@@ -181,26 +284,49 @@ export default function PostEditor({
       const url = isEdit ? `/api/posts/${initialData._id}` : "/api/posts";
       const method = isEdit ? "PATCH" : "POST";
 
+      const submitData = {
+        ...formData,
+        status: finalStatus,
+        tags: formData.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        // Ensure SEO defaults are saved to DB
+        seoTitle: formData.seoTitle || formData.title,
+        seoDescription: formData.seoDescription || formData.excerpt,
+        ogImage: formData.ogImage || formData.image,
+      };
+
       const res = await fetch(url, {
         method: method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          status: finalStatus,
-          tags: formData.tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-        }),
+        body: JSON.stringify(submitData),
       });
 
       if (res.ok) {
+        const data = await res.json();
+        setIsDirty(false); // Saved
+
+        // Clear Local Storage to prevent stale restore prompts
+        const storageKey = `post_draft_${isEdit ? initialData?._id : "new"}`;
+        localStorage.removeItem(storageKey);
+
         showToast(
-          `Post ${isEdit ? "updated" : "created"} successfully!`,
+          `Post ${finalStatus === "published" ? "Published" : "Saved"} successfully!`,
           "success",
         );
-        router.push("/admin/posts");
-        router.refresh();
+
+        if (finalStatus === "published") {
+          router.push("/admin/posts");
+          router.refresh();
+        } else {
+          // If this was a new post (not edit), redirect to the edit URL for this new post
+          // so subsequent saves update it instead of creating duplicates.
+          if (!isEdit && data._id) {
+            router.replace(`/admin/posts/create?id=${data._id}`);
+          }
+          router.refresh();
+        }
       } else {
         const error = await res.json();
         showToast(error.error || "Failed to save", "error");
@@ -287,16 +413,25 @@ export default function PostEditor({
                   id="modal-upload"
                   className="hidden"
                   accept="image/*"
+                  multiple
                   onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const url = await uploadFile(file);
-                    if (url) {
-                      setMediaLibrary((prev) => [
-                        { _id: "temp", url, filename: file.name },
-                        ...prev,
-                      ]);
-                      // Optionally allow immediate fetch refresh
+                    const files = e.target.files;
+                    if (!files || files.length === 0) return;
+
+                    for (let i = 0; i < files.length; i++) {
+                      const file = files[i];
+                      // We await each one to ensure sequential state updates or could trigger parallel
+                      const url = await uploadFile(file);
+                      if (url) {
+                        setMediaLibrary((prev) => [
+                          {
+                            _id: `temp-${Date.now()}-${i}`,
+                            url,
+                            filename: file.name,
+                          },
+                          ...prev,
+                        ]);
+                      }
                     }
                   }}
                 />
@@ -597,15 +732,32 @@ export default function PostEditor({
                     onChange={handleChange}
                     className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
                   >
-                    <option>Artificial Intelligence</option>
-                    <option>Quantum Computing</option>
-                    <option>Space Tech</option>
-                    <option>Biotech</option>
-                    <option>Cybersecurity</option>
-                    <option>Quantum Physics</option>
-                    <option>Astrophysics</option>
-                    <option>Chemistry</option>
-                    <option>Mathematics</option>
+                    <option value="" disabled>
+                      Select Category
+                    </option>
+                    {loadingCategories ? (
+                      <option disabled>Loading...</option>
+                    ) : (
+                      categories.map((cat) => (
+                        <option key={cat._id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                    Language
+                  </label>
+                  <select
+                    name="language"
+                    value={(formData as any).language || "English"}
+                    onChange={handleChange}
+                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  >
+                    <option value="English">English</option>
+                    <option value="Bengali">Bengali</option>
                   </select>
                 </div>
                 <div>
