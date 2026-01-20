@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 // Update Interface
 interface Stats {
@@ -38,8 +39,16 @@ interface Stats {
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if ((session?.user as any)?.role === "editor") {
+      router.replace("/admin/posts");
+    }
+  }, [session, status, router]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [latency, setLatency] = useState<number>(0);

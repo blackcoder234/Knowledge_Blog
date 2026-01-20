@@ -12,6 +12,15 @@ const UserSchema = new Schema(
     qualification: { type: String, default: '' }, // e.g. "PhD in Astrophysics"
     occupation: { type: String, default: '' }, // e.g. "Freelance Science Writer"
     location: { type: String, default: '' }, // e.g. "New York, USA"
+    bannerImage: { type: String, default: '' },
+    socialLinks: {
+        twitter: { type: String, default: '' },
+        linkedin: { type: String, default: '' },
+        github: { type: String, default: '' },
+        website: { type: String, default: '' }
+    },
+    bookmarks: [{ type: Schema.Types.ObjectId, ref: 'Post' }],
+    likedPosts: [{ type: Schema.Types.ObjectId, ref: 'Post' }],
   },
   { timestamps: true }
 );

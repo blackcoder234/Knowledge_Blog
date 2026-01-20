@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     }
 
     await dbConnect();
-    const comments = await Comment.find({ post: postId })
+    const comments = await Comment.find({ post: postId, status: 'approved' })
                                   .populate('author', 'name image role')
                                   .sort({ createdAt: -1 });
 

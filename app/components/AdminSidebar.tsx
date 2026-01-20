@@ -201,6 +201,9 @@ export const AdminSidebar = () => {
   const { data: session } = useSession();
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const role = (session?.user as any)?.role;
+  const isSuperOrAdmin = role === "admin" || role === "super_admin";
+
   useEffect(() => {
     const fetchUnread = async () => {
       try {
@@ -224,21 +227,22 @@ export const AdminSidebar = () => {
     <aside className="w-64 border-r border-white/10 bg-[#0D0D0D] flex flex-col fixed top-0 left-0 h-full z-20">
       <div className="h-20 flex items-center px-6 border-b border-white/10">
         <Link
-          href="/admin/dashboard"
+          href={isSuperOrAdmin ? "/admin/dashboard" : "/admin/posts"}
           className="text-xl font-bold tracking-tight text-white flex items-center gap-2"
         >
-          <span className="text-accent">Admin</span>Panel
+          <span className="text-accent">
+            {isSuperOrAdmin ? "Admin" : "Editor"}
+          </span>
+          Panel
         </Link>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
         {sidebarLinks
           .filter((link) => {
-            const role = (session?.user as any)?.role;
-            const isSuperOrAdmin = role === "admin" || role === "super_admin";
-
             // Restricted links for non-admins (Editors)
             if (
+              link.label === "Dashboard" ||
               link.label === "Users" ||
               link.label === "Settings" ||
               link.label === "Analytics" ||
@@ -247,7 +251,7 @@ export const AdminSidebar = () => {
               return isSuperOrAdmin;
             }
 
-            // Editors can see: Dashboard, Posts, Create Post, Media
+            // Editors can see: Posts, Create Post, Media, Comments
             return true;
           })
           .map((link) => {
@@ -279,6 +283,30 @@ export const AdminSidebar = () => {
             );
           })}
       </nav>
+
+      <div className="px-4 py-2 border-t border-white/5">
+        <Link
+          href="/"
+          target="_blank"
+          className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all group"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="w-5 h-5 group-hover:text-accent transition-colors"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+            />
+          </svg>
+          View Live Site
+        </Link>
+      </div>
 
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-4 py-3">

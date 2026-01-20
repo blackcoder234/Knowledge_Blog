@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { useToast } from "@/app/context/ToastContext";
+import { useSession } from "next-auth/react";
+import { Bookmark, Heart, Share2 } from "lucide-react";
 
 interface SocialShareProps {
   url: string;
@@ -19,10 +21,31 @@ export const SocialShare = ({
   initialLikes,
   layout = "vertical",
 }: SocialShareProps) => {
+  const { data: session } = useSession();
   const [likes, setLikes] = useState(initialLikes);
   const [hasLiked, setHasLiked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const [isBookmarking, setIsBookmarking] = useState(false);
   const { showToast } = useToast();
+
+  // Check initial status
+  useEffect(() => {
+    if (session?.user) {
+      // We can fetch the user's interaction status for this post
+      // optimizing by fetching user's list of likes/bookmarks
+      fetch("/api/user/interactions?type=ids")
+        .then((res) => {
+          if (res.ok) return res.json();
+          return { liked: [], bookmarked: [] };
+        })
+        .then((data) => {
+          if (data.liked?.includes(postId)) setHasLiked(true);
+          if (data.bookmarked?.includes(postId)) setIsBookmarked(true);
+        })
+        .catch((err) => console.error(err));
+    }
+  }, [postId, session]);
 
   const handleCopyLink = async () => {
     try {
@@ -56,25 +79,65 @@ export const SocialShare = ({
   };
 
   const handleLike = async () => {
-    if (hasLiked || isLiking) return;
+    if (!session) {
+      showToast("Please login to like", "error");
+      return;
+    }
+    if (isLiking) return;
     setIsLiking(true);
 
     // Optimistic UI update
-    setLikes((prev) => prev + 1);
-    setHasLiked(true);
+    const previousLikes = likes;
+    const previousHasLiked = hasLiked;
+
+    setLikes((prev) => (hasLiked ? prev - 1 : prev + 1));
+    setHasLiked(!hasLiked);
 
     try {
       const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to like");
 
-      showToast("Thanks for the love!", "success");
+      const data = await res.json();
+      // Sync with server source of truth
+      setLikes(data.likes);
+      setHasLiked(data.hasLiked);
+
+      if (data.hasLiked) showToast("Liked!", "success");
     } catch (error) {
       // Revert on error
-      setLikes((prev) => prev - 1);
-      setHasLiked(false);
+      setLikes(previousLikes);
+      setHasLiked(previousHasLiked);
       showToast("Something went wrong.", "error");
     } finally {
       setIsLiking(false);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!session) {
+      showToast("Please login to bookmark", "error");
+      return;
+    }
+    if (isBookmarking) return;
+    setIsBookmarking(true);
+
+    // Optimistic
+    const previousState = isBookmarked;
+    setIsBookmarked(!isBookmarked);
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/bookmark`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to bookmark");
+      const data = await res.json();
+      setIsBookmarked(data.isBookmarked);
+      showToast(data.message, "success");
+    } catch (error) {
+      setIsBookmarked(previousState);
+      showToast("Failed to bookmark", "error");
+    } finally {
+      setIsBookmarking(false);
     }
   };
 
@@ -84,29 +147,33 @@ export const SocialShare = ({
         {/* Like Button */}
         <button
           onClick={handleLike}
-          disabled={hasLiked}
           className={`group flex items-center gap-2 px-6 py-2.5 rounded-full border transition-all ${
             hasLiked
-              ? "bg-accent text-black border-accent"
+              ? "bg-accent/10 text-accent border-accent"
               : "bg-white/5 border-white/10 text-zinc-300 hover:text-white hover:border-white/30"
           }`}
         >
-          <svg
+          <Heart
             className={`w-5 h-5 transition-transform group-active:scale-125 ${
-              hasLiked ? "fill-current" : "none"
+              hasLiked ? "fill-current" : ""
             }`}
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            ></path>
-          </svg>
-          <span className="font-bold text-sm">{likes} Likes</span>
+          />
+          <span className="font-bold text-sm">{likes}</span>
+        </button>
+
+        {/* Bookmark Button */}
+        <button
+          onClick={handleBookmark}
+          className={`group flex items-center justify-center w-10 h-10 rounded-full border transition-all ${
+            isBookmarked
+              ? "bg-purple-500/10 border-purple-500 text-purple-500"
+              : "bg-white/5 border-white/10 text-zinc-300 hover:text-white hover:border-white/30"
+          }`}
+          title="Bookmark"
+        >
+          <Bookmark
+            className={`w-5 h-5 ${isBookmarked ? "fill-current" : ""}`}
+          />
         </button>
 
         {/* Share Buttons */}
@@ -129,19 +196,7 @@ export const SocialShare = ({
           className="gap-2 text-zinc-400 hover:text-white"
           onClick={handleCopyLink}
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-            ></path>
-          </svg>
+          <Share2 className="w-4 h-4" />
           Copy
         </Button>
       </div>
@@ -155,30 +210,32 @@ export const SocialShare = ({
         <span className="text-zinc-400 text-sm font-medium">
           Show your support
         </span>
-        <button
-          onClick={handleLike}
-          disabled={hasLiked}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-            hasLiked
-              ? "bg-accent text-black scale-95"
-              : "bg-white/10 text-white hover:bg-white/20"
-          }`}
-        >
-          <svg
-            className={`w-5 h-5 ${hasLiked ? "fill-current" : "none"}`}
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            fill="none"
+        <div className="flex gap-2">
+          <button
+            onClick={handleBookmark}
+            className={`flex items-center justify-center w-10 h-10 rounded-lg transition-all ${
+              isBookmarked
+                ? "bg-purple-500 text-white"
+                : "bg-white/10 text-zinc-400 hover:bg-white/20 hover:text-white"
+            }`}
+            title="Bookmark"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            ></path>
-          </svg>
-          <span className="font-bold">{likes}</span>
-        </button>
+            <Bookmark
+              className={`w-5 h-5 ${isBookmarked ? "fill-current" : ""}`}
+            />
+          </button>
+          <button
+            onClick={handleLike}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              hasLiked
+                ? "bg-accent text-black scale-95"
+                : "bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            <Heart className={`w-5 h-5 ${hasLiked ? "fill-current" : ""}`} />
+            <span className="font-bold">{likes}</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -207,19 +264,7 @@ export const SocialShare = ({
           className="w-full justify-start gap-3 border-white/10 hover:bg-white/10 hover:text-white transition-all text-zinc-400"
           onClick={handleCopyLink}
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-            ></path>
-          </svg>
+          <Share2 className="w-4 h-4" />
           Copy Link
         </Button>
       </div>
