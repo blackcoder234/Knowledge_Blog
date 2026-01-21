@@ -60,16 +60,23 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetchData(range);
+
+    // Poll for live data every 30 seconds
+    const interval = setInterval(() => {
+      fetchData(range, true); // Silent update
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [range]);
 
-  const fetchData = async (selectedRange: string) => {
-    setLoading(true);
-    setHoveredData(null); // Reset hover on fetch
+  const fetchData = async (selectedRange: string, silent = false) => {
+    if (!silent) setLoading(true);
+    if (!silent) setHoveredData(null); // Reset hover only on full reload
+
     try {
       const res = await fetch(`/api/admin/analytics?range=${selectedRange}`);
       if (res.ok) {
         const json = await res.json();
-        // Fallback for missing data structure during dev/migration
         const safeData: AnalyticsData = {
           history: json.history || [],
           historyNew: json.historyNew || [],
@@ -79,7 +86,7 @@ export default function AnalyticsPage() {
             new: json.stats?.new || 0,
             returning: json.stats?.returning || 0,
             bounceRate: json.stats?.bounceRate || 0,
-            live: json.stats?.live || 0,
+            live: json.stats?.live || 0, // Should be 0 if undefined
             avgDuration: json.stats?.avgDuration || 0,
           },
           pages: json.pages || [],
@@ -92,13 +99,13 @@ export default function AnalyticsPage() {
         setData(safeData);
       } else {
         console.error("Failed to fetch analytics");
-        setData(null);
+        if (!silent) setData(null);
       }
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
-      setData(null);
+      if (!silent) setData(null);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -116,19 +123,21 @@ export default function AnalyticsPage() {
       // Need to reconstruct the last 24 hours hour-by-hour to ensure order and fill gaps
       for (let i = 23; i >= 0; i--) {
         const d = new Date(now);
-        d.setHours(now.getHours() - i);
+        d.setHours(now.getHours() - i); // Logic remains local for "time passed"
         d.setMinutes(0);
         d.setSeconds(0);
         d.setMilliseconds(0);
 
-        // Format ID like backend: "HH:00"
-        const id = `${d.getHours().toString().padStart(2, "0")}:00`;
+        // Format ID like backend: "HH:00" (UTC)
+        // Backend uses $dateToString { format: "%H:00" } which is UTC by default
+        const utcHour = d.getUTCHours().toString().padStart(2, "0");
+        const id = `${utcHour}:00`;
 
         normalized.push({
           _id: id,
           fullDate: d,
           count: historyMap.get(id) || 0,
-          label: id,
+          label: `${d.getHours().toString().padStart(2, "0")}:00`, // Local time for display
         });
       }
     } else if (range === "7d" || range === "30d") {
@@ -138,7 +147,10 @@ export default function AnalyticsPage() {
         d.setDate(now.getDate() - i);
         d.setHours(0, 0, 0, 0);
 
-        const id = d.toISOString().split("T")[0]; // YYYY-MM-DD
+        // Backend uses $dateToString { format: "%Y-%m-%d" } (UTC)
+        // We must ensure we generate the same YYYY-MM-DD string as the server would for this timestamp
+        // The safest way is to use the component's UTC string
+        const id = d.toISOString().split("T")[0]; // YYYY-MM-DD (UTC)
 
         normalized.push({
           _id: id,
@@ -294,9 +306,9 @@ export default function AnalyticsPage() {
             <span
               className={`w-2 h-2 rounded-full ${data?.stats?.live && data.stats.live > 0 ? "bg-green-500 animate-pulse" : "bg-zinc-600"}`}
             ></span>
-            {data?.stats?.live
+            {typeof data?.stats?.live === "number"
               ? `${data.stats.live} Users Active Now`
-              : "Live Tracking"}
+              : "Connecting..."}
           </p>
         </div>
 

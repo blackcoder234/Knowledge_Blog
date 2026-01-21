@@ -1,50 +1,65 @@
-import dbConnect from "@/lib/db";
-import Post from "@/models/Post";
-
-const BASE_URL = "https://knowledgelog.blog";
+import { Feed } from 'feed';
+import dbConnect from '@/lib/db';
+import Post from '@/models/Post';
 
 export async function GET() {
   await dbConnect();
-  
-  // Fetch latest 20 published posts
+
   const posts = await Post.find({ 
-    status: "published",
-    noindex: { $ne: true }
+    status: 'published',
+    noindex: { $ne: true } 
   })
-    .sort({ createdAt: -1 })
-    .limit(20)
-    .populate("author", "name")
-    .lean();
+  .sort({ createdAt: -1 })
+  .limit(20)
+  .populate('author', 'name email link')
+  .populate('category', 'name')
+  .lean();
 
-  const rss = `<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
-  <channel>
-    <title>KnowledgeLog</title>
-    <link>${BASE_URL}</link>
-    <description>Insights for the Modern Developer</description>
-    <language>en</language>
-    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    <atom:link href="${BASE_URL}/feed.xml" rel="self" type="application/rss+xml" />
-    ${posts
-      .map((post: any) => {
-        return `
-      <item>
-        <title><![CDATA[${post.title}]]></title>
-        <link>${BASE_URL}/blog/${post.slug}</link>
-        <guid isPermaLink="true">${BASE_URL}/blog/${post.slug}</guid>
-        <description><![CDATA[${post.excerpt}]]></description>
-        <pubDate>${new Date(post.createdAt).toUTCString()}</pubDate>
-        <author>${post.author?.name || "Team"}</author>
-      </item>`;
-      })
-      .join("")}
-  </channel>
-</rss>`;
+  const feed = new Feed({
+    title: "KnowledgeLog",
+    description: "Insights for the Modern Developer",
+    id: "https://knowledgelog.blog/",
+    link: "https://knowledgelog.blog/",
+    language: "en", // optional, used only in RSS 2.0, possible values: http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
+    image: "https://knowledgelog.blog/icon.png",
+    favicon: "https://knowledgelog.blog/favicon.ico",
+    copyright: `All rights reserved ${new Date().getFullYear()}, KnowledgeLog`,
+    updated: posts[0] ? new Date(posts[0].createdAt) : new Date(),
+    generator: "Feed for Node.js",
+    feedLinks: {
+      json: "https://knowledgelog.blog/api/feed/json",
+      atom: "https://knowledgelog.blog/feed.xml"
+    },
+    author: {
+      name: "KnowledgeLog Team",
+      email: "hello@knowledgelog.blog",
+      link: "https://knowledgelog.blog/about"
+    }
+  });
 
-  return new Response(rss, {
+  posts.forEach((post: any) => {
+    feed.addItem({
+      title: post.title,
+      id: `https://knowledgelog.blog/blog/${post.slug}`,
+      link: `https://knowledgelog.blog/blog/${post.slug}`,
+      description: post.excerpt,
+      content: post.content, // Ideally should be sanitized/rendered HTML, but raw string is often OK for basic readers or needs marked transform
+      author: [
+        {
+          name: post.author?.name || 'KnowledgeLog Team',
+          email: post.author?.email,
+          link: post.author?.link
+        }
+      ],
+      date: new Date(post.createdAt),
+      image: post.image,
+      category: [{ name: post.category?.name || 'Uncategorized' }]
+    });
+  });
+
+  return new Response(feed.rss2(), {
     headers: {
-      "Content-Type": "application/xml",
-      "Cache-Control": "s-maxage=3600, stale-while-revalidate",
+      'Content-Type': 'application/xml; charset=utf-8',
     },
   });
 }

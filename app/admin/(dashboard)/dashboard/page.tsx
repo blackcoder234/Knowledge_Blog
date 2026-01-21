@@ -171,7 +171,7 @@ export default function DashboardPage() {
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          label="Total Leads"
+          label="Total Visitors"
           value={stats?.totalVisitors}
           icon={Activity}
           color="text-cyan-400"
@@ -202,6 +202,74 @@ export default function DashboardPage() {
           bg="bg-yellow-500/10"
           borderColor="border-yellow-500/20"
         />
+      </div>
+
+      {/* Conversion Funnel & Growth */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ConversionFunnel
+          visitors={stats?.totalVisitors || 0}
+          users={stats?.registeredUsers || 0}
+          subscribers={stats?.subscribers || 0}
+        />
+        <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-zinc-300 font-bold text-sm mb-2 flex items-center gap-2">
+              <Target size={16} className="text-emerald-400" />
+              Growth Insights
+            </h3>
+            <p className="text-zinc-500 text-xs leading-relaxed">
+              Your top-performing content is driving{" "}
+              <strong>
+                {(
+                  ((stats?.topPosts?.[0]?.views || 0) /
+                    (stats?.totalVisitors || 1)) *
+                  100
+                ).toFixed(1)}
+                %
+              </strong>{" "}
+              of your total traffic. Focusing on <strong>Technology</strong>{" "}
+              topics could improve your Visitor-to-User conversion rate,
+              currently at{" "}
+              <strong>
+                {(
+                  ((stats?.registeredUsers || 0) /
+                    (stats?.totalVisitors || 1)) *
+                  100
+                ).toFixed(2)}
+                %
+              </strong>
+              .
+            </p>
+          </div>
+
+          <div className="mt-6 flex gap-4">
+            <div className="flex-1 bg-zinc-950/50 rounded-lg p-3 border border-zinc-800/50">
+              <p className="text-zinc-500 text-[10px] uppercase">
+                User Conv. Rate
+              </p>
+              <p className="text-white text-xl font-bold">
+                {(
+                  ((stats?.registeredUsers || 0) /
+                    (stats?.totalVisitors || 1)) *
+                  100
+                ).toFixed(1)}
+                %
+              </p>
+            </div>
+            <div className="flex-1 bg-zinc-950/50 rounded-lg p-3 border border-zinc-800/50">
+              <p className="text-zinc-500 text-[10px] uppercase">
+                Sub. Conversion
+              </p>
+              <p className="text-white text-xl font-bold">
+                {(
+                  ((stats?.subscribers || 0) / (stats?.totalVisitors || 1)) *
+                  100
+                ).toFixed(1)}
+                %
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Analytics Breakdown Grid */}
@@ -356,6 +424,104 @@ function BreakdownCard({ title, icon: Icon, data }: any) {
         {sortedData.length === 0 && (
           <p className="text-zinc-600 text-xs italic">No data collected yet</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ConversionFunnel({ visitors, users, subscribers }: any) {
+  // Safe calculation helper
+  const safePercent = (part: number, total: number) => {
+    if (!total) return 0;
+    return Math.min(Math.round((part / total) * 100), 100);
+  };
+
+  const userRate = safePercent(users, visitors);
+  // const subRate = safePercent(subscribers, visitors);
+
+  return (
+    <div className="bg-zinc-900/20 border border-zinc-800 rounded-xl p-6 backdrop-blur-sm">
+      <h3 className="text-zinc-300 font-bold text-sm mb-6 flex items-center gap-2">
+        <Activity size={16} className="text-purple-400" />
+        Audience Funnel
+      </h3>
+
+      <div className="space-y-6">
+        {/* Stage 1: Visitors */}
+        <div className="relative group">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-xs font-medium text-cyan-400 uppercase tracking-wider">
+              Total Visitors
+            </span>
+            <span className="text-sm font-bold text-white">
+              {visitors.toLocaleString()}
+            </span>
+          </div>
+          <div className="h-2 w-full bg-zinc-800/50 rounded-full overflow-hidden">
+            <div className="h-full bg-cyan-500 w-full rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]"></div>
+          </div>
+        </div>
+
+        {/* Connector */}
+        <div className="flex justify-center -my-3">
+          <div className="h-6 w-0.5 bg-gradient-to-b from-cyan-500/50 to-indigo-500/50"></div>
+        </div>
+
+        {/* Stage 2: Registered */}
+        <div className="relative group">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-xs font-medium text-indigo-400 uppercase tracking-wider">
+              Registered Users
+            </span>
+            <div className="text-right">
+              <span className="text-sm font-bold text-white block">
+                {users.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-zinc-500">
+                {((users / (visitors || 1)) * 100).toFixed(1)}% Conversion
+              </span>
+            </div>
+          </div>
+          {/* Visual Percentage Bar (Logarithmic-ish visual or just relative?) */}
+          {/* If visitors=10k, users=100, bar is 1%. Too small. We'll use a min-width + scaled width logic */}
+          <div className="h-2 w-full bg-zinc-800/50 rounded-full overflow-hidden flex">
+            <div
+              className="h-full bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-1000"
+              style={{ width: `${Math.max(userRate, 5)}%` }} // Min 5% for visibility
+            ></div>
+          </div>
+        </div>
+
+        {/* Connector */}
+        <div className="flex justify-center -my-3">
+          <div className="h-6 w-0.5 bg-gradient-to-b from-indigo-500/50 to-pink-500/50"></div>
+        </div>
+
+        {/* Stage 3: Subscribers */}
+        <div className="relative group">
+          <div className="flex justify-between items-end mb-1">
+            <span className="text-xs font-medium text-pink-400 uppercase tracking-wider">
+              Newsletter Subs
+            </span>
+            <div className="text-right">
+              <span className="text-sm font-bold text-white block">
+                {subscribers.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-zinc-500">
+                {((subscribers / (users || 1)) * 100).toFixed(1)}% of Users
+              </span>
+            </div>
+          </div>
+          <div className="h-2 w-full bg-zinc-800/50 rounded-full overflow-hidden flex">
+            {/* Width relative to USERS for visual flow */}
+            <div
+              className="h-full bg-pink-500 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)] transition-all duration-1000"
+              style={{
+                width: `${Math.max((subscribers / (users || 1)) * 100, 5)}%`,
+              }}
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,10 @@ const PageViewSchema: Schema = new Schema({
   createdAt: { type: Date, default: Date.now, expires: '365d' }, // Auto-delete after 1 year? Optional.
 });
 
+// Indexes for common analytics queries
+// PageViewSchema.index({ createdAt: 1 }); // Already indexed by 'expires' TTL
+PageViewSchema.index({ path: 1 });
+
 // Force recompilation in dev
 if (process.env.NODE_ENV === 'development') {
     delete mongoose.models.PageView;

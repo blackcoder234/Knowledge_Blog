@@ -22,12 +22,9 @@ export async function POST(request: Request) {
     // 2. Increment View Count on Post (Atomic)
     await Post.findByIdAndUpdate(post._id, { $inc: { views: 1 } });
 
-    // 3. Log PageView for Analytics Graph (Time-series data)
-    // We can infer location/device from headers if needed, but keeping it simple for now
-    await PageView.create({
-        path: `/blog/${slug}`,
-        // visitorId: ... (optional)
-    });
+    // 3. (Removed) PageView logging is handled globally by ClientTracker/VisitorTracker
+    // We only need to increment the public-facing view count here.
+
 
     return NextResponse.json({ success: true, views: post.views + 1 });
   } catch (error) {

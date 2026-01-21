@@ -384,8 +384,12 @@ export default function PostEditor({
   };
 
   const handleSubmit = async (targetStatus?: string) => {
-    if (!formData.title || !formData.slug) {
-      showToast("Title and Slug are required.", "error");
+    if (!formData.title) {
+      showToast("Title is missing", "error");
+      return;
+    }
+    if (!formData.slug) {
+      showToast("Slug is missing", "error");
       return;
     }
 
@@ -394,17 +398,11 @@ export default function PostEditor({
     // Validation for Publishing
     if (finalStatus === "published") {
       if (!formData.image) {
-        showToast(
-          "A Featured Image is required to publish this post.",
-          "error",
-        );
+        showToast("Cover Image is missing", "error");
         return;
       }
       if (!formData.excerpt) {
-        showToast(
-          "A short excerpt/description is required before publishing.",
-          "error",
-        );
+        showToast("Excerpt is missing", "error");
         return;
       }
     }

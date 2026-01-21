@@ -23,8 +23,8 @@ const VisitorSchema: Schema = new Schema({
   device: { type: String, default: 'Desktop' },
   path: { type: String, default: '/' },
   referrer: { type: String, default: 'Direct' },
-  createdAt: { type: Date, default: Date.now },
-  lastSeen: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now, index: true },
+  lastSeen: { type: Date, default: Date.now, index: true },
   visitCount: { type: Number, default: 1 },
 });
 

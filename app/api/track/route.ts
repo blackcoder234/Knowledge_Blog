@@ -29,38 +29,39 @@ export async function POST(request: Request) {
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1';
     
-    // 2. Manage Unique Visitor (The "User")
-    // "Total Users will be count on the '/' only" -> Use this logic for counting NEW visitors strictly?
-    // Actually, widespread standard: Visitor is unique by IP.
-    // We update the visitor record if it exists, otherwise create it.
+    // 2. Manage Unique Visitor (Atomic Upsert)
+    // We use findOneAndUpdate to atomically update the visitor or create them if they don't exist.
+    // This prevents race conditions where two parallel requests might both see "visitCount: 1" and update to 2.
     
-    const existingVisitor = await Visitor.findOne({ ip });
-    
-    if (existingVisitor) {
-        // returning visitor
-        existingVisitor.lastSeen = new Date();
-        existingVisitor.visitCount += 1;
-        // Update device info in case they switched? Or keep first?
-        // Let's keep first seen info, or maybe update latest? usually update latest.
-        existingVisitor.browser = browserName;
-        existingVisitor.os = osName;
-        existingVisitor.device = deviceType;
-        existingVisitor.path = path; // Update current path (for "Live" view)
-        await existingVisitor.save();
-    } else {
-        // new visitor
-        await Visitor.create({
-            ip,
-            country: 'Unknown', // Todo: GeoIP
-            city: 'Unknown',
+    // Define the update operation
+    const updates: any = {
+        $set: {
+            lastSeen: new Date(),
+            path, // Update current path
+            // Update device info to simple keep it fresh (or keep original? usually fresh is better for active users)
             browser: browserName,
             os: osName,
             device: deviceType,
-            path,
+        },
+        $inc: { visitCount: 1 },
+        $setOnInsert: { // Fields to set ONLY on creation
+            createdAt: new Date(),
+            country: 'Unknown', // Todo: GeoIP
+            city: 'Unknown',
             referrer: referrer || 'Direct',
-            visitCount: 1
-        });
-    }
+            ip: ip // Ensure IP is set on insert
+        }
+    };
+
+    const visitor = await Visitor.findOneAndUpdate(
+        { ip }, 
+        updates,
+        { 
+            upsert: true, 
+            new: true,
+            setDefaultsOnInsert: true 
+        }
+    );
 
     // 3. Log Page View (The "Hit" for Charts)
     // We log this separately to allow "Views per Day" charts even if the user is unique
