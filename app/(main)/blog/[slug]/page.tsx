@@ -87,18 +87,26 @@ export async function generateMetadata({
 // Fetch post by slug
 async function getPost(slug: string) {
   await dbConnect();
-  const post = await Post.findOne({ slug }).lean();
+  const post = await Post.findOne({ slug })
+    .populate("author", "name image role bio") // Populate author details
+    .populate("category", "name slug") // Populate category details
+    .lean();
   return post;
 }
 
 // Fetch related posts (simple logic: same category, different ID)
-async function getRelatedPosts(category: string, currentId: any) {
+async function getRelatedPosts(category: any, currentId: any) {
   await dbConnect();
+  // Ensure category is an ID if it's an object
+  const categoryId = category?._id || category;
+
   const related = await Post.find({
-    category,
+    category: categoryId,
     _id: { $ne: currentId },
     status: "published",
   })
+    .populate("author", "name image")
+    .populate("category", "name")
     .limit(3)
     .lean();
   return related;
@@ -112,6 +120,7 @@ import Subscriber from "@/models/Subscriber";
 import { ViewCounter } from "@/app/components/blog/ViewCounter";
 import { ReadingProgress } from "@/app/components/blog/ReadingProgress";
 import { AuthorBio } from "@/app/components/blog/AuthorBio";
+import { ArticleContent } from "@/app/components/blog/ArticleContent";
 
 export default async function BlogPostPage({
   params,
@@ -171,7 +180,7 @@ export default async function BlogPostPage({
         <Container className="relative h-full flex flex-col justify-end pb-16">
           <div className="flex justify-between items-end mb-4">
             <div className="inline-block rounded-full border border-accent/50 bg-accent/10 px-4 py-1 text-sm font-medium text-accent backdrop-blur-md">
-              {post.category}
+              {post.category?.name || "Uncategorized"}
             </div>
             {isAdmin && (
               <Link href={`/admin/posts/${post._id}/edit`}>
@@ -236,10 +245,7 @@ export default async function BlogPostPage({
               {post.excerpt}
             </p>
 
-            <div
-              className="prose prose-invert prose-lg text-zinc-300 prose-headings:font-serif prose-headings:text-white prose-headings:font-medium prose-strong:text-white prose-blockquote:border-l-accent prose-blockquote:bg-white/5 prose-blockquote:py-4 prose-blockquote:pl-6 prose-blockquote:not-italic prose-code:text-accent prose-code:bg-white/5 prose-code:p-1 prose-code:rounded ProseMirror"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
+            <ArticleContent content={post.content} />
 
             <AuthorBio author={post.author} />
 

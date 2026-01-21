@@ -30,13 +30,8 @@ export async function POST(request: Request) {
         }
     }
 
-    // Use Real User Data
-    const author = {
-        name: user.name || "Anonymous Editor",
-        email: user.email || "unknown@example.com", // Store email for permissions
-        role: user.role === 'super_admin' ? 'Super Admin' : (user.role === 'admin' ? 'Administrator' : 'Editor'),
-        image: user.image || "https://placehold.co/100x100/333/FFF?text=User"
-    };
+    // Use Real User ID for Reference
+    const authorId = user.id;
     
     // Calculate read time if content exists, otherwise default
     const readTimeVal = body.content 
@@ -45,7 +40,7 @@ export async function POST(request: Request) {
 
     const newPost = await Post.create({
         ...body,
-        author,
+        author: authorId,
         readTime: readTimeVal
     });
 

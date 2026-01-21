@@ -52,7 +52,7 @@ export async function DELETE(
         const canDelete = 
             user.role === 'super_admin' || 
             user.role === 'admin' || 
-            (user.role === 'editor' && post.author?.email === user.email);
+            (user.role === 'editor' && post.author.toString() === user.id);
 
         if (!canDelete) {
             return NextResponse.json({ error: "Unauthorized: Editors can only delete their own posts." }, { status: 403 });
@@ -88,7 +88,7 @@ export async function PATCH(
         const canEdit = 
             user.role === 'super_admin' || 
             user.role === 'admin' || 
-            (user.role === 'editor' && post.author?.email === user.email);
+            (user.role === 'editor' && post.author.toString() === user.id);
 
         if (!canEdit) {
             return NextResponse.json({ error: "Unauthorized: Editors can only edit their own posts." }, { status: 403 });

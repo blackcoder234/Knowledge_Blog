@@ -3,12 +3,20 @@
 import { useState } from "react";
 import { useToast } from "@/app/context/ToastContext";
 
-export function DeletePostButton({ id }: { id: string }) {
+export function DeletePostButton({
+  id,
+  disabled,
+}: {
+  id: string;
+  disabled?: boolean;
+}) {
   const [isDeleting, setIsDeleting] = useState(false);
   const { showToast } = useToast();
 
   const handleDelete = async () => {
+    if (disabled) return;
     if (!confirm("Are you sure you want to delete this post?")) return;
+    // ...
 
     setIsDeleting(true);
     try {
@@ -34,8 +42,8 @@ export function DeletePostButton({ id }: { id: string }) {
   return (
     <button
       onClick={handleDelete}
-      disabled={isDeleting}
-      className="p-2 hover:text-red-500 transition-colors disabled:opacity-50"
+      disabled={isDeleting || disabled}
+      className={`p-2 transition-colors ${disabled ? "text-zinc-700 cursor-not-allowed" : "hover:text-red-500 disabled:opacity-50"}`}
       title="Delete Post"
     >
       <svg

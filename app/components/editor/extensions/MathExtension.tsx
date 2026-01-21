@@ -1,13 +1,16 @@
-import { mergeAttributes, Node, InputRule } from "@tiptap/core";
+import { mergeAttributes, Node, InputRule, PasteRule } from "@tiptap/core";
 import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import katex from "katex";
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
-// Input Rule Regex for $content$ -> (dollar signs)
-// Matches content between two dollar signs (non-greedy)
-export const inputRegex = /(?:\$)([^$]+)(?:\$)$/;
+// Inline Math: $content$
+// Trigger: Ends with $
+export const starInputRegex = /(?:^|\s)\$([^$]+)\$$/;
 
-export const MathComponent = ({
+// Block Math: $$content$$
+export const blockInputRegex = /^\$\$([^$]+)\$\$$/;
+
+const MathNodeView = ({
   node,
   updateAttributes,
   selected,
@@ -15,48 +18,80 @@ export const MathComponent = ({
   editor,
 }: any) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [tempLatex, setTempLatex] = useState(node.attrs.latex);
+  const [latex, setLatex] = useState(node.attrs.latex || "");
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+  const [arrowStyle, setArrowStyle] = useState<React.CSSProperties>({});
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Sync state if node changes externally
+  // Sync internal state when node attributes change
   useEffect(() => {
-    setTempLatex(node.attrs.latex);
+    setLatex(node.attrs.latex);
   }, [node.attrs.latex]);
 
-  // Focus input when entering edit mode
+  // Handle focus & Positioning
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      // Set cursor to end
-      const len = inputRef.current.value.length;
-      inputRef.current.setSelectionRange(len, len);
+    if (isEditing) {
+      // Focus Input
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const len = inputRef.current.value.length;
+        inputRef.current.setSelectionRange(len, len);
+      }
+
+      // Smart Positioning
+      if (wrapperRef.current) {
+        const rect = wrapperRef.current.getBoundingClientRect();
+        const popoverWidth = 280; // assumed width (matches w-[280px])
+        const half = popoverWidth / 2;
+        const screenW = window.innerWidth;
+
+        let style: React.CSSProperties = {
+          left: "50%",
+          transform: "translateX(-50%)",
+        };
+        let arrow: React.CSSProperties = { left: "50%" };
+
+        // Too close to left edge?
+        if (rect.left < half) {
+          // Align left
+          style = { left: "0px", transform: "translateX(0)" };
+          // Arrow should move to where the node center is roughly
+          // node center relative to popover left edge is rect.width/2.
+          arrow = { left: `${rect.width / 2}px` };
+        }
+        // Too close to right edge?
+        else if (rect.right + half > screenW) {
+          // Align right
+          style = { left: "auto", right: "0px", transform: "translateX(0)" };
+          arrow = { left: "auto", right: `${rect.width / 2}px` };
+        }
+
+        setPopoverStyle(style);
+        setArrowStyle(arrow);
+      }
     }
   }, [isEditing]);
 
   const save = useCallback(() => {
-    if (tempLatex.trim()) {
-      updateAttributes({ latex: tempLatex });
+    if (latex.trim()) {
+      updateAttributes({ latex: latex });
       setIsEditing(false);
       editor.commands.focus();
     } else {
-      // If empty, remove the node? Or just close?
-      // Standard behavior: Remove empty math node
       editor.commands.deleteRange({ from: getPos(), to: getPos() + 1 });
       setIsEditing(false);
       editor.commands.focus();
     }
-  }, [tempLatex, updateAttributes, editor, getPos]);
+  }, [latex, updateAttributes, editor, getPos]);
 
   const cancel = useCallback(() => {
-    setTempLatex(node.attrs.latex); // Revert
+    setLatex(node.attrs.latex);
     setIsEditing(false);
     editor.commands.focus();
   }, [node.attrs.latex, editor]);
 
-  // Keyboard Shortcuts inside the Popover
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    e.stopPropagation(); // Stop Tiptap from handling these
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       save();
@@ -64,134 +99,155 @@ export const MathComponent = ({
       e.preventDefault();
       cancel();
     }
+    e.stopPropagation();
   };
 
-  const renderMath = (tex: string) => {
+  const renderMath = (content: string) => {
     try {
-      return {
-        __html: katex.renderToString(tex, {
-          throwOnError: false,
-          output: "html",
-          displayMode: false, // Inline math
-        }),
-      };
+      return katex.renderToString(content, {
+        throwOnError: false,
+        displayMode: node.attrs.displayMode === "block",
+        errorColor: "#cc0000",
+      });
     } catch (e) {
-      return {
-        __html: "<span class='text-red-400 font-mono'>Invalid Syntax</span>",
-      };
+      return `<span class="text-red-500 font-mono text-xs">Invalid Equation</span>`;
     }
   };
 
-  // Click outside listener to save/close
   useEffect(() => {
     if (!isEditing) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        save(); // Save on click away (Notion style)
+    const handleGlobalClick = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as any)) {
+        save();
       }
     };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("mousedown", handleGlobalClick);
+    return () => window.removeEventListener("mousedown", handleGlobalClick);
   }, [isEditing, save]);
 
   return (
-    <NodeViewWrapper className="inline-block mx-1 align-middle relative">
-      {/* Popover Editor */}
+    <NodeViewWrapper
+      ref={wrapperRef}
+      className={`relative inline-block ${
+        node.attrs.displayMode === "block"
+          ? "w-full my-4 flex justify-center"
+          : "mx-1 align-middle"
+      }`}
+    >
       {isEditing && (
         <div
-          ref={containerRef}
-          className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+10px)] z-[50] w-[320px] bg-[#1e1e1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 ring-1 ring-white/10"
+          className="absolute top-full mt-2 z-50 w-[280px] bg-[#1e1e1e] border border-zinc-700/50 rounded-lg shadow-2xl animate-in fade-in slide-in-from-top-1 ring-1 ring-white/10 overflow-hidden text-left"
+          style={popoverStyle}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 bg-[#252525] border-b border-white/5">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-              Equation
-            </span>
-            <div className="flex gap-2">
-              <span className="text-[10px] text-zinc-600">Enter to save</span>
+          <div className="flex items-center justify-between px-3 py-1.5 bg-[#252525] border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                LaTeX
+              </span>
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={cancel}
+                className="p-1 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors"
+                title="Cancel"
+              >
+                <span className="sr-only">Cancel</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+              <button
+                onClick={save}
+                className="p-1 bg-cyan-600 hover:bg-cyan-500 rounded text-white transition-colors"
+                title="Save"
+              >
+                <span className="sr-only">Save</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
             </div>
           </div>
 
-          <div className="p-3 space-y-3">
-            {/* Input Area */}
+          {/* Body */}
+          <div className="p-2">
             <textarea
               ref={inputRef}
-              value={tempLatex}
-              onChange={(e) => setTempLatex(e.target.value)}
+              value={latex}
+              onChange={(e) => setLatex(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full bg-[#111] border border-zinc-800 rounded-lg p-3 text-sm font-mono text-cyan-300 focus:outline-none focus:border-cyan-500/50 resize-y min-h-[80px] leading-relaxed selection:bg-cyan-900"
-              placeholder="\sum_{i=0}^n i^2 = \frac{(n^2+n)(2n+1)}{6}"
+              className="w-full h-16 bg-[#111] border border-zinc-800 rounded p-2 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-500/50 resize-none leading-relaxed"
+              placeholder="E = mc^2"
             />
 
-            {/* Live Preview */}
-            <div className="bg-[#151515] rounded-lg p-3 border border-zinc-800/50 flex flex-col gap-2">
-              <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-wider">
-                Preview
-              </span>
-              <div className="flex justify-center min-h-[30px] items-center overflow-x-auto text-lg text-white">
-                <span
-                  dangerouslySetInnerHTML={renderMath(tempLatex || "...")}
-                />
-              </div>
+            {/* Live Preview (Compact) */}
+            <div className="mt-2 px-2 py-1.5 bg-black/20 rounded border border-white/5 min-h-[1.5rem] flex items-center justify-center">
+              <div
+                className="text-white text-sm"
+                dangerouslySetInnerHTML={{ __html: renderMath(latex) }}
+              />
             </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex p-2 bg-[#252525] border-t border-white/5 gap-2">
-            <button
-              onClick={cancel}
-              className="flex-1 px-3 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-white/5 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={save}
-              className="flex-1 px-3 py-1.5 rounded text-xs font-bold bg-cyan-600 text-white hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-900/20"
-            >
-              Done
-            </button>
+            <div className="mt-1 text-right">
+              <span className="text-[9px] text-zinc-600">
+                Shift+Enter to new line
+              </span>
+            </div>
           </div>
 
           {/* Arrow */}
-          <div className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 bg-[#252525] border-b border-r border-white/5 transform rotate-45"></div>
+          <div
+            className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#252525] border-t border-l border-white/5 transform rotate-45"
+            style={arrowStyle}
+          ></div>
         </div>
       )}
-
-      {/* Rendered View (The Node Itself) */}
       <span
         onClick={() => setIsEditing(true)}
-        className={`
-          inline-flex items-baseline cursor-pointer px-1 py-0.5 rounded transition-all duration-200
-          ${selected || isEditing ? "bg-cyan-500/10 ring-1 ring-cyan-500/30" : "hover:bg-white/5"}
-        `}
+        className={`cursor-pointer rounded transition-all duration-200 py-1 px-1 ${
+          selected || isEditing
+            ? "bg-cyan-500/10 ring-1 ring-cyan-500/30"
+            : "hover:bg-white/5"
+        } ${node.attrs.displayMode === "block" ? "block w-full text-center p-2" : ""}`}
         title="Click to edit equation"
-      >
-        <span dangerouslySetInnerHTML={renderMath(node.attrs.latex)} />
-      </span>
+        dangerouslySetInnerHTML={{ __html: renderMath(node.attrs.latex) }}
+      />
     </NodeViewWrapper>
   );
 };
 
 export const MathExtension = Node.create({
-  name: "mathComponent",
-
+  name: "math",
   group: "inline",
-
   inline: true,
-
   atom: true,
-
-  draggable: true, // Industry standard: equations should be draggable
 
   addAttributes() {
     return {
       latex: {
         default: "E=mc^2",
+      },
+      displayMode: {
+        default: "inline",
       },
     };
   },
@@ -199,44 +255,140 @@ export const MathExtension = Node.create({
   parseHTML() {
     return [
       {
-        tag: "math-component",
-      },
-      {
-        tag: "span[data-type='math']", // Backward compat or general support
+        tag: "span[data-type='math']",
+        getAttrs: (node) => ({
+          latex: (node as HTMLElement).getAttribute("data-latex"),
+          displayMode:
+            (node as HTMLElement).getAttribute("data-display-mode") || "inline",
+        }),
       },
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return ["math-component", mergeAttributes(HTMLAttributes)];
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      "span",
+      mergeAttributes(HTMLAttributes, {
+        "data-type": "math",
+        "data-latex": node.attrs.latex,
+        "data-display-mode": node.attrs.displayMode,
+        class: "math-node",
+      }),
+    ];
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(MathComponent);
+    return ReactNodeViewRenderer(MathNodeView);
   },
 
   addInputRules() {
     return [
+      // Block Math Rule: $$...$$
       new InputRule({
-        find: inputRegex,
+        find: blockInputRegex,
         handler: ({ state, range, match }) => {
           const { tr } = state;
           const start = range.from;
           const end = range.to;
-          const latex = match[1]; // Capture group 1 is the content
+          const latex = match[1];
+          if (latex) {
+            tr.replaceWith(
+              start,
+              end,
+              this.type.create({ latex, displayMode: "block" }),
+            );
+          }
+        },
+      }),
+      // Inline Math Rule: $...$
+      new InputRule({
+        find: starInputRegex,
+        handler: ({ state, range, match }) => {
+          const { tr } = state;
+          const latex = match[1];
+          // We need simple replacement here because regex includes the space if any
+          // Actually paste/input rules differ.
+          // If regex is /(?:^|\s)\$([^$]+)\$$/, match[0] is " $latex$"
+          // match[1] is "latex".
+          // We should preserve the leading space if it exists.
 
           if (latex) {
-            tr.replaceWith(start, end, this.type.create({ latex }));
+            const fullMatch = match[0];
+            const startOffset = fullMatch.startsWith(" ") ? 1 : 0;
+            const start = range.from + startOffset;
+            const end = range.to;
+            tr.replaceWith(
+              start,
+              end,
+              this.type.create({ latex, displayMode: "inline" }),
+            );
           }
         },
       }),
     ];
   },
 
-  addKeyboardShortcuts() {
-    return {
-      "Mod-Shift-e": () =>
-        this.editor.commands.insertContent({ type: this.name }),
-    };
+  addPasteRules() {
+    return [
+      // Complex LaTeX Block Paste: \begin{env}...\end{env}
+      new PasteRule({
+        find: /\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}/g,
+        handler: ({ state, range, match }) => {
+          const { tr } = state;
+          const env = match[1];
+          const content = match[2];
+
+          if (env && content) {
+            let latex = match[0];
+
+            // Smart Transformation for KaTeX compatibility
+            // KaTeX often prefers 'aligned' over 'align' for inline/display switching
+            if (env === "align" || env === "align*") {
+              // We replace the outer align with aligned
+              latex = `\\begin{aligned}${content}\\end{aligned}`;
+            } else if (env === "equation" || env === "equation*") {
+              // Just strip equation wrappers, let $$ handle display
+              latex = content.trim();
+            }
+
+            tr.replaceWith(
+              range.from,
+              range.to,
+              this.type.create({ latex, displayMode: "block" }),
+            );
+          }
+        },
+      }),
+      // Block Math Paste: $$...$$
+      new PasteRule({
+        find: /\$\$([\s\S]*?)\$\$/g, // Improved regex to catch multiline
+        handler: ({ state, range, match }) => {
+          const { tr } = state;
+          const latex = match[1];
+          if (latex) {
+            tr.replaceWith(
+              range.from,
+              range.to,
+              this.type.create({ latex, displayMode: "block" }),
+            );
+          }
+        },
+      }),
+      // Inline Math Paste: $...$
+      new PasteRule({
+        find: /(?:^|\s)\$([^$]+)\$(?:$|\s)/g,
+        handler: ({ state, range, match }) => {
+          const { tr } = state;
+          const latex = match[1];
+          if (latex) {
+            tr.replaceWith(
+              range.from,
+              range.to,
+              this.type.create({ latex, displayMode: "inline" }),
+            );
+          }
+        },
+      }),
+    ];
   },
 });

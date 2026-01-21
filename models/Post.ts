@@ -7,15 +7,10 @@ export interface IPost extends Document {
   slug: string;
   excerpt: string;
   content: string;
-  category: string;
+  category: any; // Populated Category | ObjectId
   language: string;
   image: string;
-  author: {
-    name: string;
-    email: string; // Added email
-    role: string;
-    image: string;
-  };
+  author: any; // Populated User | ObjectId
   tags: string[];
   readTime: string;
   views: number;
@@ -38,14 +33,13 @@ const PostSchema: Schema = new Schema(
     slug: { type: String, required: true, unique: true },
     excerpt: { type: String, required: true },
     content: { type: String, required: true },
-    category: { type: String, required: true },
+    category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     language: { type: String, default: "English" }, // Added language field
     image: { type: String, required: true },
     author: {
-      name: { type: String, required: true },
-      email: { type: String, required: true }, // Added email for stable permissions
-      role: { type: String, required: true },
-      image: { type: String, required: true },
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
     tags: { type: [String], default: [] },
     readTime: { type: String, required: true },

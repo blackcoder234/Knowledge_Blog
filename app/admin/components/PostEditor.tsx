@@ -17,8 +17,15 @@ import {
   Layout,
   FileText,
   ChevronDown,
+  BookOpen,
+  Maximize2,
+  Minimize2,
+  Save,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { EditorGuide } from "./EditorGuide"; // New Component
+import { TableOfContents } from "@/app/components/editor/TableOfContents";
+import { Editor } from "@tiptap/react";
 
 // Interface for Media Items
 interface MediaItem {
@@ -54,16 +61,23 @@ export default function PostEditor({
         // Generate unique session ID for this tab
         const newId = crypto.randomUUID();
         const newUrl = window.location.pathname + "?tempId=" + newId;
-        // Use replaceState to update URL without trigger nav/reload
         window.history.replaceState({}, "", newUrl);
         setTempDraftId(newId);
       }
     }
   }, [isEdit, initialData, searchParams]);
+
+  // Editor States
+  const [isZenMode, setIsZenMode] = useState(false);
   const [showSeoPreview, setShowSeoPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [isDirty, setIsDirty] = useState(false); // Track unsaved changes
+  // Track specific dirty state (could be enhanced later to field-level)
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Draft Restore State
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const [restoreDraftData, setRestoreDraftData] = useState<any>(null);
 
   // Media Modal State
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
@@ -74,6 +88,10 @@ export default function PostEditor({
   const [targetImageField, setTargetImageField] = useState<
     "image" | "ogImage" | "content"
   >("image");
+
+  // Guide State
+  const [showGuide, setShowGuide] = useState(false);
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
   // Category State
   const [categories, setCategories] = useState<any[]>([]);
@@ -132,34 +150,40 @@ export default function PostEditor({
       setIsDirty(false);
     }
 
-    // 3. Restore Draft if available
+    // 3. Check for Autosaved Drafts (Non-blocking)
     if (storageKey) {
-      const localDraft = localStorage.getItem(storageKey);
-      if (localDraft) {
+      const localDraftIdx = localStorage.getItem(storageKey);
+      if (localDraftIdx) {
         try {
-          const parsed = JSON.parse(localDraft);
+          const parsed = JSON.parse(localDraftIdx);
+          // Support both old format (raw data) and new format (w/ timestamp)
+          const draftData = parsed.timestamp ? parsed.data : parsed;
+          const draftTime = parsed.timestamp || 0;
 
-          // For Edit: Check if different
-          if (initialData) {
-            if (
-              parsed.content !== initialData.content ||
-              parsed.title !== initialData.title
-            ) {
-              const userWantsRestore = window.confirm(
-                "Found an unsaved draft on this device that is newer than the database version. Would you like to restore it?",
-              );
-              if (userWantsRestore) {
-                setFormData(parsed);
-                setIsDirty(true);
-                showToast("Restored unsaved local draft", "success");
-              }
-            }
-          } else {
-            // For Create: Always restore if found (restoring session)
-            if (parsed.title || parsed.content) {
-              setFormData(parsed);
+          // For Create Mode: Always restore session silently if content exists
+          if (!isEdit) {
+            if (draftData.title || draftData.content) {
+              setFormData(draftData);
               setIsDirty(true);
-              showToast("Restored session draft", "success");
+              showToast("Restored your previous session", "info");
+            }
+          }
+          // For Edit Mode: Check if local is newer than DB
+          else if (initialData && draftData) {
+            const dbTime = new Date(initialData.updatedAt).getTime();
+
+            // If local draft is newer (or substantially different if no timestamp)
+            // We verify content difference to minimize false positives
+            const hasContentDiff =
+              draftData.content !== initialData.content ||
+              draftData.title !== initialData.title;
+
+            if (hasContentDiff) {
+              if (draftTime > dbTime || !draftTime) {
+                // Found newer draft!
+                setRestoreDraftData(draftData);
+                setShowRestorePrompt(true);
+              }
             }
           }
         } catch (e) {
@@ -167,7 +191,7 @@ export default function PostEditor({
         }
       }
     }
-  }, [initialData, isEdit, tempDraftId]);
+  }, [initialData, isEdit, tempDraftId]); // Run once on mount/id-change
 
   // Tag Input State
   const [tagInput, setTagInput] = useState("");
@@ -228,11 +252,34 @@ export default function PostEditor({
     }
 
     const timer = setTimeout(() => {
-      localStorage.setItem(storageKey, JSON.stringify(formData));
+      const payload = {
+        timestamp: Date.now(),
+        data: formData,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(payload));
     }, 1000); // Save every 1s of inactivity
 
     return () => clearTimeout(timer);
   }, [formData, isDirty, initialData, tempDraftId]);
+
+  // Restore Action
+  const confirmRestore = () => {
+    if (restoreDraftData) {
+      setFormData(restoreDraftData);
+      setIsDirty(true);
+      setShowRestorePrompt(false);
+      showToast("Draft restored successfully", "success");
+    }
+  };
+
+  const discardRestore = () => {
+    setShowRestorePrompt(false);
+    // Optionally clear the stale draft so it doesn't nag again
+    let storageKey = "";
+    if (initialData?._id) storageKey = `post_draft_${initialData._id}`;
+    if (storageKey) localStorage.removeItem(storageKey);
+    showToast("Local draft discarded", "info");
+  };
 
   // Prevent Navigation if Dirty
   useEffect(() => {
@@ -619,6 +666,31 @@ export default function PostEditor({
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setIsZenMode(!isZenMode)}
+            className={`flex items-center gap-2 ${isZenMode ? "text-cyan-400 bg-cyan-950/30" : "text-zinc-400 hover:text-cyan-400"}`}
+            title="Toggle Focus Mode"
+          >
+            {isZenMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            <span className="hidden md:inline">
+              {isZenMode ? "Exit Focus" : "Focus"}
+            </span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowGuide(true)}
+            className="text-zinc-400 hover:text-cyan-400 flex items-center gap-2"
+          >
+            <BookOpen size={18} />
+            <span className="hidden md:inline">Guide</span>
+          </Button>
+
+          <div className="h-6 w-px bg-white/10 mx-1"></div>
+
+          <Button
+            variant="ghost"
+            size="sm"
             className="hidden md:flex gap-2"
             onClick={handlePreview}
           >
@@ -649,346 +721,476 @@ export default function PostEditor({
         </div>
       </div>
 
+      {/* Restore Prompt Banner */}
+      <AnimatePresence>
+        {showRestorePrompt && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -20, height: 0 }}
+            className="mb-8 overflow-hidden"
+          >
+            <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-cyan-200">
+                <div className="p-2 bg-cyan-500/10 rounded-lg">
+                  <FileText size={20} className="text-cyan-400" />
+                </div>
+                <div className="text-sm">
+                  <p className="font-bold">Unsaved changes found</p>
+                  <p className="opacity-80">
+                    We found a newer version of this post on your device (likely
+                    from a previous session).
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={discardRestore}
+                  className="text-zinc-400 hover:text-white"
+                >
+                  Discard Local
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={confirmRestore}
+                  className="bg-cyan-500 text-black hover:bg-cyan-400"
+                >
+                  Restore Version
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Editor Column */}
-        <div className="lg:col-span-3 space-y-8">
-          {/* Title Input Area */}
-          <div className="space-y-6">
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="Post Title"
-              className="w-full bg-transparent border-none px-0 py-2 text-4xl md:text-5xl font-black tracking-tight text-white placeholder:text-zinc-800 focus:outline-none focus:ring-0 focus:placeholder:text-zinc-700 transition-all font-sans"
-            />
+        <div
+          className={`
+             ${
+               isZenMode
+                 ? "fixed inset-0 z-[100] bg-[#09090b] overflow-y-auto animate-in fade-in duration-300 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-zinc-800"
+                 : "lg:col-span-3 space-y-8"
+             }
+           `}
+        >
+          {isZenMode ? (
+            <div className="fixed inset-0 z-[100] bg-[#09090b] flex flex-col animate-in fade-in duration-300">
+              {/* Fixed Header: Title & Controls */}
+              <div className="flex-none px-8 py-4 border-b border-white/5 bg-[#09090b] flex items-center justify-between gap-8 z-20">
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Post Title..."
+                  className="flex-1 bg-transparent border-none px-0 py-2 font-bold tracking-tight text-3xl md:text-4xl text-white placeholder:text-zinc-800 focus:outline-none focus:ring-0 focus:placeholder:text-zinc-700 transition-all font-sans"
+                />
 
-            <div className="flex flex-col gap-4 pl-1">
-              {/* Slug Section */}
-              <div className="flex items-center gap-3 text-zinc-500 text-sm font-mono group">
-                <span className="text-cyan-500/50 group-hover:text-cyan-500 transition-colors">
-                  GET
-                </span>
-                <span>/blog/</span>
-                <div className="relative flex-1 max-w-md flex items-center gap-2">
-                  <input
-                    type="text"
-                    name="slug"
-                    value={formData.slug}
-                    onChange={handleChange}
-                    placeholder="url-slug-goes-here"
-                    className="flex-1 bg-white/5 border border-white/5 rounded-md px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-colors"
-                  />
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={generateSlug}
-                    title="Auto-generate from Title"
-                    className="p-2 bg-white/5 hover:bg-cyan-500/20 text-zinc-400 hover:text-cyan-500 rounded-md transition-colors"
+                    onClick={() => handleSubmit()}
+                    disabled={isSubmitting}
+                    className={`p-2.5 rounded-full backdrop-blur-sm transition-all border border-white/5 shadow-xl ${
+                      isDirty
+                        ? "bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20"
+                        : "bg-zinc-900 text-zinc-500 hover:text-white"
+                    }`}
+                    title={isDirty ? "Save Changes" : "Saved"}
                   >
-                    <span className="sr-only">Generate Slug</span>✨
+                    <Save
+                      size={20}
+                      className={isSubmitting ? "animate-pulse" : ""}
+                    />
+                  </button>
+                  <button
+                    onClick={() => setIsZenMode(false)}
+                    className="p-2.5 text-zinc-500 hover:text-white bg-zinc-900 rounded-full backdrop-blur-sm transition-colors border border-white/5 shadow-xl"
+                    title="Exit Focus Mode"
+                  >
+                    <Minimize2 size={20} />
                   </button>
                 </div>
               </div>
 
-              {/* Description Section */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  Short Description / Excerpt
-                </label>
-                <textarea
-                  name="excerpt"
-                  value={formData.excerpt}
-                  onChange={handleChange}
-                  rows={2}
-                  placeholder="Enter a compelling summary for search results and social cards..."
-                  className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg p-4 text-zinc-300 text-sm leading-relaxed focus:outline-none focus:border-cyan-500/50 resize-none font-sans"
-                ></textarea>
-              </div>
-            </div>
-          </div>
-
-          <RichTextEditor
-            ref={editorRef}
-            value={formData.content}
-            onChange={handleContentChange}
-            onImageUpload={uploadFile}
-            onMediaSelect={() => openMediaModal("content")}
-          />
-
-          {/* SEO Metadata Settings */}
-          <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-8 space-y-6">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <Search size={18} className="text-cyan-500" /> SEO Configuration
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  SEO Title
-                </label>
-                <input
-                  type="text"
-                  name="seoTitle"
-                  value={formData.seoTitle}
-                  onChange={handleChange}
-                  placeholder={formData.title || "Default: Post Title"}
-                  className="w-full bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  Canonical URL
-                </label>
-                <input
-                  type="text"
-                  name="canonicalUrl"
-                  value={formData.canonicalUrl}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                  className="w-full bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
+              {/* Scrollable Editor Area */}
+              <div className="flex-1 overflow-hidden w-full max-w-6xl mx-auto px-4 md:px-8 pt-6 pb-0 flex flex-col">
+                <RichTextEditor
+                  ref={editorRef}
+                  value={formData.content}
+                  onChange={handleContentChange}
+                  placeholder="Write something amazing..."
+                  className="h-full border-none bg-transparent"
+                  onImageUpload={uploadFile}
+                  onEditorReady={setEditorInstance}
                 />
               </div>
             </div>
+          ) : (
+            <>
+              {/* Standard Mode Layout */}
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                SEO Description
-              </label>
-              <textarea
-                name="seoDescription"
-                value={formData.seoDescription}
-                onChange={handleChange}
-                rows={2}
-                placeholder={formData.excerpt || "Default: Post Excerpt"}
-                className="w-full bg-[#121212] border border-white/10 rounded-lg p-4 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
-              ></textarea>
-            </div>
+              {/* Title Input Area */}
+              <div className="space-y-6">
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Post Title"
+                  className={`w-full bg-transparent border-none px-0 py-2 font-black tracking-tight text-white placeholder:text-zinc-800 focus:outline-none focus:ring-0 focus:placeholder:text-zinc-700 transition-all font-sans ${isZenMode ? "text-5xl md:text-6xl text-center" : "text-4xl md:text-5xl"}`}
+                />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-                  OpenGraph Image (Social Card)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    name="ogImage"
-                    value={formData.ogImage}
-                    onChange={handleChange}
-                    placeholder={formData.image || "Default: Featured Image"}
-                    className="flex-1 bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => openMediaModal("ogImage")}
-                    className="border-white/10 text-zinc-300"
-                  >
-                    Select
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-6">
-                <div className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
-                  <input
-                    type="checkbox"
-                    id="noindex"
-                    name="noindex"
-                    checked={formData.noindex}
-                    onChange={handleChange}
-                    className="h-4 w-4 bg-[#121212] border-red-500/50 rounded text-red-500 focus:ring-offset-0 focus:ring-0"
-                  />
-                  <div>
-                    <label
-                      htmlFor="noindex"
-                      className="block text-sm font-bold text-red-400"
-                    >
-                      NoIndex (Hide from Google)
-                    </label>
-                    <p className="text-[10px] text-red-400/70">
-                      Enable this to prevent search engines from indexing this
-                      page.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar Settings Column */}
-        <div className="space-y-6 sticky top-24 h-fit">
-          <div className="bg-card border border-white/5 rounded-xl p-6 space-y-6">
-            <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">
-                Publishing
-              </label>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-                    Category
-                  </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
-                  >
-                    <option value="" disabled>
-                      Select Category
-                    </option>
-                    {loadingCategories ? (
-                      <option disabled>Loading...</option>
-                    ) : (
-                      categories.map((cat) => (
-                        <option key={cat._id} value={cat.name}>
-                          {cat.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-                    Language
-                  </label>
-                  <select
-                    name="language"
-                    value={(formData as any).language || "English"}
-                    onChange={handleChange}
-                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
-                  >
-                    <option value="English">English</option>
-                    <option value="Bengali">Bengali</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-                    Tags
-                  </label>
-                  <div className="flex flex-wrap gap-2 bg-[#121212] border border-white/10 rounded-lg p-2 min-h-[42px] focus-within:border-cyan-500/50 transition-colors">
-                    {formData.tags &&
-                      formData.tags
-                        .split(",")
-                        .map((tag) => tag.trim())
-                        .filter(Boolean)
-                        .map((tag, i) => (
-                          <span
-                            key={i}
-                            className="bg-white/10 text-zinc-200 text-xs px-2 py-1 rounded flex items-center gap-1 group"
-                          >
-                            {tag}
-                            <button
-                              onClick={() => removeTag(tag)}
-                              className="hover:text-red-400 opacity-50 group-hover:opacity-100"
-                            >
-                              <X size={12} />
-                            </button>
-                          </span>
-                        ))}
-                    <input
-                      type="text"
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={handleTagKeyDown}
-                      placeholder={formData.tags ? "" : "Add tags..."}
-                      className="bg-transparent border-none text-white text-sm focus:ring-0 p-0 min-w-[80px] flex-1"
-                    />
-                  </div>
-                  <p className="text-[10px] text-zinc-500 mt-1">
-                    Press Enter or Comma to add tag
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="featured"
-                    checked={formData.featured}
-                    onChange={(e) =>
-                      setFormData((p) => ({ ...p, featured: e.target.checked }))
-                    }
-                    className="rounded bg-[#121212] border-white/10"
-                  />
-                  <label htmlFor="featured" className="text-sm text-zinc-300">
-                    Featured Post
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-white/5">
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">
-                Featured Asset
-              </label>
-              <div className="space-y-3">
-                {/* Image Preview */}
-                <div
-                  className="relative border border-dashed border-white/10 rounded-lg h-40 flex flex-col items-center justify-center overflow-hidden bg-black/20 group cursor-pointer hover:border-cyan-500/50 transition-all"
-                  onClick={() => openMediaModal("image")}
-                >
-                  {formData.image ? (
-                    <>
-                      <img
-                        src={formData.image}
-                        className="w-full h-full object-cover"
-                        alt="Featured"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <span className="text-xs font-bold text-white">
-                          Change Image
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="text-zinc-600 mb-2" />
-                      <span className="text-xs text-zinc-500">
-                        Select Image
+                {/* Zen Mode: Hide Metadata Inputs */}
+                {!isZenMode && (
+                  <div className="flex flex-col gap-4 pl-1">
+                    {/* Slug Section */}
+                    <div className="flex items-center gap-3 text-zinc-500 text-sm font-mono group">
+                      <span className="text-cyan-500/50 group-hover:text-cyan-500 transition-colors">
+                        GET
                       </span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card border border-white/5 rounded-xl p-6">
-            <div
-              className="flex items-center justify-between cursor-pointer"
-              onClick={() => setShowSeoPreview(!showSeoPreview)}
-            >
-              <h3 className="text-sm font-bold text-white">
-                Google Search Preview
-              </h3>
-              <Search size={16} />
-            </div>
-            {showSeoPreview && (
-              <div className="mt-4 pt-4 border-t border-white/5">
-                <div className="bg-white rounded-lg p-3 max-w-full overflow-hidden">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="h-6 w-6 rounded-full bg-zinc-200"></div>
-                    <div>
-                      <div className="text-[10px] text-zinc-800 font-bold">
-                        KnowledgeLog
+                      <span>/blog/</span>
+                      <div className="relative flex-1 max-w-md flex items-center gap-2">
+                        <input
+                          type="text"
+                          name="slug"
+                          value={formData.slug}
+                          onChange={handleChange}
+                          placeholder="url-slug-goes-here"
+                          className="flex-1 bg-white/5 border border-white/5 rounded-md px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-colors"
+                        />
+                        <button
+                          onClick={generateSlug}
+                          title="Auto-generate from Title"
+                          className="p-2 bg-white/5 hover:bg-cyan-500/20 text-zinc-400 hover:text-cyan-500 rounded-md transition-colors"
+                        >
+                          <span className="sr-only">Generate Slug</span>✨
+                        </button>
                       </div>
-                      <div className="text-[8px] text-zinc-500">
-                        https://knowledgelog.com/blog/{formData.slug || "..."}
+                    </div>
+
+                    {/* Description Section */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        Short Description / Excerpt
+                      </label>
+                      <textarea
+                        name="excerpt"
+                        value={formData.excerpt}
+                        onChange={handleChange}
+                        rows={2}
+                        placeholder="Enter a compelling summary for search results and social cards..."
+                        className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg p-4 text-zinc-300 text-sm leading-relaxed focus:outline-none focus:border-cyan-500/50 resize-none font-sans"
+                      ></textarea>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <RichTextEditor
+                ref={editorRef}
+                value={formData.content}
+                onChange={handleContentChange}
+                placeholder="Start writing your story..."
+                className="h-[75vh] min-h-[500px]"
+                onImageUpload={uploadFile}
+                onEditorReady={setEditorInstance}
+              />
+
+              {/* SEO Metadata Settings */}
+              {!isZenMode && (
+                <div className="bg-[#1A1A1A] border border-white/5 rounded-xl p-8 space-y-6">
+                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Search size={18} className="text-cyan-500" /> SEO
+                    Configuration
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        SEO Title
+                      </label>
+                      <input
+                        type="text"
+                        name="seoTitle"
+                        value={formData.seoTitle}
+                        onChange={handleChange}
+                        placeholder={formData.title || "Default: Post Title"}
+                        className="w-full bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        Canonical URL
+                      </label>
+                      <input
+                        type="text"
+                        name="canonicalUrl"
+                        value={formData.canonicalUrl}
+                        onChange={handleChange}
+                        placeholder="https://..."
+                        className="w-full bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                      SEO Description
+                    </label>
+                    <textarea
+                      name="seoDescription"
+                      value={formData.seoDescription}
+                      onChange={handleChange}
+                      rows={2}
+                      placeholder={formData.excerpt || "Default: Post Excerpt"}
+                      className="w-full bg-[#121212] border border-white/10 rounded-lg p-4 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50 resize-none"
+                    ></textarea>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+                        OpenGraph Image (Social Card)
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          name="ogImage"
+                          value={formData.ogImage}
+                          onChange={handleChange}
+                          placeholder={
+                            formData.image || "Default: Featured Image"
+                          }
+                          className="flex-1 bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openMediaModal("ogImage")}
+                          className="border-white/10 text-zinc-300"
+                        >
+                          Select
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-6">
+                      <div className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+                        <input
+                          type="checkbox"
+                          id="noindex"
+                          name="noindex"
+                          checked={formData.noindex}
+                          onChange={handleChange}
+                          className="h-4 w-4 bg-[#121212] border-red-500/50 rounded text-red-500 focus:ring-offset-0 focus:ring-0"
+                        />
+                        <div>
+                          <label
+                            htmlFor="noindex"
+                            className="block text-sm font-bold text-red-400"
+                          >
+                            NoIndex (Hide from Google)
+                          </label>
+                          <p className="text-[10px] text-red-400/70">
+                            Enable this to prevent search engines from indexing
+                            this page.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="text-[#1a0dab] text-sm font-medium hover:underline truncate">
-                    {formData.title || "Post Title..."}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Sidebar Settings Column */}
+        {!isZenMode && (
+          <div className="space-y-6 sticky top-24 h-fit">
+            <TableOfContents editor={editorInstance} />
+            <div className="bg-card border border-white/5 rounded-xl p-6 space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">
+                  Publishing
+                </label>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                      Category
+                    </label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                    >
+                      <option value="" disabled>
+                        Select Category
+                      </option>
+                      {loadingCategories ? (
+                        <option disabled>Loading...</option>
+                      ) : (
+                        categories.map((cat) => (
+                          <option key={cat._id} value={cat._id}>
+                            {cat.name}
+                          </option>
+                        ))
+                      )}
+                    </select>
                   </div>
-                  <div className="text-xs text-[#4d5156] mt-1 line-clamp-2">
-                    {formData.excerpt || "Description..."}
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                      Language
+                    </label>
+                    <select
+                      name="language"
+                      value={(formData as any).language || "English"}
+                      onChange={handleChange}
+                      className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                    >
+                      <option value="English">English</option>
+                      <option value="Bengali">Bengali</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                      Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2 bg-[#121212] border border-white/10 rounded-lg p-2 min-h-[42px] focus-within:border-cyan-500/50 transition-colors">
+                      {formData.tags &&
+                        formData.tags
+                          .split(",")
+                          .map((tag) => tag.trim())
+                          .filter(Boolean)
+                          .map((tag, i) => (
+                            <span
+                              key={i}
+                              className="bg-white/10 text-zinc-200 text-xs px-2 py-1 rounded flex items-center gap-1 group"
+                            >
+                              {tag}
+                              <button
+                                onClick={() => removeTag(tag)}
+                                className="hover:text-red-400 opacity-50 group-hover:opacity-100"
+                              >
+                                <X size={12} />
+                              </button>
+                            </span>
+                          ))}
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleTagKeyDown}
+                        placeholder={formData.tags ? "" : "Add tags..."}
+                        className="bg-transparent border-none text-white text-sm focus:ring-0 p-0 min-w-[80px] flex-1"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      Press Enter or Comma to add tag
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="featured"
+                      checked={formData.featured}
+                      onChange={(e) =>
+                        setFormData((p) => ({
+                          ...p,
+                          featured: e.target.checked,
+                        }))
+                      }
+                      className="rounded bg-[#121212] border-white/10"
+                    />
+                    <label htmlFor="featured" className="text-sm text-zinc-300">
+                      Featured Post
+                    </label>
                   </div>
                 </div>
               </div>
-            )}
+
+              <div className="pt-4 border-t border-white/5">
+                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">
+                  Featured Asset
+                </label>
+                <div className="space-y-3">
+                  {/* Image Preview */}
+                  <div
+                    className="relative border border-dashed border-white/10 rounded-lg h-40 flex flex-col items-center justify-center overflow-hidden bg-black/20 group cursor-pointer hover:border-cyan-500/50 transition-all"
+                    onClick={() => openMediaModal("image")}
+                  >
+                    {formData.image ? (
+                      <>
+                        <img
+                          src={formData.image}
+                          className="w-full h-full object-cover"
+                          alt="Featured"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <span className="text-xs font-bold text-white">
+                            Change Image
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="text-zinc-600 mb-2" />
+                        <span className="text-xs text-zinc-500">
+                          Select Image
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card border border-white/5 rounded-xl p-6">
+              <div
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setShowSeoPreview(!showSeoPreview)}
+              >
+                <h3 className="text-sm font-bold text-white">
+                  Google Search Preview
+                </h3>
+                <Search size={16} />
+              </div>
+              {showSeoPreview && (
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <div className="bg-white rounded-lg p-3 max-w-full overflow-hidden">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="h-6 w-6 rounded-full bg-zinc-200"></div>
+                      <div>
+                        <div className="text-[10px] text-zinc-800 font-bold">
+                          KnowledgeLog
+                        </div>
+                        <div className="text-[8px] text-zinc-500">
+                          https://knowledgelog.com/blog/{formData.slug || "..."}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[#1a0dab] text-sm font-medium hover:underline truncate">
+                      {formData.title || "Post Title..."}
+                    </div>
+                    <div className="text-xs text-[#4d5156] mt-1 line-clamp-2">
+                      {formData.excerpt || "Description..."}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Author Guide Panel */}
+      <EditorGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     </div>
   );
 }
