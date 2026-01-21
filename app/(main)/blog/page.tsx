@@ -135,6 +135,7 @@ async function getBlogData(searchParams: {
       .skip(skip)
       .limit(postsPerPage)
       .populate("author", "name image")
+      .populate("category", "name")
       .lean();
 
     // 6. Fetch Trending/Featured (Top 4)
@@ -151,10 +152,17 @@ async function getBlogData(searchParams: {
       .lean();
 
     return {
-      feedPosts: feedPosts.map((p) => ({
+      feedPosts: feedPosts.map((p: any) => ({
         ...p,
         _id: p._id.toString(),
         createdAt: p.createdAt.toISOString(),
+        category: p.category?.name || "General", // Flatten to string
+        author: p.author
+          ? {
+              ...p.author,
+              _id: p.author._id.toString(),
+            }
+          : null,
       })),
       trendingPosts: trendingPosts.map((p: any) => ({
         _id: p._id.toString(),
