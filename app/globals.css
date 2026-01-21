@@ -14,6 +14,33 @@
   --font-lora: var(--font-lora);
 }
 
+/* Custom Theme Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0d0d;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 5px;
+  border: 2px solid #0d0d0d;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ffd700;
+  opacity: 0.5;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #262626 #0d0d0d;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

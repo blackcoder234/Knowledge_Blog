@@ -8,6 +8,7 @@ const UserSchema = new Schema(
     role: { type: String, enum: ['user', 'admin', 'editor', 'super_admin'], default: 'user' },
     image: { type: String, default: 'https://placehold.co/100x100/111/FFF?text=User' },
     bio: { type: String, default: '' },
+    articleSignature: { type: String, default: '' },
     title: { type: String, default: '' }, // e.g. "Senior Editor"
     qualification: { type: String, default: '' }, // e.g. "PhD in Astrophysics"
     occupation: { type: String, default: '' }, // e.g. "Freelance Science Writer"

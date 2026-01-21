@@ -6,6 +6,8 @@ import { Button } from "@/app/components/ui/Button";
 import Link from "next/link";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
+import Category from "@/models/Category"; // Required for population
+import User from "@/models/User"; // Required for population
 import { notFound } from "next/navigation";
 import { CommentsSection } from "@/app/components/blog/CommentsSection";
 import { SocialShare } from "@/app/components/blog/SocialShare";
@@ -88,7 +90,7 @@ export async function generateMetadata({
 async function getPost(slug: string) {
   await dbConnect();
   const post = await Post.findOne({ slug })
-    .populate("author", "name image role bio") // Populate author details
+    .populate("author", "name image role bio articleSignature title") // Populate author details
     .populate("category", "name slug") // Populate category details
     .lean();
   return post;
@@ -97,7 +99,6 @@ async function getPost(slug: string) {
 // Fetch related posts (simple logic: same category, different ID)
 async function getRelatedPosts(category: any, currentId: any) {
   await dbConnect();
-  // Ensure category is an ID if it's an object
   const categoryId = category?._id || category;
 
   const related = await Post.find({
@@ -110,6 +111,41 @@ async function getRelatedPosts(category: any, currentId: any) {
     .limit(3)
     .lean();
   return related;
+}
+
+// Fetch Author's recent posts
+async function getAuthorPosts(authorId: any, currentId: any) {
+  return await Post.find({
+    author: authorId,
+    _id: { $ne: currentId },
+    status: "published",
+  })
+    .select("slug title image createdAt")
+    .sort({ createdAt: -1 })
+    .limit(2)
+    .lean();
+}
+
+// Fetch Next Post
+async function getNextPost(date: Date) {
+  return await Post.findOne({
+    createdAt: { $gt: date },
+    status: "published",
+  })
+    .select("slug title")
+    .sort({ createdAt: 1 })
+    .lean();
+}
+
+// Fetch Previous Post
+async function getPrevPost(date: Date) {
+  return await Post.findOne({
+    createdAt: { $lt: date },
+    status: "published",
+  })
+    .select("slug title")
+    .sort({ createdAt: -1 })
+    .lean();
 }
 
 import { getServerSession } from "next-auth";
@@ -158,6 +194,9 @@ export default async function BlogPostPage({
   }
 
   const relatedPosts = await getRelatedPosts(post.category, post._id);
+  const nextPost = await getNextPost(post.createdAt);
+  const prevPost = await getPrevPost(post.createdAt);
+  const authorPosts = await getAuthorPosts(post.author._id, post._id);
 
   return (
     <div className="bg-background min-h-screen pt-20">
@@ -237,59 +276,114 @@ export default async function BlogPostPage({
       </div>
 
       <Container className="py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
           {/* Main Content */}
-          <article className="lg:col-span-8">
-            {/* Intro (Bold) */}
-            <p className="text-xl font-medium text-white/90 mb-10 border-b border-white/10 pb-10 leading-relaxed">
-              {post.excerpt}
-            </p>
-
-            <ArticleContent content={post.content} />
-
-            <AuthorBio author={post.author} />
-
-            {/* Tags & Share */}
-            <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap gap-4 justify-between items-center">
-              <div className="flex gap-2">
-                {post.tags &&
-                  post.tags.map((tag: string) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 rounded-full bg-white/5 text-sm text-zinc-400 hover:text-white cursor-pointer"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-              </div>
-              <div className="flex gap-4">
-                <SocialShare
-                  url={`https://knowledgelog.blog/blog/${slug}`}
-                  title={post.title}
-                  postId={post._id.toString()}
-                  initialLikes={post.likes || 0}
-                  layout="horizontal"
-                />
-              </div>
+          <article className="lg:col-span-8 flex flex-col">
+            {/* Breadcrumbs */}
+            <div className="flex items-center gap-3 text-[11px] text-zinc-500 mb-12 uppercase tracking-[0.2em] font-bold">
+              <Link href="/" className="hover:text-accent transition-colors">
+                Home
+              </Link>
+              <span className="opacity-20">/</span>
+              <Link
+                href="/blog"
+                className="hover:text-accent transition-colors"
+              >
+                Blog
+              </Link>
+              <span className="opacity-20">/</span>
+              <span className="text-zinc-400 truncate max-w-[200px]">
+                {post.category?.name || "Article"}
+              </span>
             </div>
 
-            <CommentsSection postId={post._id.toString()} />
+            <div className="max-w-3xl">
+              {/* Intro (Bold) */}
+              <p className="text-2xl font-serif text-white/90 mb-12 italic leading-relaxed opacity-90">
+                {post.excerpt}
+              </p>
+
+              <ArticleContent content={post.content} />
+
+              <div className="mt-32">
+                <AuthorBio author={post.author} authorPosts={authorPosts} />
+              </div>
+
+              {/* Tags & Share */}
+              <div className="mt-16 pt-10 border-t border-white/5 flex flex-wrap gap-6 justify-between items-center">
+                <div className="flex flex-wrap gap-2">
+                  {post.tags &&
+                    post.tags.map((tag: string) => (
+                      <span
+                        key={tag}
+                        className="px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-xs font-bold uppercase tracking-wider text-zinc-500 hover:text-accent hover:border-accent/30 transition-all cursor-pointer"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                </div>
+                <div className="flex gap-4">
+                  <SocialShare
+                    url={`https://knowledgelog.blog/blog/${slug}`}
+                    title={post.title}
+                    postId={post._id.toString()}
+                    initialLikes={post.likes || 0}
+                    layout="horizontal"
+                  />
+                </div>
+              </div>
+
+              {/* Next / Previous article navigation */}
+              <div className="mt-16 pt-10 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8">
+                {prevPost && (
+                  <Link
+                    href={`/blog/${prevPost.slug}`}
+                    className="group flex flex-col gap-3 p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-accent/30 transition-all"
+                  >
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 group-hover:text-accent italic">
+                      Previous Article
+                    </span>
+                    <span className="text-white font-medium line-clamp-2 group-hover:translate-x-1 transition-transform">
+                      {prevPost.title}
+                    </span>
+                  </Link>
+                )}
+                {nextPost && (
+                  <Link
+                    href={`/blog/${nextPost.slug}`}
+                    className="group flex flex-col gap-3 p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-accent/30 transition-all text-right items-end"
+                  >
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 group-hover:text-accent italic">
+                      Next Article
+                    </span>
+                    <span className="text-white font-medium line-clamp-2 group-hover:-translate-x-1 transition-transform">
+                      {nextPost.title}
+                    </span>
+                  </Link>
+                )}
+              </div>
+
+              <div className="mt-16">
+                <CommentsSection postId={post._id.toString()} />
+              </div>
+            </div>
           </article>
 
-          <aside className="lg:col-span-4 space-y-12 h-fit sticky top-24">
+          <aside className="lg:col-span-4 space-y-12 h-fit md:sticky md:top-24">
             {/* Table of Contents */}
             <div className="hidden lg:block">
               <TableOfContents />
             </div>
 
             {/* Newsletter Widget - Premium Look */}
-            <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-zinc-900 to-black p-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-accent/10 transition-colors"></div>
-              <h4 className="text-xl font-serif font-medium text-white mb-2 relative z-10">
-                KnowledgeLog Weekly
+            <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-zinc-900 via-zinc-900 to-black p-8 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-[80px] -mr-10 -mt-10 group-hover:bg-accent/20 transition-all duration-500"></div>
+              <h4 className="text-2xl font-serif font-medium text-white mb-3 relative z-10">
+                Knowledge Weekly
               </h4>
-              <p className="text-sm text-zinc-400 mb-6 relative z-10 leading-relaxed">
-                Join 50k+ readers. Get the Sunday digest of our best stories.
+              <p className="text-sm text-zinc-400 mb-8 relative z-10 leading-relaxed">
+                Unlock exclusive technical deep-dives and philosophical insights
+                delivered to your inbox every Sunday.
               </p>
               <div className="relative z-10">
                 <NewsletterForm
@@ -303,8 +397,18 @@ export default async function BlogPostPage({
 
         {/* Related Posts */}
         {relatedPosts.length > 0 && (
-          <div className="mt-24">
-            <h3 className="text-2xl font-bold text-white mb-8">Similar News</h3>
+          <div className="mt-32 pt-16 border-t border-white/5">
+            <div className="flex items-center justify-between mb-12">
+              <h3 className="text-3xl font-serif font-medium text-white">
+                Continue Reading
+              </h3>
+              <Link
+                href="/blog"
+                className="text-sm text-accent hover:underline"
+              >
+                View all stories →
+              </Link>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {relatedPosts.map((related: any) => (
                 <BlogCard

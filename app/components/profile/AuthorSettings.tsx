@@ -62,6 +62,23 @@ export const AuthorSettings = ({
             className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50 transition-colors"
           />
         </div>
+
+        <div className="space-y-1 md:col-span-2 pt-4">
+          <label className="text-xs font-medium text-zinc-400 flex justify-between items-center">
+            <span>Article Signature</span>
+            <span className="text-[10px] text-accent/60 italic lowercase">
+              This appears at the end of every article you write.
+            </span>
+          </label>
+          <textarea
+            name="articleSignature"
+            rows={3}
+            value={formData.articleSignature || ""}
+            onChange={handleChange}
+            placeholder="e.g. John Doe is an editor at KnowledgeLog specializing in..."
+            className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50 transition-all text-sm leading-relaxed"
+          ></textarea>
+        </div>
       </div>
     </div>
   );

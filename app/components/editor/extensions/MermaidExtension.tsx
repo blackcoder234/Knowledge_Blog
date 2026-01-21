@@ -153,12 +153,22 @@ export const MermaidExtension = Node.create({
     return [
       {
         tag: "div[data-type='mermaid']",
+        getAttrs: (node) => ({
+          code: (node as HTMLElement).getAttribute("data-code"),
+        }),
       },
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return ["div", mergeAttributes(HTMLAttributes, { "data-type": "mermaid" })];
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, {
+        "data-type": "mermaid",
+        "data-code": node.attrs.code,
+        class: "mermaid-container my-8 flex justify-center",
+      }),
+    ];
   },
 
   addNodeView() {

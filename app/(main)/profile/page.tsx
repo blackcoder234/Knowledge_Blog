@@ -32,6 +32,7 @@ export default function ProfilePage() {
     location: "",
     image: "",
     bannerImage: "",
+    articleSignature: "",
     socialLinks: { twitter: "", linkedin: "", github: "", website: "" },
   });
   const [initialData, setInitialData] = useState({
@@ -43,6 +44,7 @@ export default function ProfilePage() {
     location: "",
     image: "",
     bannerImage: "",
+    articleSignature: "",
     socialLinks: { twitter: "", linkedin: "", github: "", website: "" },
   });
 
@@ -78,6 +80,7 @@ export default function ProfilePage() {
         location: "",
         image: session.user.image || "",
         bannerImage: "",
+        articleSignature: "",
         socialLinks: { twitter: "", linkedin: "", github: "", website: "" },
       };
 
@@ -97,6 +100,7 @@ export default function ProfilePage() {
               location: data.location || "",
               image: data.image || "",
               bannerImage: data.bannerImage || "",
+              articleSignature: data.articleSignature || "",
               socialLinks: {
                 twitter: data.socialLinks?.twitter || "",
                 linkedin: data.socialLinks?.linkedin || "",
@@ -812,6 +816,7 @@ export default function ProfilePage() {
               <div className="-my-6 transform scale-95 origin-top">
                 <AuthorBio
                   author={{
+                    _id: (session.user as any).id,
                     name: formData.name || session?.user?.name || "Your Name",
                     title: formData.title,
                     role: (session.user as any).role || "Author",
@@ -820,8 +825,8 @@ export default function ProfilePage() {
                       formData.image ||
                       session?.user?.image ||
                       "",
-                    bannerImage: bannerPreview || formData.bannerImage || "",
                     bio: formData.bio,
+                    articleSignature: formData.articleSignature,
                     socialLinks: formData.socialLinks,
                   }}
                 />

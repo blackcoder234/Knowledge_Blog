@@ -7,6 +7,7 @@ import Link from "next/link";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
 import Category from "@/models/Category";
+import User from "@/models/User"; // Required for population
 
 import { Metadata } from "next";
 
@@ -43,30 +44,38 @@ async function getBlogData(searchParams: {
       genre: string;
     }>;
 
+    // Get categories that actually have published posts
+    const activeCategoryIds = await Post.distinct("category", {
+      status: "published",
+    });
+    const activeCategoryIdStrings = activeCategoryIds.map((id) =>
+      id.toString(),
+    );
+
     const categoriesForClient = allCategories.map((c) => ({
       _id: c._id.toString(),
       name: c.name,
       language: c.language || "English",
       genre: c.genre || "General",
+      isActive: activeCategoryIdStrings.includes(c._id.toString()),
     }));
 
-    // 2. Allowed Categories
-    let allowedCategoryNames = categoriesForClient.map((c) => c.name);
+    // 2. Filter logic: Get active IDs based on filters
+    let activeFilterCategories = categoriesForClient;
 
     if (searchParams.lang && searchParams.lang !== "All") {
-      allowedCategoryNames = categoriesForClient
-        .filter((c) => c.language === searchParams.lang)
-        .map((c) => c.name);
+      activeFilterCategories = activeFilterCategories.filter(
+        (c) => c.language === searchParams.lang,
+      );
     }
 
     if (searchParams.genre && searchParams.genre !== "All") {
-      const genreNames = categoriesForClient
-        .filter((c) => c.genre === searchParams.genre)
-        .map((c) => c.name);
-      allowedCategoryNames = allowedCategoryNames.filter((name) =>
-        genreNames.includes(name),
+      activeFilterCategories = activeFilterCategories.filter(
+        (c) => c.genre === searchParams.genre,
       );
     }
+
+    const filteredCategoryIds = activeFilterCategories.map((c) => c._id);
 
     // 3. Build Query
     const query: any = { status: "published" };
@@ -79,14 +88,22 @@ async function getBlogData(searchParams: {
     }
 
     if (searchParams.category && searchParams.category !== "All") {
-      query.category = searchParams.category;
-    } else {
-      if (
-        (searchParams.lang && searchParams.lang !== "All") ||
-        (searchParams.genre && searchParams.genre !== "All")
-      ) {
-        query.category = { $in: allowedCategoryNames };
+      // Find the ID for the named category
+      const targetCat = categoriesForClient.find(
+        (c) => c.name === searchParams.category,
+      );
+      if (targetCat) {
+        query.category = targetCat._id;
+      } else {
+        // If name doesn't exist, we must still pass a valid ID or an ID that won't match
+        // Passing the name directy would cause BSONError
+        query.category = "000000000000000000000000";
       }
+    } else if (
+      (searchParams.lang && searchParams.lang !== "All") ||
+      (searchParams.genre && searchParams.genre !== "All")
+    ) {
+      query.category = { $in: filteredCategoryIds };
     }
 
     const isFiltering = !!(
@@ -120,6 +137,14 @@ async function getBlogData(searchParams: {
       .populate("author", "name image")
       .lean();
 
+    // 6. Fetch Trending/Featured (Top 4)
+    const trendingPosts = await Post.find({ status: "published" })
+      .sort({ featured: -1, views: -1 })
+      .limit(4)
+      .select("title slug views category")
+      .populate("category", "name")
+      .lean();
+
     const latestBreaking = await Post.findOne({ status: "published" })
       .sort({ createdAt: -1 })
       .select("title slug")
@@ -130,6 +155,12 @@ async function getBlogData(searchParams: {
         ...p,
         _id: p._id.toString(),
         createdAt: p.createdAt.toISOString(),
+      })),
+      trendingPosts: trendingPosts.map((p: any) => ({
+        _id: p._id.toString(),
+        title: p.title,
+        slug: p.slug,
+        categoryName: p.category?.name || "Topic",
       })),
       latestBreaking,
       categoriesForClient,
@@ -142,6 +173,7 @@ async function getBlogData(searchParams: {
     console.error("Error fetching blog data:", error);
     return {
       feedPosts: [],
+      trendingPosts: [],
       latestBreaking: null,
       categoriesForClient: [],
       isFiltering: false,
@@ -151,13 +183,6 @@ async function getBlogData(searchParams: {
     };
   }
 }
-
-const editorsPicks = [
-  { num: 1, title: "The End of the Industrial Internet" },
-  { num: 2, title: "Minimalism in Digital Design" },
-  { num: 3, title: "A Brief History of Logic" },
-  { num: 4, title: "Sustainable Computing 101" },
-];
 
 // Abstract "Knowledge" Image for Static Hero
 const HERO_IMAGE_URL =
@@ -175,7 +200,8 @@ export default async function BlogPage(props: {
 }) {
   const searchParams = await props.searchParams;
   const {
-    feedPosts, // No longer separated
+    feedPosts,
+    trendingPosts,
     latestBreaking,
     categoriesForClient,
     isFiltering,
@@ -184,17 +210,11 @@ export default async function BlogPage(props: {
     error,
   } = await getBlogData(searchParams);
 
-  // Logic to get some tags/categories for the sidebar cloud
-  const popularTags = [
-    "Science",
-    "Technology",
-    "Philosophy",
-    "Culture",
-    "History",
-    "AI",
-    "Space",
-    "Ethics",
-  ];
+  // Logic to get some tags/categories for the sidebar cloud - use real ACTIVE categories
+  const popularTags = categoriesForClient
+    .filter((c) => (c as any).isActive)
+    .slice(0, 10)
+    .map((c) => c.name);
 
   return (
     <div className="bg-background min-h-screen pt-20">
@@ -397,25 +417,30 @@ export default async function BlogPage(props: {
                     Trending Now
                   </h3>
                   <div className="space-y-6">
-                    {editorsPicks.map((pick, index) => (
-                      <a
-                        key={pick.num}
-                        href="#"
+                    {trendingPosts.map((pick, index) => (
+                      <Link
+                        key={pick._id}
+                        href={`/blog/${pick.slug}`}
                         className="flex gap-4 group items-start p-3 -mx-3 rounded-xl hover:bg-white/5 transition-colors"
                       >
                         <span className="text-4xl font-black text-white/10 group-hover:text-accent/50 font-display -mt-2 transition-colors">
-                          0{pick.num}
+                          0{index + 1}
                         </span>
                         <div>
                           <span className="text-[10px] text-accent font-bold uppercase tracking-wider mb-1 block">
-                            Opinion
+                            {pick.categoryName}
                           </span>
                           <h4 className="text-sm font-bold text-white group-hover:text-accent transition-colors leading-snug">
                             {pick.title}
                           </h4>
                         </div>
-                      </a>
+                      </Link>
                     ))}
+                    {trendingPosts.length === 0 && (
+                      <p className="text-zinc-500 text-xs italic">
+                        No trending posts yet.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

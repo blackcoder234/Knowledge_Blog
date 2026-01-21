@@ -689,6 +689,19 @@ export default function PostEditor({
           <div className="h-6 w-px bg-white/10 mx-1"></div>
 
           <Button
+            variant="outline"
+            size="sm"
+            className="hidden md:flex gap-2 border-dashed border-zinc-700 text-zinc-400 hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-950/30 transition-all group"
+            onClick={() => window.open("/admin/posts/create", "_blank")}
+          >
+            <FileText
+              size={16}
+              className="group-hover:scale-110 transition-transform"
+            />{" "}
+            New Post
+          </Button>
+
+          <Button
             variant="ghost"
             size="sm"
             className="hidden md:flex gap-2"

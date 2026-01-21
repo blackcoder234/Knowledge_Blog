@@ -52,6 +52,7 @@ import {
   Redo,
   Heading1,
   Heading2,
+  Heading3,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -368,6 +369,14 @@ export const RichTextEditor = forwardRef<
               isActive={editor.isActive("heading", { level: 2 })}
               icon={<Heading2 size={18} />}
               tooltip="H2 Subtitle"
+            />
+            <ToolBtn
+              onClick={() =>
+                editor.chain().focus().toggleHeading({ level: 3 }).run()
+              }
+              isActive={editor.isActive("heading", { level: 3 })}
+              icon={<Heading3 size={18} />}
+              tooltip="H3 Sub-section"
             />
           </div>
 

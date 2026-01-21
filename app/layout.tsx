@@ -15,6 +15,33 @@ const spaceGrotesk = Space_Grotesk({
 });
 const lora = Lora({ subsets: ["latin"], variable: "--font-lora" });
 
+export const metadata: Metadata = {
+  metadataBase: new URL("https://knowledgelog.blog"),
+  title: {
+    default: "KnowledgeLog | Insights for the Modern Developer",
+    template: "%s | KnowledgeLog",
+  },
+  description:
+    "A premium destination for in-depth tech analysis, coding tutorials, and industry insights.",
+  openGraph: {
+    title: "KnowledgeLog",
+    description: "Insights for the Modern Developer",
+    url: "https://knowledgelog.blog",
+    siteName: "KnowledgeLog",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KnowledgeLog",
+    description: "Insights for the Modern Developer",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
