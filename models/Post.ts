@@ -12,6 +12,7 @@ export interface IPost extends Document {
   image: string;
   author: {
     name: string;
+    email: string; // Added email
     role: string;
     image: string;
   };
@@ -42,6 +43,7 @@ const PostSchema: Schema = new Schema(
     image: { type: String, required: true },
     author: {
       name: { type: String, required: true },
+      email: { type: String, required: true }, // Added email for stable permissions
       role: { type: String, required: true },
       image: { type: String, required: true },
     },

@@ -1,9 +1,12 @@
 "use client";
 
 import { Button } from "@/app/components/ui/Button";
-import { RichTextEditor } from "@/app/components/editor/RichTextEditor";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import {
+  RichTextEditor,
+  RichTextEditorRef,
+} from "@/app/components/editor/RichTextEditor";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/app/context/ToastContext";
 import {
   Image as ImageIcon,
@@ -35,6 +38,28 @@ export default function PostEditor({
 }: PostEditorProps) {
   const router = useRouter();
   const { showToast } = useToast();
+  const editorRef = useRef<RichTextEditorRef>(null);
+  const searchParams = useSearchParams();
+
+  // Unique Draft ID for New Posts (to handle multiple tabs)
+  const [tempDraftId, setTempDraftId] = useState<string>("");
+
+  useEffect(() => {
+    // Only logic for "Create New" mode
+    if (!isEdit && !initialData) {
+      const currentTempId = searchParams.get("tempId");
+      if (currentTempId) {
+        setTempDraftId(currentTempId);
+      } else {
+        // Generate unique session ID for this tab
+        const newId = crypto.randomUUID();
+        const newUrl = window.location.pathname + "?tempId=" + newId;
+        // Use replaceState to update URL without trigger nav/reload
+        window.history.replaceState({}, "", newUrl);
+        setTempDraftId(newId);
+      }
+    }
+  }, [isEdit, initialData, searchParams]);
   const [showSeoPreview, setShowSeoPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -46,9 +71,9 @@ export default function PostEditor({
   const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([]);
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [mediaSearchTerm, setMediaSearchTerm] = useState("");
-  const [targetImageField, setTargetImageField] = useState<"image" | "ogImage">(
-    "image",
-  );
+  const [targetImageField, setTargetImageField] = useState<
+    "image" | "ogImage" | "content"
+  >("image");
 
   // Category State
   const [categories, setCategories] = useState<any[]>([]);
@@ -75,7 +100,15 @@ export default function PostEditor({
   });
 
   useEffect(() => {
-    // 1. Load from DB (Initial Data)
+    // 1. Determine Storage Key
+    let storageKey = "";
+    if (initialData?._id) {
+      storageKey = `post_draft_${initialData._id}`;
+    } else if (tempDraftId) {
+      storageKey = `post_draft_${tempDraftId}`;
+    }
+
+    // 2. Load from DB (Initial Data)
     if (initialData) {
       setFormData({
         title: initialData.title || "",
@@ -97,59 +130,109 @@ export default function PostEditor({
         noindex: initialData.noindex || false,
       });
       setIsDirty(false);
+    }
 
-      // 2. Check for LocalStorage Draft (After loading DB data)
-      const storageKey = `post_draft_${initialData._id}`;
+    // 3. Restore Draft if available
+    if (storageKey) {
       const localDraft = localStorage.getItem(storageKey);
       if (localDraft) {
         try {
           const parsed = JSON.parse(localDraft);
-          // Simple check: is local content different?
-          if (
-            parsed.content !== initialData.content ||
-            parsed.title !== initialData.title
-          ) {
-            const userWantsRestore = window.confirm(
-              "Found an unsaved draft on this device that is newer than the database version. Would you like to restore it?",
-            );
-            if (userWantsRestore) {
+
+          // For Edit: Check if different
+          if (initialData) {
+            if (
+              parsed.content !== initialData.content ||
+              parsed.title !== initialData.title
+            ) {
+              const userWantsRestore = window.confirm(
+                "Found an unsaved draft on this device that is newer than the database version. Would you like to restore it?",
+              );
+              if (userWantsRestore) {
+                setFormData(parsed);
+                setIsDirty(true);
+                showToast("Restored unsaved local draft", "success");
+              }
+            }
+          } else {
+            // For Create: Always restore if found (restoring session)
+            if (parsed.title || parsed.content) {
               setFormData(parsed);
               setIsDirty(true);
-              showToast("Restored unsaved local draft", "success");
+              showToast("Restored session draft", "success");
             }
           }
         } catch (e) {
           console.error("Failed to parse local draft", e);
         }
       }
-    } else if (!isEdit) {
-      // New Post: Check for 'new' draft
-      const storageKey = `post_draft_new`;
-      const localDraft = localStorage.getItem(storageKey);
-      if (localDraft) {
-        try {
-          const parsed = JSON.parse(localDraft);
-          if (parsed.title || parsed.content) {
-            setFormData(parsed);
-            setIsDirty(true);
-            showToast("Restored unsaved new post", "success");
-          }
-        } catch (e) {}
-      }
     }
-  }, [initialData, isEdit]);
+  }, [initialData, isEdit, tempDraftId]);
+
+  // Tag Input State
+  const [tagInput, setTagInput] = useState("");
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const newTag = tagInput.trim().replace(/^,|,$/g, ""); // Remove commas
+      if (newTag) {
+        const currentTags = formData.tags
+          ? formData.tags.split(",").map((t) => t.trim())
+          : [];
+        if (!currentTags.includes(newTag)) {
+          const updatedTags = [...currentTags, newTag].join(", ");
+          setFormData((prev) => ({ ...prev, tags: updatedTags }));
+          setIsDirty(true);
+        }
+      }
+      setTagInput("");
+    } else if (e.key === "Backspace" && !tagInput && formData.tags) {
+      // Remove last tag on backspace if input empty
+      const currentTags = formData.tags.split(",").map((t) => t.trim());
+      currentTags.pop();
+      setFormData((prev) => ({ ...prev, tags: currentTags.join(", ") }));
+      setIsDirty(true);
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    const currentTags = formData.tags.split(",").map((t) => t.trim());
+    const updatedTags = currentTags.filter((t) => t !== tagToRemove).join(", ");
+    setFormData((prev) => ({ ...prev, tags: updatedTags }));
+    setIsDirty(true);
+  };
+
+  const generateSlug = () => {
+    const slug = formData.title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    setFormData((prev) => ({ ...prev, slug }));
+    setIsDirty(true);
+  };
 
   // Auto-Save Effect
   useEffect(() => {
     if (!isDirty) return;
 
-    const storageKey = `post_draft_${initialData?._id || "new"}`;
+    let storageKey = "";
+    if (initialData?._id) {
+      storageKey = `post_draft_${initialData._id}`;
+    } else if (tempDraftId) {
+      storageKey = `post_draft_${tempDraftId}`;
+    } else {
+      return; // Don't save if no ID yet
+    }
+
     const timer = setTimeout(() => {
       localStorage.setItem(storageKey, JSON.stringify(formData));
     }, 1000); // Save every 1s of inactivity
 
     return () => clearTimeout(timer);
-  }, [formData, isDirty, initialData]);
+  }, [formData, isDirty, initialData, tempDraftId]);
 
   // Prevent Navigation if Dirty
   useEffect(() => {
@@ -339,13 +422,17 @@ export default function PostEditor({
     }
   };
 
-  const openMediaModal = (field: "image" | "ogImage") => {
+  const openMediaModal = (field: "image" | "ogImage" | "content") => {
     setTargetImageField(field);
     setIsMediaModalOpen(true);
   };
 
   const selectMediaItem = (url: string) => {
-    setFormData((prev) => ({ ...prev, [targetImageField]: url }));
+    if (targetImageField === "content") {
+      editorRef.current?.insertImage(url);
+    } else {
+      setFormData((prev) => ({ ...prev, [targetImageField]: url }));
+    }
     setIsMediaModalOpen(false);
   };
 
@@ -517,6 +604,13 @@ export default function PostEditor({
                 }`}
               ></span>
               <span className="capitalize">{formData.status} Mode</span>
+              {/* Auto-Save Indicator */}
+              <span className="text-zinc-600 mx-2">|</span>
+              <span
+                className={`transition-colors ${isDirty ? "text-yellow-500" : "text-zinc-500"}`}
+              >
+                {isDirty ? "Unsaved changes" : "All changes saved"}
+              </span>
             </div>
           </div>
         </div>
@@ -576,15 +670,22 @@ export default function PostEditor({
                   GET
                 </span>
                 <span>/blog/</span>
-                <div className="relative flex-1 max-w-md flex items-center">
+                <div className="relative flex-1 max-w-md flex items-center gap-2">
                   <input
                     type="text"
                     name="slug"
                     value={formData.slug}
                     onChange={handleChange}
                     placeholder="url-slug-goes-here"
-                    className="w-full bg-white/5 border border-white/5 rounded-md px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-colors"
+                    className="flex-1 bg-white/5 border border-white/5 rounded-md px-3 py-1.5 text-zinc-300 focus:outline-none focus:border-cyan-500/50 focus:bg-white/10 transition-colors"
                   />
+                  <button
+                    onClick={generateSlug}
+                    title="Auto-generate from Title"
+                    className="p-2 bg-white/5 hover:bg-cyan-500/20 text-zinc-400 hover:text-cyan-500 rounded-md transition-colors"
+                  >
+                    <span className="sr-only">Generate Slug</span>✨
+                  </button>
                 </div>
               </div>
 
@@ -606,9 +707,11 @@ export default function PostEditor({
           </div>
 
           <RichTextEditor
+            ref={editorRef}
             value={formData.content}
             onChange={handleContentChange}
             onImageUpload={uploadFile}
+            onMediaSelect={() => openMediaModal("content")}
           />
 
           {/* SEO Metadata Settings */}
@@ -715,7 +818,7 @@ export default function PostEditor({
         </div>
 
         {/* Sidebar Settings Column */}
-        <div className="space-y-6">
+        <div className="space-y-6 sticky top-24 h-fit">
           <div className="bg-card border border-white/5 rounded-xl p-6 space-y-6">
             <div>
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">
@@ -762,16 +865,40 @@ export default function PostEditor({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-                    Tags (comma separated)
+                    Tags
                   </label>
-                  <input
-                    type="text"
-                    name="tags"
-                    value={formData.tags}
-                    onChange={handleChange}
-                    placeholder="Add tags..."
-                    className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
-                  />
+                  <div className="flex flex-wrap gap-2 bg-[#121212] border border-white/10 rounded-lg p-2 min-h-[42px] focus-within:border-cyan-500/50 transition-colors">
+                    {formData.tags &&
+                      formData.tags
+                        .split(",")
+                        .map((tag) => tag.trim())
+                        .filter(Boolean)
+                        .map((tag, i) => (
+                          <span
+                            key={i}
+                            className="bg-white/10 text-zinc-200 text-xs px-2 py-1 rounded flex items-center gap-1 group"
+                          >
+                            {tag}
+                            <button
+                              onClick={() => removeTag(tag)}
+                              className="hover:text-red-400 opacity-50 group-hover:opacity-100"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={handleTagKeyDown}
+                      placeholder={formData.tags ? "" : "Add tags..."}
+                      className="bg-transparent border-none text-white text-sm focus:ring-0 p-0 min-w-[80px] flex-1"
+                    />
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Press Enter or Comma to add tag
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 pt-2">
                   <input

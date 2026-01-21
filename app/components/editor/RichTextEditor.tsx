@@ -1,11 +1,16 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
+// @ts-ignore
+import { BubbleMenu } from "@tiptap/react/menus";
+import BubbleMenuExtension from "@tiptap/extension-bubble-menu";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
+import CharacterCount from "@tiptap/extension-character-count";
+import Typography from "@tiptap/extension-typography";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import TextAlign from "@tiptap/extension-text-align";
@@ -21,7 +26,13 @@ import "highlight.js/styles/atom-one-dark.css";
 
 const lowlight = createLowlight(common);
 
-import { useState, useCallback, useEffect } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import {
   Bold,
   Italic,
@@ -44,19 +55,24 @@ import {
   Underline as UnderlineIcon,
   Youtube as YoutubeIcon,
   Sigma,
+  Layout,
 } from "lucide-react";
+
+export interface RichTextEditorRef {
+  insertImage: (url: string) => void;
+}
 
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
   onImageUpload?: (file: File) => Promise<string>;
+  onMediaSelect?: () => void;
 }
 
-export const RichTextEditor = ({
-  value,
-  onChange,
-  onImageUpload,
-}: RichTextEditorProps) => {
+export const RichTextEditor = forwardRef<
+  RichTextEditorRef,
+  RichTextEditorProps
+>(({ value, onChange, onImageUpload, onMediaSelect }, ref) => {
   // Editor Initialization
   const editor = useEditor({
     immediatelyRender: false,
@@ -93,6 +109,9 @@ export const RichTextEditor = ({
       Placeholder.configure({
         placeholder: "Type '/' for commands or start writing...",
       }),
+      CharacterCount,
+      Typography,
+      BubbleMenuExtension,
     ],
     content: value, // Initial content only
     editorProps: {
@@ -162,16 +181,20 @@ export const RichTextEditor = ({
   // Hydrate content when value updates externally (e.g. loading from DB)
   useEffect(() => {
     if (editor && value !== undefined && editor.getHTML() !== value) {
-      // We only update if the user isn't currently typing (focused)
-      // OR if the editor is practically empty (initial load)
-      // This allows external updates (like Draft Restore) to apply correctly
       if (!editor.isFocused || editor.isEmpty) {
-        // Maintain cursor position if possible? No, setContent resets it usually.
-        // Since we only do this when NOT focused, it's fine.
         editor.commands.setContent(value);
       }
     }
   }, [value, editor]);
+
+  // Expose methods to parent
+  useImperativeHandle(ref, () => ({
+    insertImage: (url: string) => {
+      if (editor) {
+        editor.chain().focus().setImage({ src: url }).run();
+      }
+    },
+  }));
 
   // Handle image upload via button
   const addImage = useCallback(() => {
@@ -225,6 +248,48 @@ export const RichTextEditor = ({
 
   return (
     <div className="relative group min-h-[600px] flex flex-col bg-[#0D0D0D] rounded-xl border border-white/10 overflow-hidden transition-all hover:border-cyan-500/30">
+      {/* Floating Bubble Menu */}
+      {editor && (
+        <BubbleMenu
+          editor={editor}
+          className="flex items-center gap-1 p-1 bg-zinc-900 border border-white/10 rounded-lg shadow-xl"
+        >
+          <ToolBtn
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            isActive={editor.isActive("bold")}
+            icon={<Bold size={16} />}
+            tooltip="Bold"
+          />
+          <ToolBtn
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            isActive={editor.isActive("italic")}
+            icon={<Italic size={16} />}
+            tooltip="Italic"
+          />
+          <ToolBtn
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            isActive={editor.isActive("underline")}
+            icon={<UnderlineIcon size={16} />}
+            tooltip="Underline"
+          />
+          <div className="w-px h-4 bg-white/10 mx-1" />
+          <ToolBtn
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 2 }).run()
+            }
+            isActive={editor.isActive("heading", { level: 2 })}
+            icon={<Heading2 size={16} />}
+            tooltip="Subtitle"
+          />
+          <ToolBtn
+            onClick={setLink}
+            isActive={editor.isActive("link")}
+            icon={<LinkIcon size={16} />}
+            tooltip="Link"
+          />
+        </BubbleMenu>
+      )}
+
       {/* Main Toolbar */}
       <div className="flex flex-wrap items-center gap-1 p-2 border-b border-white/5 bg-[#121212] sticky top-0 z-20">
         {/* History */}
@@ -352,8 +417,15 @@ export const RichTextEditor = ({
           <ToolBtn
             onClick={addImage}
             icon={<ImageIcon size={18} />}
-            tooltip="Insert Image"
+            tooltip="Upload Image"
           />
+          {onMediaSelect && (
+            <ToolBtn
+              onClick={onMediaSelect}
+              icon={<Layout size={18} />} // Using Layout/Gallery icon for Library
+              tooltip="Media Library"
+            />
+          )}
           <ToolBtn
             onClick={addYoutube}
             icon={<YoutubeIcon size={18} />}
@@ -382,11 +454,17 @@ export const RichTextEditor = ({
       <div className="px-4 py-2 bg-[#121212] border-t border-white/5 flex justify-between items-center text-xs text-zinc-500 font-medium">
         <div className="flex gap-4">
           <span>{editor.storage.characterCount?.words?.() || 0} words</span>
+          <span>&middot;</span>
+          <span>
+            {Math.ceil((editor.storage.characterCount?.words?.() || 0) / 200)}{" "}
+            min read
+          </span>
         </div>
       </div>
     </div>
   );
-};
+});
+RichTextEditor.displayName = "RichTextEditor";
 
 // Tool Button Helper
 const ToolBtn = ({ icon, tooltip, onClick, isActive, disabled }: any) => (

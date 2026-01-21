@@ -19,25 +19,34 @@ export async function POST(request: Request) {
     const body = await request.json();
     await dbConnect();
 
-    // Basic validation
-    if (!body.title || !body.slug || !body.excerpt || !body.content) {
-        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // Validation based on Status
+    if (!body.title || !body.slug) {
+        return NextResponse.json({ error: 'Title and Slug are required, even for drafts.' }, { status: 400 });
+    }
+
+    if (body.status === 'published') {
+        if (!body.excerpt || !body.content || !body.image) {
+             return NextResponse.json({ error: 'Published posts require Content, Excerpt, and a Featured Image.' }, { status: 400 });
+        }
     }
 
     // Use Real User Data
     const author = {
         name: user.name || "Anonymous Editor",
+        email: user.email || "unknown@example.com", // Store email for permissions
         role: user.role === 'super_admin' ? 'Super Admin' : (user.role === 'admin' ? 'Administrator' : 'Editor'),
         image: user.image || "https://placehold.co/100x100/333/FFF?text=User"
     };
     
-    // Add authorId to link relationally if we update schema later (optional but good practice)
-    // For now we store the embedded object as per schema.
+    // Calculate read time if content exists, otherwise default
+    const readTimeVal = body.content 
+        ? `${Math.ceil(body.content.split(/\s+/).length / 200)} min read`
+        : '1 min read';
 
     const newPost = await Post.create({
         ...body,
         author,
-        readTime: `${Math.ceil(body.content.split(/\s+/).length / 200)} min read`
+        readTime: readTimeVal
     });
 
     return NextResponse.json(newPost, { status: 201 });

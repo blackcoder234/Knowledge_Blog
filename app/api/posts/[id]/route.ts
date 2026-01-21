@@ -52,7 +52,7 @@ export async function DELETE(
         const canDelete = 
             user.role === 'super_admin' || 
             user.role === 'admin' || 
-            (user.role === 'editor' && post.author?.name === user.name); // Weak check but fits current schema
+            (user.role === 'editor' && post.author?.email === user.email);
 
         if (!canDelete) {
             return NextResponse.json({ error: "Unauthorized: Editors can only delete their own posts." }, { status: 403 });
@@ -88,10 +88,25 @@ export async function PATCH(
         const canEdit = 
             user.role === 'super_admin' || 
             user.role === 'admin' || 
-            (user.role === 'editor' && post.author?.name === user.name);
+            (user.role === 'editor' && post.author?.email === user.email);
 
         if (!canEdit) {
             return NextResponse.json({ error: "Unauthorized: Editors can only edit their own posts." }, { status: 403 });
+        }
+
+        // VALIDATION UPDATES
+        // If they are trying to publish, ensure requirements are met
+        if (body.status === 'published') {
+            // Merge existing data with update data to check completeness
+            const merged = { ...post.toObject(), ...body };
+            if (!merged.excerpt || !merged.content || !merged.image) {
+                return NextResponse.json({ error: 'Cannot publish without Content, Excerpt, and Featured Image.' }, { status: 400 });
+            }
+        }
+
+        // Recalculate read time if content is being updated
+        if (body.content) {
+            body.readTime = `${Math.ceil(body.content.split(/\s+/).length / 200)} min read`;
         }
 
         const updatedPost = await Post.findByIdAndUpdate(id, body, { new: true });

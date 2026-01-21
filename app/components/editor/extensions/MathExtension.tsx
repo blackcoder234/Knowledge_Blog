@@ -1,8 +1,11 @@
-import { mergeAttributes, Node } from "@tiptap/core";
-import { ReactNodeViewRenderer } from "@tiptap/react";
-import { NodeViewWrapper } from "@tiptap/react";
+import { mergeAttributes, Node, InputRule } from "@tiptap/core";
+import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react";
 import katex from "katex";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+
+// Input Rule Regex for $content$ -> (dollar signs)
+// Matches content between two dollar signs (non-greedy)
+export const inputRegex = /(?:\$)([^$]+)(?:\$)$/;
 
 export const MathComponent = ({
   node,
@@ -12,19 +15,56 @@ export const MathComponent = ({
   editor,
 }: any) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [tempLatex, setTempLatex] = useState(node.attrs.latex);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const latex = node.attrs.latex || "E=mc^2";
+  const containerRef = useRef<HTMLDivElement>(null);
 
+  // Sync state if node changes externally
+  useEffect(() => {
+    setTempLatex(node.attrs.latex);
+  }, [node.attrs.latex]);
+
+  // Focus input when entering edit mode
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      // Move cursor to end
-      inputRef.current.setSelectionRange(
-        inputRef.current.value.length,
-        inputRef.current.value.length,
-      );
+      // Set cursor to end
+      const len = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(len, len);
     }
   }, [isEditing]);
+
+  const save = useCallback(() => {
+    if (tempLatex.trim()) {
+      updateAttributes({ latex: tempLatex });
+      setIsEditing(false);
+      editor.commands.focus();
+    } else {
+      // If empty, remove the node? Or just close?
+      // Standard behavior: Remove empty math node
+      editor.commands.deleteRange({ from: getPos(), to: getPos() + 1 });
+      setIsEditing(false);
+      editor.commands.focus();
+    }
+  }, [tempLatex, updateAttributes, editor, getPos]);
+
+  const cancel = useCallback(() => {
+    setTempLatex(node.attrs.latex); // Revert
+    setIsEditing(false);
+    editor.commands.focus();
+  }, [node.attrs.latex, editor]);
+
+  // Keyboard Shortcuts inside the Popover
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation(); // Stop Tiptap from handling these
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      save();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancel();
+    }
+  };
 
   const renderMath = (tex: string) => {
     try {
@@ -32,65 +72,107 @@ export const MathComponent = ({
         __html: katex.renderToString(tex, {
           throwOnError: false,
           output: "html",
+          displayMode: false, // Inline math
         }),
       };
     } catch (e) {
-      return { __html: "<span class='text-red-500'>Invalid Syntax</span>" };
+      return {
+        __html: "<span class='text-red-400 font-mono'>Invalid Syntax</span>",
+      };
     }
   };
 
-  const handleDone = () => {
-    setIsEditing(false);
-    if (!latex.trim()) {
-      editor.commands.deleteRange({ from: getPos(), to: getPos() + 1 });
-    }
-  };
+  // Click outside listener to save/close
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        save(); // Save on click away (Notion style)
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isEditing, save]);
 
   return (
-    <NodeViewWrapper
-      className={`inline-block mx-1 relative ${selected ? "ring-2 ring-cyan-500/50 rounded" : ""}`}
-    >
+    <NodeViewWrapper className="inline-block mx-1 align-middle relative">
       {/* Popover Editor */}
       {isEditing && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-3 z-[100] w-[300px] bg-[#1A1A1A] border border-white/10 shadow-2xl rounded-xl p-4 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-zinc-500 uppercase">
-              Edit Equation
+        <div
+          ref={containerRef}
+          className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+10px)] z-[50] w-[320px] bg-[#1e1e1e] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 ring-1 ring-white/10"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2 bg-[#252525] border-b border-white/5">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              Equation
             </span>
+            <div className="flex gap-2">
+              <span className="text-[10px] text-zinc-600">Enter to save</span>
+            </div>
+          </div>
+
+          <div className="p-3 space-y-3">
+            {/* Input Area */}
+            <textarea
+              ref={inputRef}
+              value={tempLatex}
+              onChange={(e) => setTempLatex(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-[#111] border border-zinc-800 rounded-lg p-3 text-sm font-mono text-cyan-300 focus:outline-none focus:border-cyan-500/50 resize-y min-h-[80px] leading-relaxed selection:bg-cyan-900"
+              placeholder="\sum_{i=0}^n i^2 = \frac{(n^2+n)(2n+1)}{6}"
+            />
+
+            {/* Live Preview */}
+            <div className="bg-[#151515] rounded-lg p-3 border border-zinc-800/50 flex flex-col gap-2">
+              <span className="text-[9px] text-zinc-600 uppercase font-bold tracking-wider">
+                Preview
+              </span>
+              <div className="flex justify-center min-h-[30px] items-center overflow-x-auto text-lg text-white">
+                <span
+                  dangerouslySetInnerHTML={renderMath(tempLatex || "...")}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex p-2 bg-[#252525] border-t border-white/5 gap-2">
             <button
-              onClick={handleDone}
-              className="text-xs bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500 hover:text-black px-2 py-1 rounded transition-colors font-medium"
+              onClick={cancel}
+              className="flex-1 px-3 py-1.5 rounded text-xs font-medium text-zinc-400 hover:bg-white/5 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={save}
+              className="flex-1 px-3 py-1.5 rounded text-xs font-bold bg-cyan-600 text-white hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-900/20"
             >
               Done
             </button>
           </div>
 
-          <textarea
-            ref={inputRef}
-            value={latex}
-            onChange={(e) => updateAttributes({ latex: e.target.value })}
-            onKeyDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="w-full bg-black/50 border border-white/10 rounded-lg p-3 text-sm font-mono text-zinc-300 focus:outline-none focus:border-cyan-500/50 resize-y min-h-[80px]"
-            placeholder="\sqrt{x^2 + y^2}"
-          />
-
-          <div className="bg-black/20 rounded p-2 flex justify-center border border-white/5 min-h-[40px] items-center">
-            <span dangerouslySetInnerHTML={renderMath(latex)} />
-          </div>
-
-          {/* Arrow Pointer */}
-          <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-4 h-4 bg-[#1A1A1A] border-r border-b border-white/10 transform rotate-45"></div>
+          {/* Arrow */}
+          <div className="absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 bg-[#252525] border-b border-r border-white/5 transform rotate-45"></div>
         </div>
       )}
 
-      {/* Rendered View */}
+      {/* Rendered View (The Node Itself) */}
       <span
-        className={`cursor-pointer transition-opacity ${isEditing ? "opacity-20" : "hover:opacity-80"}`}
-        onDoubleClick={() => setIsEditing(true)}
-        title="Double click to edit"
-        dangerouslySetInnerHTML={renderMath(latex)}
-      />
+        onClick={() => setIsEditing(true)}
+        className={`
+          inline-flex items-baseline cursor-pointer px-1 py-0.5 rounded transition-all duration-200
+          ${selected || isEditing ? "bg-cyan-500/10 ring-1 ring-cyan-500/30" : "hover:bg-white/5"}
+        `}
+        title="Click to edit equation"
+      >
+        <span dangerouslySetInnerHTML={renderMath(node.attrs.latex)} />
+      </span>
     </NodeViewWrapper>
   );
 };
@@ -103,6 +185,8 @@ export const MathExtension = Node.create({
   inline: true,
 
   atom: true,
+
+  draggable: true, // Industry standard: equations should be draggable
 
   addAttributes() {
     return {
@@ -117,6 +201,9 @@ export const MathExtension = Node.create({
       {
         tag: "math-component",
       },
+      {
+        tag: "span[data-type='math']", // Backward compat or general support
+      },
     ];
   },
 
@@ -126,6 +213,24 @@ export const MathExtension = Node.create({
 
   addNodeView() {
     return ReactNodeViewRenderer(MathComponent);
+  },
+
+  addInputRules() {
+    return [
+      new InputRule({
+        find: inputRegex,
+        handler: ({ state, range, match }) => {
+          const { tr } = state;
+          const start = range.from;
+          const end = range.to;
+          const latex = match[1]; // Capture group 1 is the content
+
+          if (latex) {
+            tr.replaceWith(start, end, this.type.create({ latex }));
+          }
+        },
+      }),
+    ];
   },
 
   addKeyboardShortcuts() {
