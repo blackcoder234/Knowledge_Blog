@@ -374,6 +374,36 @@ export const MathExtension = Node.create({
           }
         },
       }),
+      // LaTeX Display Math Paste: \[...\]
+      new PasteRule({
+        find: /\\\[([\s\S]*?)\\\]/g,
+        handler: ({ state, range, match }) => {
+          const { tr } = state;
+          const latex = match[1];
+          if (latex) {
+            tr.replaceWith(
+              range.from,
+              range.to,
+              this.type.create({ latex, displayMode: "block" }),
+            );
+          }
+        },
+      }),
+      // LaTeX Inline Math Paste: \(...\)
+      new PasteRule({
+        find: /\\\(([\s\S]*?)\\\)/g,
+        handler: ({ state, range, match }) => {
+          const { tr } = state;
+          const latex = match[1];
+          if (latex) {
+            tr.replaceWith(
+              range.from,
+              range.to,
+              this.type.create({ latex, displayMode: "inline" }),
+            );
+          }
+        },
+      }),
       // Inline Math Paste: $...$
       new PasteRule({
         find: /(?:^|\s)\$([^$]+)\$(?:$|\s)/g,

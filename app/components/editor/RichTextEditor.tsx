@@ -23,7 +23,7 @@ import { common, createLowlight } from "lowlight";
 import { MathExtension } from "./extensions/MathExtension";
 import { CalloutExtension } from "./extensions/CalloutExtension";
 import { MermaidExtension } from "./extensions/MermaidExtension";
-import { MarkdownPasteLogic } from "./extensions/MarkdownPasteLogic"; // Import
+import { SmartPasteExtension } from "./extensions/SmartPasteExtension";
 import { CustomImageExtension } from "./extensions/ImageExtension";
 import { CodeBlockComponent } from "./extensions/CodeBlockComponent";
 import { SlashCommand, slashCommandConfig } from "./extensions/SlashCommand";
@@ -136,7 +136,7 @@ export const RichTextEditor = forwardRef<
         BubbleMenuExtension,
         CalloutExtension,
         MermaidExtension,
-        MarkdownPasteLogic, // New
+        SmartPasteExtension,
         SlashCommand.configure(slashCommandConfig),
       ],
       content: value, // Initial content only
@@ -177,71 +177,6 @@ export const RichTextEditor = forwardRef<
               return true;
             }
           }
-          return false;
-        },
-        handlePaste: (view, event, slice) => {
-          // 1. Image Handling
-          const items = event.clipboardData?.items;
-          if (items) {
-            for (let i = 0; i < items.length; i++) {
-              if (items[i].type.indexOf("image") !== -1 && onImageUpload) {
-                const file = items[i].getAsFile();
-                if (file) {
-                  onImageUpload(file).then((url) => {
-                    if (url) {
-                      editor?.chain().focus().setImage({ src: url }).run();
-                    }
-                  });
-                  return true;
-                }
-              }
-            }
-          }
-
-          // 2. LaTeX Handling (Direct Insertion)
-          const text = event.clipboardData?.getData("text/plain");
-          if (text) {
-            // Check for Align Environment
-            if (
-              text.includes("\\begin{align") &&
-              text.includes("\\end{align")
-            ) {
-              const aligned = text
-                .replace(/\\begin\{align\*?\}/g, "\\begin{aligned}")
-                .replace(/\\end\{align\*?\}/g, "\\end{aligned}");
-
-              // Programmatically insert Math Node
-              const { schema } = view.state;
-              const node = schema.nodes.math.create({
-                latex: `\n${aligned}\n`,
-                displayMode: "block",
-              });
-              const tr = view.state.tr.replaceSelectionWith(node);
-              view.dispatch(tr);
-              return true; // Stop propagation
-            }
-
-            // Check for Equation Environment
-            if (
-              text.includes("\\begin{equation") &&
-              text.includes("\\end{equation")
-            ) {
-              const content = text
-                .replace(/\\begin\{equation\*?\}/g, "")
-                .replace(/\\end\{equation\*?\}/g, "")
-                .trim();
-
-              const { schema } = view.state;
-              const node = schema.nodes.math.create({
-                latex: content,
-                displayMode: "block",
-              });
-              const tr = view.state.tr.replaceSelectionWith(node);
-              view.dispatch(tr);
-              return true;
-            }
-          }
-
           return false;
         },
       },
