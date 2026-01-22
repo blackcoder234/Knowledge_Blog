@@ -2,6 +2,7 @@ import { Feed } from 'feed';
 import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
 import Category from '@/models/Category';
+import User from '@/models/User';
 
 export async function GET() {
   await dbConnect();
@@ -12,8 +13,8 @@ export async function GET() {
   })
   .sort({ createdAt: -1 })
   .limit(20)
-  .populate('author', 'name email link')
-  .populate('category', 'name')
+  .populate({ path: 'author', model: User, select: 'name email link' })
+  .populate({ path: 'category', model: Category, select: 'name' })
   .lean();
 
   const feed = new Feed({
