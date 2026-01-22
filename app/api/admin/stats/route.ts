@@ -94,7 +94,13 @@ export async function GET() {
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          count: { $sum: 1 }
+          visitors: { $addToSet: "$visitorId" }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          count: { $size: "$visitors" }
         }
       },
       { $sort: { _id: 1 } }

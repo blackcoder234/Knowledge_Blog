@@ -50,13 +50,19 @@ export async function GET(request: Request) {
         startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     }
 
-    // 1. History (Traffic Trend) - Using PageView (Hits)
+    // 1. History (Traffic Trend) - Using PageView (Unique Visitors)
     const history = await PageView.aggregate([
       { $match: { createdAt: { $gte: startDate } } },
       {
         $group: {
           _id: { $dateToString: { format: dateFormat, date: "$createdAt" } },
-          count: { $sum: 1 }
+          visitors: { $addToSet: "$visitorId" }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          count: { $size: "$visitors" }
         }
       },
       { $sort: { _id: 1 } }
