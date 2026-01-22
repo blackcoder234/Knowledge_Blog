@@ -4,19 +4,24 @@ import Visitor from '@/models/Visitor';
 import PageView from '@/models/PageView';
 import dbConnect from '@/lib/db';
 import { UAParser } from 'ua-parser-js';
+import geoip from 'geoip-lite';
 
 export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { path, referrer } = body;
+    const { path, referrer, visitorId } = body;
     
-    // 1. Ignore Admin Paths & API calls (except this one)
+    // 1. Validate Input & Backwards Compatibility
+    // If no visitorId provided (cached client), fallback to IP as ID
+    const effectiveVisitorId = visitorId || (request.headers.get('x-forwarded-for') ? request.headers.get('x-forwarded-for')!.split(',')[0].trim() : '127.0.0.1');
+
+    // 2. Ignore Admin Paths & API calls (except this one)
     if (path.startsWith('/admin') || path.startsWith('/api') || path.startsWith('/_next')) {
         return NextResponse.json({ success: true, ignored: true });
     }
 
-    // Extract User Agent Info
+    // 3. User Agent Parsing
     const userAgent = request.headers.get('user-agent') || 'Unknown';
     const parser = new UAParser(userAgent);
     const result = parser.getResult();
@@ -25,36 +30,52 @@ export async function POST(request: Request) {
     const osName = result.os.name || 'Unknown';
     const deviceType = result.device.type || 'Desktop';
 
-    // IP Extraction
+    // 4. IP Extraction
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1';
+
+    // 5. Geolocation Resolution
+    // Priority: Vercel Headers -> GeoIP Lite -> Unknown
+    let country = request.headers.get('x-vercel-ip-country');
+    let city = request.headers.get('x-vercel-ip-city');
+
+    if (!country || country === 'Unknown') {
+        const geo = geoip.lookup(ip);
+        if (geo) {
+            country = geo.country;
+            city = geo.city;
+        } else {
+            country = 'Unknown';
+            city = 'Unknown';
+        }
+    }
+
+    // Normalize
+    country = country || 'Unknown';
+    city = city || 'Unknown';
     
-    // 2. Manage Unique Visitor (Atomic Upsert)
-    // We use findOneAndUpdate to atomically update the visitor or create them if they don't exist.
-    // This prevents race conditions where two parallel requests might both see "visitCount: 1" and update to 2.
-    
-    // Define the update operation
+    // 6. Manage Unique Visitor (Atomic Upsert by Visitor ID)
     const updates: any = {
         $set: {
             lastSeen: new Date(),
-            path, // Update current path
-            // Update device info to simple keep it fresh (or keep original? usually fresh is better for active users)
+            path,
             browser: browserName,
             os: osName,
             device: deviceType,
+            country: country, // Always update geo in case they move/vpn
+            city: city,
+            ip: ip // Keep latest IP
         },
         $inc: { visitCount: 1 },
-        $setOnInsert: { // Fields to set ONLY on creation
+        $setOnInsert: { 
             createdAt: new Date(),
-            country: 'Unknown', // Todo: GeoIP
-            city: 'Unknown',
             referrer: referrer || 'Direct',
-            ip: ip // Ensure IP is set on insert
+            visitorId: effectiveVisitorId 
         }
     };
 
-    const visitor = await Visitor.findOneAndUpdate(
-        { ip }, 
+    await Visitor.findOneAndUpdate(
+        { visitorId: effectiveVisitorId }, 
         updates,
         { 
             upsert: true, 
@@ -63,9 +84,9 @@ export async function POST(request: Request) {
         }
     );
 
-    // 3. Log Page View (The "Hit" for Charts)
-    // We log this separately to allow "Views per Day" charts even if the user is unique
+    // 7. Log Page View
     await PageView.create({
+        visitorId: effectiveVisitorId,
         ip,
         path,
         createdAt: new Date()

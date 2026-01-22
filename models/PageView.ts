@@ -1,15 +1,17 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IPageView extends Document {
-  ip: string; // Optional: Link to visitor or just store IP
+  visitorId: string; // Linked to Visitor
+  ip: string; 
   path: string;
   createdAt: Date;
 }
 
 const PageViewSchema: Schema = new Schema({
-  ip: { type: String, required: true, index: true }, // Indexed for aggregation
+  visitorId: { type: String, required: true, index: true },
+  ip: { type: String, required: false }, 
   path: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now, expires: '365d' }, // Auto-delete after 1 year? Optional.
+  createdAt: { type: Date, default: Date.now, expires: '365d' }, 
 });
 
 // Indexes for common analytics queries

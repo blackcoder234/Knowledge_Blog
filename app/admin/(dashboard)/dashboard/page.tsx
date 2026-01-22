@@ -171,7 +171,7 @@ export default function DashboardPage() {
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          label="Total Visitors"
+          label="Unique Visitors"
           value={stats?.totalVisitors}
           icon={Activity}
           color="text-cyan-400"
@@ -316,7 +316,7 @@ export default function DashboardPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-950/50 text-zinc-500 text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-3 font-medium">Location</th>
+                <th className="px-6 py-3 font-medium">City / Country</th>
                 <th className="px-6 py-3 font-medium">Device Info</th>
                 <th className="px-6 py-3 font-medium">Path</th>
                 <th className="px-6 py-3 font-medium text-right">Time</th>

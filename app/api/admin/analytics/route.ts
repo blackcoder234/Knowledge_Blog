@@ -152,7 +152,7 @@ export async function GET(request: Request) {
       { $match: { createdAt: { $gte: startDate } } },
       {
         $group: {
-          _id: "$ip",
+          _id: "$visitorId",
           firstVisit: { $min: "$createdAt" },
           lastVisit: { $max: "$createdAt" },
           views: { $sum: 1 }
