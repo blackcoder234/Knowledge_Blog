@@ -4,7 +4,6 @@ import Visitor from '@/models/Visitor';
 import PageView from '@/models/PageView';
 import dbConnect from '@/lib/db';
 import { UAParser } from 'ua-parser-js';
-import geoip from 'geoip-lite';
 
 export async function POST(request: Request) {
   try {
@@ -35,20 +34,10 @@ export async function POST(request: Request) {
     const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1';
 
     // 5. Geolocation Resolution
-    // Priority: Vercel Headers -> GeoIP Lite -> Unknown
+    // Priority: Vercel Headers -> Unknown
+    // We removed geoip-lite due to build issues with data file resolution in Next.js
     let country = request.headers.get('x-vercel-ip-country');
     let city = request.headers.get('x-vercel-ip-city');
-
-    if (!country || country === 'Unknown') {
-        const geo = geoip.lookup(ip);
-        if (geo) {
-            country = geo.country;
-            city = geo.city;
-        } else {
-            country = 'Unknown';
-            city = 'Unknown';
-        }
-    }
 
     // Normalize
     country = country || 'Unknown';

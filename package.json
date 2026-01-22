@@ -37,7 +37,6 @@
     "cloudinary": "^2.8.0",
     "feed": "^5.2.0",
     "framer-motion": "^12.27.0",
-    "geoip-lite": "^1.4.10",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.27",
     "lowlight": "^3.3.0",
