@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button } from "@/app/components/ui/Button";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
+import Category from "@/models/Category";
+import User from "@/models/User";
 import { DeletePostButton } from "../../components/DeletePostButton";
 import { Pagination } from "@/app/components/ui/Pagination";
 import { getServerSession } from "next-auth";
@@ -20,22 +22,29 @@ async function getPosts(page: number, limit: number) {
 
   const posts = await Post.find()
     .sort({ createdAt: -1 })
-    .populate("category", "name")
-    .populate("author", "name image email")
+    .populate({ path: "category", model: Category, select: "name" })
+    .populate({ path: "author", model: User, select: "name image email" })
     .skip(skip)
     .limit(limit)
     .lean();
 
-  // Convert _id to string
+  // Convert _id to string and sanitize
   return {
     posts: posts.map((p: any) => ({
       ...p,
       _id: p._id.toString(),
       createdAt: p.createdAt.toISOString(),
       category: p.category
-        ? { ...p.category, _id: p.category._id.toString() }
+        ? { _id: p.category._id.toString(), name: p.category.name }
         : null,
-      author: p.author ? { ...p.author, _id: p.author._id.toString() } : null,
+      author: p.author
+        ? {
+            _id: p.author._id.toString(),
+            name: p.author.name,
+            image: p.author.image,
+            email: p.author.email,
+          }
+        : null,
     })),
     totalPages,
   };
