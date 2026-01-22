@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import localFont from "next/font/local";
@@ -59,6 +60,7 @@ export default function RootLayout({
           <ToastProvider>
             <Suspense fallback={null}>
               <ClientTracker />
+              <Analytics />
             </Suspense>
             <MaintenanceGate>{children}</MaintenanceGate>
           </ToastProvider>
