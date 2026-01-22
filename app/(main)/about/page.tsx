@@ -2,6 +2,13 @@ import { Container } from "../../components/ui/Container";
 import { Button } from "../../components/ui/Button";
 import Image from "next/image";
 import Link from "next/link";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About KnowledgeLog | Our Mission",
+  description:
+    "We are a collective of writers, not content farmers. Read about our mission to explore science, technology, and culture with depth and clarity.",
+};
 
 const teamMembers = [
   {

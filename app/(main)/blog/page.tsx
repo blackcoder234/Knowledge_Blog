@@ -12,7 +12,7 @@ import User from "@/models/User"; // Required for population
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "All Essays & Notes",
+  title: "The Archive | Essays & Notes",
   description:
     "Browse our complete archive of articles on Technology, Science, and Culture.",
 };

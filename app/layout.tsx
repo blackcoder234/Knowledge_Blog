@@ -19,14 +19,14 @@ const lora = Lora({ subsets: ["latin"], variable: "--font-lora" });
 export const metadata: Metadata = {
   metadataBase: new URL("https://knowledgelog.blog"),
   title: {
-    default: "KnowledgeLog | Insights for the Modern Developer",
+    default: "KnowledgeLog | Science, Tech & Future Insights",
     template: "%s | KnowledgeLog",
   },
   description:
-    "A premium destination for in-depth tech analysis, coding tutorials, and industry insights.",
+    "Explore the frontiers of knowledge. In-depth analysis of science, technology, space, and the future of innovation for the curious mind.",
   openGraph: {
     title: "KnowledgeLog",
-    description: "Insights for the Modern Developer",
+    description: "Science, Tech & Future Insights",
     url: "https://knowledgelog.blog",
     siteName: "KnowledgeLog",
     locale: "en_US",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "KnowledgeLog",
-    description: "Insights for the Modern Developer",
+    description: "Science, Tech & Future Insights",
   },
   robots: {
     index: true,

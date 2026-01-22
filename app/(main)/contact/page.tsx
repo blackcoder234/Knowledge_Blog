@@ -1,6 +1,13 @@
 import { Container } from "../../components/ui/Container";
 import { ContactForm } from "../../components/ContactForm";
 import { FAQ } from "../../components/FAQ";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact Us | KnowledgeLog",
+  description:
+    "Get in touch with the KnowledgeLog team. Questions, collaborations, or just say hello.",
+};
 
 export default function ContactPage() {
   return (
