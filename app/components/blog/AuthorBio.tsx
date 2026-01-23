@@ -28,7 +28,7 @@ export const AuthorBio = ({ author, authorPosts = [] }: AuthorBioProps) => {
       {/* Minimalist Signature */}
       <div className="flex flex-col md:flex-row items-center md:items-start gap-8 py-12 border-y border-white/5">
         <Link
-          href={`/blog?author=${author._id}`}
+          href={`/profile/${author._id}`}
           className="shrink-0 group cursor-pointer relative"
         >
           <div className="w-24 h-24 rounded-full overflow-hidden grayscale group-hover:grayscale-0 transition-all duration-700 ring-1 ring-white/10 group-hover:ring-accent/40 shadow-2xl">

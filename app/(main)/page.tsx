@@ -18,12 +18,14 @@ async function getLandingData() {
     .sort({ createdAt: -1 })
     .limit(3)
     .populate("author", "name image")
+    .populate("category", "name")
     .lean();
 
   return {
     latest: latest.map((p: any) => ({
       ...p,
       _id: p._id.toString(),
+      category: p.category?.name || "Uncategorized",
       createdAt: p.createdAt.toISOString(),
       author: {
         name: p.author?.name || "Unknown",

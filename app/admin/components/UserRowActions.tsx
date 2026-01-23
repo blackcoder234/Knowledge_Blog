@@ -95,7 +95,7 @@ export function UserRowActions({
     <div className="flex justify-end gap-3 items-center">
       {isSuperAdmin && (
         <a
-          href={`/author/${userId}`}
+          href={`/profile/${userId}`}
           target="_blank"
           rel="noopener noreferrer"
           className="p-1.5 hover:bg-yellow-500/10 rounded-lg text-zinc-500 hover:text-yellow-400 transition-colors"
