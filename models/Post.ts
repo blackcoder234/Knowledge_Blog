@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-// ... (imports remain the same)
+
 
 export interface IPost extends Document {
   title: string;
@@ -61,7 +61,7 @@ const PostSchema: Schema = new Schema(
   { timestamps: true },
 );
 
-// ... (export remains the same)
+
 
 // Prevent overwrite model error in development
 export default mongoose.models.Post ||

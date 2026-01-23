@@ -13,28 +13,35 @@ import Subscriber from "@/models/Subscriber";
 
 // Fetch posts for the landing page
 async function getLandingData() {
-  await dbConnect();
+  try {
+    await dbConnect();
 
-  // Latest: 3 latest published posts
-  const latest = await Post.find({ status: "published" })
-    .sort({ createdAt: -1 })
-    .limit(3)
-    .populate("author", "name image")
-    .populate("category", "name")
-    .lean();
+    // Latest: 3 latest published posts
+    const latest = await Post.find({ status: "published" })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate("author", "name image")
+      .populate("category", "name")
+      .lean();
 
-  return {
-    latest: latest.map((p: any) => ({
-      ...p,
-      _id: p._id.toString(),
-      category: p.category?.name || "Uncategorized",
-      createdAt: p.createdAt.toISOString(),
-      author: {
-        name: p.author?.name || "Unknown",
-        image: p.author?.image || "/placeholder-user.jpg",
-      },
-    })),
-  };
+    return {
+      latest: latest.map((p: any) => ({
+        ...p,
+        _id: p._id.toString(),
+        category: p.category?.name || "Uncategorized",
+        createdAt: p.createdAt.toISOString(),
+        author: {
+          name: p.author?.name || "Unknown",
+          image: p.author?.image || "/placeholder-user.jpg",
+        },
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching landing data:", error);
+    return {
+      latest: [],
+    };
+  }
 }
 
 export const revalidate = 60; // Revalidate every minute

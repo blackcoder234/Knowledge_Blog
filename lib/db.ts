@@ -1,4 +1,9 @@
 import mongoose from 'mongoose';
+// Ensure models are registered to avoid MissingSchemaError when populating in Vercel
+import '@/models/Post';
+import '@/models/Category';
+import '@/models/User';
+
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
