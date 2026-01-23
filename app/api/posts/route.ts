@@ -31,7 +31,10 @@ export async function POST(request: Request) {
     }
 
     // Use Real User ID for Reference
-    const authorId = user.id;
+    // Super Admin can assign author, otherwise defaults to current user
+    const authorId = (user.role === 'super_admin' && body.author) 
+        ? body.author 
+        : user.id;
     
     // Calculate read time if content exists, otherwise default
     const readTimeVal = body.content 

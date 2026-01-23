@@ -42,20 +42,15 @@ export async function DELETE(
         }
 
         // PERMISSION CHECK
-        // Super Admin / Admin: Can delete anything.
-        // Editor: Can ONLY delete requests where they are the author.
-        // * Note: Currently we check Match by Name/Role string stored in Post.author 
-        // * Ideally we should store authorId in Post model, but for now we check name or rely on trust for this mock MVP.
-        // * Let's assume strictness isn't 100% critical for MVP demo OR we assume Admin trusts Editors.
-        // * STRICT MODE: user.role === 'admin' || user.role === 'super_admin'
+        // Super Admin: Can delete anything.
+        // Others: Can ONLY delete their own posts.
         
         const canDelete = 
             user.role === 'super_admin' || 
-            user.role === 'admin' || 
-            (user.role === 'editor' && post.author.toString() === user.id);
+            (post.author.toString() === user.id);
 
         if (!canDelete) {
-            return NextResponse.json({ error: "Unauthorized: Editors can only delete their own posts." }, { status: 403 });
+            return NextResponse.json({ error: "Unauthorized: You can only delete your own posts." }, { status: 403 });
         }
 
         await Post.findByIdAndDelete(id);
@@ -87,11 +82,10 @@ export async function PATCH(
         // PERMISSION CHECK
         const canEdit = 
             user.role === 'super_admin' || 
-            user.role === 'admin' || 
-            (user.role === 'editor' && post.author.toString() === user.id);
+            (post.author.toString() === user.id);
 
         if (!canEdit) {
-            return NextResponse.json({ error: "Unauthorized: Editors can only edit their own posts." }, { status: 403 });
+            return NextResponse.json({ error: "Unauthorized: You can only edit your own posts." }, { status: 403 });
         }
 
         // VALIDATION UPDATES
@@ -102,6 +96,11 @@ export async function PATCH(
             if (!merged.excerpt || !merged.content || !merged.image) {
                 return NextResponse.json({ error: 'Cannot publish without Content, Excerpt, and Featured Image.' }, { status: 400 });
             }
+        }
+
+        // PERMISSION: Only Super Admin can change the Author
+        if (user.role !== 'super_admin') {
+            delete body.author;
         }
 
         // Recalculate read time if content is being updated

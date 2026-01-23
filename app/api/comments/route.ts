@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Comment from '@/models/Comment';
-import User from '@/models/User'; // Required for population
+import User from '@/models/User';
+import Post from '@/models/Post';
+import Setting from '@/models/Setting';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -41,6 +43,30 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
+
+    // 1. Check Global Comments Toggle
+    const commSetting = await Setting.findOne({ key: 'comments_enabled' });
+    if (commSetting && commSetting.value === false) {
+        return NextResponse.json({ error: 'Comments are globally disabled' }, { status: 403 });
+    }
+
+    // 2. Check Post Existence & Auto-Close Days
+    const post = await Post.findById(postId);
+    if (!post) {
+        return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+
+    const ageSetting = await Setting.findOne({ key: 'auto_close_days' });
+    const autoCloseDays = parseInt(ageSetting?.value || "0");
+
+    if (autoCloseDays > 0) {
+        const postDate = new Date(post.createdAt);
+        const now = new Date();
+        const diffDays = Math.ceil(Math.abs(now.getTime() - postDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays > autoCloseDays) {
+            return NextResponse.json({ error: 'Comments on this post are closed' }, { status: 403 });
+        }
+    }
     
     const newComment = await Comment.create({
         content,

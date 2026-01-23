@@ -7,16 +7,20 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 export async function GET() {
   await dbConnect();
   try {
-    // Return all settings as a simple object { key: value }
+    // Return all settings as an object { key: { value, updatedBy, updatedAt } }
     const settings = await Setting.find({});
-    const formatted = settings.reduce((acc, curr) => {
-      acc[curr.key] = curr.value;
+    const formatted = settings.reduce((acc: any, curr: any) => {
+      acc[curr.key] = {
+        value: curr.value,
+        updatedBy: curr.updatedBy,
+        updatedAt: curr.updatedAt,
+      };
       return acc;
     }, {});
     
     // Default maintenance to false if not present
     if (formatted.maintenance_mode === undefined) {
-        formatted.maintenance_mode = false;
+        formatted.maintenance_mode = { value: false };
     }
 
     return NextResponse.json(formatted);

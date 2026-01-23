@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import Post from '@/models/Post';
+import Comment from '@/models/Comment';
 import Subscriber from '@/models/Subscriber';
+import Settings from '@/models/Settings';
 import Visitor from '@/models/Visitor';
 import PageView from '@/models/PageView';
 import Contact from '@/models/Contact';
@@ -39,7 +41,9 @@ export async function GET() {
       osStats,
       countryStats,
       referrerStats,
-      unreadCount
+      unreadCount,
+      totalComments,
+      settings
     ] = await Promise.all([
       User.countDocuments({}),
       Post.countDocuments({}),
@@ -81,7 +85,9 @@ export async function GET() {
       ]),
 
       // Unread Messages
-      Contact.countDocuments({ read: false })
+      Contact.countDocuments({ read: false }),
+      Comment.countDocuments({}),
+      Settings.findOne()
     ]);
 
     // Chart Data (Page Views Last 7 Days)
@@ -124,7 +130,8 @@ export async function GET() {
             users: totalRegisteredUsers,
             posts: totalPosts,
             subscribers: totalSubscribers,
-            visitors: totalPageViews
+            visitors: totalPageViews,
+            comments: totalComments
         },
         
         totalVisitors: totalUniqueVisitors, 
@@ -139,6 +146,7 @@ export async function GET() {
         uptime: process.uptime(),
         dbStatus: mongoose.connection.readyState === 1,
         unreadMessages: unreadCount,
+        maintenanceMode: settings?.maintenanceMode || false,
         
         charts: {
             visitors: chartData

@@ -39,17 +39,46 @@ interface PostEditorProps {
   isEdit?: boolean;
 }
 
+import { useSession } from "next-auth/react"; // Added useSession
+
+// ... existing imports
+
 export default function PostEditor({
   initialData,
   isEdit = false,
 }: PostEditorProps) {
   const router = useRouter();
+  const { data: session } = useSession(); // Get Session
   const { showToast } = useToast();
   const editorRef = useRef<RichTextEditorRef>(null);
   const searchParams = useSearchParams();
 
-  // Unique Draft ID for New Posts (to handle multiple tabs)
+  // Super Admin Check
+  const isSuperAdmin = (session?.user as any)?.role === "super_admin";
+
+  // Unique Draft ID ...
   const [tempDraftId, setTempDraftId] = useState<string>("");
+
+  // ... (existing effects)
+
+  // Users State for Author Assignment
+  const [users, setUsers] = useState<any[]>([]);
+
+  // Fetch Users if Super Admin
+  useEffect(() => {
+    if (isSuperAdmin && users.length === 0) {
+      fetch("/api/users")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.users && Array.isArray(data.users)) {
+            setUsers(data.users);
+          }
+        })
+        .catch((err) => console.error("Failed to load users", err));
+    }
+  }, [isSuperAdmin]);
+
+  // Editor States ...
 
   useEffect(() => {
     // Only logic for "Create New" mode
@@ -105,6 +134,7 @@ export default function PostEditor({
     content: "",
     category: "Artificial Intelligence",
     language: "English", // Default language
+    author: "", // Added author field
     tags: "",
     image: "",
     status: "draft", // draft, published, archived
@@ -135,6 +165,7 @@ export default function PostEditor({
         content: initialData.content || "",
         category: initialData.category || "Artificial Intelligence",
         language: initialData.language || "English",
+        author: initialData.author?._id || initialData.author || "", // Load Author
         tags: Array.isArray(initialData.tags)
           ? initialData.tags.join(", ")
           : initialData.tags || "",
@@ -1055,6 +1086,31 @@ export default function PostEditor({
                       )}
                     </select>
                   </div>
+
+                  {/* Author Assignment - Super Admin Only */}
+                  {isSuperAdmin && (
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                        Author (Admin)
+                      </label>
+                      <select
+                        name="author"
+                        value={formData.author}
+                        onChange={handleChange}
+                        className="w-full bg-[#121212] border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                      >
+                        <option value="" disabled>
+                          Select Author
+                        </option>
+                        {users.map((user) => (
+                          <option key={user._id} value={user._id}>
+                            {user.name} ({user.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-zinc-300 mb-1.5">
                       Language

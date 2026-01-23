@@ -1,121 +1,146 @@
-"use client";
-
-import { Button } from "../../../components/ui/Button";
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { useToast } from "@/app/context/ToastContext";
-import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import dbConnect from "@/lib/db";
+import User from "@/models/User";
+import Post from "@/models/Post";
+import Comment from "@/models/Comment";
+import { UserRowActions } from "../../components/UserRowActions";
+import { AdminSearch } from "../../components/AdminSearch";
+import { UserFilter } from "../../components/UserFilter";
 import { Pagination } from "@/app/components/ui/Pagination";
-import GlobalLoading from "@/app/loading";
+import Link from "next/link";
+import { Button } from "@/app/components/ui/Button";
 
-const UsersPage = () => {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const page = Number(searchParams.get("page")) || 1;
+export const revalidate = 0; // Always fresh
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const { showToast } = useToast();
+async function getUsers(
+  page: number,
+  limit: number,
+  query: string,
+  role?: string,
+) {
+  await dbConnect();
+  const skip = (page - 1) * limit;
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/users?page=${page}&limit=10`);
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-        setTotalPages(data.totalPages);
-      } else {
-        showToast("Failed to fetch users", "error");
-      }
-    } catch (error) {
-      console.error("Failed to fetch users");
-      showToast("Network error", "error");
-    } finally {
-      setLoading(false);
-    }
+  const dbQuery: any = {};
+
+  if (query) {
+    const searchRegex = new RegExp(query, "i");
+    dbQuery.$or = [{ name: searchRegex }, { email: searchRegex }];
+  }
+
+  if (role && role !== "all") {
+    dbQuery.role = role;
+  }
+
+  const totalUsers = await User.countDocuments(dbQuery);
+  const totalPages = Math.ceil(totalUsers / limit);
+
+  const users = await User.find(dbQuery)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  // Get post counts for filtered users
+  const userIds = users.map((u) => u._id);
+  const postCounts = await Post.aggregate([
+    { $match: { author: { $in: userIds } } },
+    { $group: { _id: "$author", count: { $sum: 1 } } },
+  ]);
+
+  const postCountMap = postCounts.reduce(
+    (acc, curr) => {
+      acc[curr._id.toString()] = curr.count;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  // Get comment counts for filtered users
+  const commentCounts = await Comment.aggregate([
+    { $match: { author: { $in: userIds } } },
+    { $group: { _id: "$author", count: { $sum: 1 } } },
+  ]);
+
+  const commentCountMap = commentCounts.reduce(
+    (acc, curr) => {
+      acc[curr._id.toString()] = curr.count;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  return {
+    users: users.map((u: any) => ({
+      _id: u._id.toString(),
+      name: u.name,
+      email: u.email,
+      image: u.image,
+      role: u.role,
+      createdAt: u.createdAt.toISOString(),
+      postCount: postCountMap[u._id.toString()] || 0,
+      commentCount: commentCountMap[u._id.toString()] || 0,
+    })),
+    totalPages,
   };
+}
 
-  useEffect(() => {
-    if (status === "loading") return;
+export default async function UsersPage(props: {
+  searchParams: Promise<{
+    page?: string;
+    query?: string;
+    role?: string;
+  }>;
+}) {
+  const searchParams = await props.searchParams;
+  const page = Number(searchParams.page) || 1;
+  const query = searchParams.query || "";
+  const role = searchParams.role || "all";
+  const limit = 10;
 
-    const role = (session?.user as any)?.role;
-    if (role !== "admin" && role !== "super_admin") {
-      router.replace("/admin/dashboard");
-      return;
-    }
+  const session = await getServerSession(authOptions);
+  const currentUser = session?.user as any;
+  const isSuperOrAdmin =
+    currentUser?.role === "admin" || currentUser?.role === "super_admin";
 
-    if (session) {
-      fetchUsers();
-    }
-  }, [session, page, status, router]);
+  if (!isSuperOrAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-400">
+        Access Denied
+      </div>
+    );
+  }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-
-    try {
-      const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setUsers(users.filter((u) => u._id !== id));
-        showToast("User deleted successfully", "success");
-      } else {
-        showToast("Failed to delete user", "error");
-      }
-    } catch (error) {
-      showToast("Something went wrong", "error");
-    }
-  };
-
-  const handleRoleChange = async (id: string, newRole: string) => {
-    if (!confirm(`Change role to ${newRole}?`)) return;
-
-    try {
-      const res = await fetch(`/api/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole }),
-      });
-      if (res.ok) {
-        setUsers(
-          users.map((u) => (u._id === id ? { ...u, role: newRole } : u)),
-        );
-        showToast("Role updated successfully", "success");
-      } else {
-        showToast("Failed to update role", "error");
-      }
-    } catch (error) {
-      showToast("Something went wrong", "error");
-    }
-  };
-
-  if (loading) return <GlobalLoading />;
-
-  // Authorization Checks
-  const userRole = (session?.user as any)?.role || "user";
-  const isSuperAdmin = userRole === "super_admin";
-  const isAdmin = userRole === "admin";
-  const canManageUsers = isSuperAdmin || isAdmin;
+  const { users, totalPages } = await getUsers(page, limit, query, role);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 p-8 font-sans selection:bg-yellow-500/30">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Users</h1>
-          <p className="text-zinc-400">Manage user access and permissions.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+              User Management
+            </span>
+          </h1>
+          <p className="text-zinc-400 mt-2 text-sm flex items-center gap-2 font-medium">
+            Manage user roles, permissions, and access.
+          </p>
         </div>
-        {/* Only admins can realistically 'add' users in this context if we had a modal, but hiding for now or keeping active */}
+        {/* Only show Add User if valid (usually not manual, but here for UI consistency) */}
         <Link href="/admin/users/create">
-          <Button variant="primary" className="gap-2">
+          <Button
+            variant="primary"
+            className="gap-2 bg-yellow-500 hover:bg-yellow-400 text-black border-0 shadow-[0_0_15px_rgba(234,179,8,0.3)] font-semibold"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={2}
               stroke="currentColor"
-              className="w-5 h-5"
+              className="w-4 h-4"
             >
               <path
                 strokeLinecap="round"
@@ -128,176 +153,145 @@ const UsersPage = () => {
         </Link>
       </div>
 
-      <div className="bg-card border border-white/5 rounded-xl overflow-hidden">
-        {/* Filter/Search Bar */}
-        <div className="p-4 border-b border-white/5 flex gap-4">
-          <input
-            type="text"
-            placeholder="Search users..."
-            className="bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-2 text-white placeholder:text-zinc-600 focus:outline-none focus:border-accent/50 w-full max-w-md"
-          />
-          <select className="bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-accent/50 text-sm">
-            <option value="all">All Roles</option>
-            <option value="super_admin">Super Admin</option>
-            <option value="admin">Admin</option>
-            <option value="editor">Editor</option>
-            <option value="user">User</option>
-          </select>
+      <div className="space-y-6">
+        {/* Search & Filter Bar */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-zinc-900/40 border border-zinc-800 p-4 rounded-xl backdrop-blur-sm">
+          <div className="flex flex-col md:flex-row gap-4 w-full">
+            <AdminSearch placeholder="Search name or email..." />
+            <UserFilter />
+          </div>
+          <div className="hidden lg:flex items-center gap-2 text-xs font-medium text-zinc-500 whitespace-nowrap">
+            <span>Showing {users.length} users</span>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-zinc-400">
-            <thead className="bg-white/5 text-xs uppercase font-bold text-white">
-              <tr>
-                <th className="px-6 py-3">User</th>
-                <th className="px-6 py-3">Role</th>
-                <th className="px-6 py-3">Joined</th>
-                {canManageUsers && (
-                  <th className="px-6 py-3 text-right">Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {users.map((user) => {
-                // Logic to disable editing superiors
-                const isSuperior =
-                  user.role === "super_admin" ||
-                  (user.role === "admin" && !isSuperAdmin);
-                const canEditThisUser = !isSuperior;
-
-                return (
+        {/* Users Table */}
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden backdrop-blur-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-white/5 border-b border-white/5">
+                <tr>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                    User Details
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-300 uppercase tracking-wider text-center">
+                    Activity
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                    Joined
+                  </th>
+                  <th className="px-6 py-4 text-xs font-semibold text-zinc-300 uppercase tracking-wider text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-zinc-300">
+                {users.map((user: any) => (
                   <tr
                     key={user._id}
-                    className="hover:bg-white/5 transition-colors group"
+                    className="group hover:bg-white/5 transition-colors"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-middle">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-zinc-800 flex items-center justify-center text-white font-bold text-xs ring-2 ring-white/5 overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          {user.image && user.image.startsWith("http") ? (
+                        {user.image ? (
+                          <div className="relative h-10 w-10 rounded-full overflow-hidden ring-2 ring-white/5 shadow-sm">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={user.image}
                               alt={user.name}
-                              className="h-full w-full object-cover"
+                              className="object-cover w-full h-full"
                             />
-                          ) : (
-                            <span>{user.name.charAt(0)}</span>
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium text-white text-base">
-                            {user.name}
-                          </div>
-                          <div className="text-xs text-zinc-500">
-                            {user.email}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-block px-2 py-1 rounded-md text-xs font-medium border uppercase tracking-wider ${
-                          user.role === "super_admin"
-                            ? "bg-red-500/10 text-red-500 border-red-500/20"
-                            : user.role === "admin"
-                              ? "bg-accent/10 text-accent border-accent/20"
-                              : user.role === "editor"
-                                ? "bg-blue-500/10 text-blue-500 border-blue-500/20"
-                                : "bg-white/5 text-zinc-400 border-white/10"
-                        }`}
-                      >
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs text-zinc-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </div>
-                    </td>
-                    {canManageUsers && (
-                      <td className="px-6 py-4 text-right">
-                        {canEditThisUser ? (
-                          <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity items-center">
-                            <select
-                              value={user.role}
-                              onChange={(e) =>
-                                handleRoleChange(user._id, e.target.value)
-                              }
-                              className="bg-[#0D0D0D] border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none"
-                            >
-                              <option value="user">User</option>
-                              <option value="editor">Editor</option>
-                              {/* Only Super Admin can promote to Admin */}
-                              {isSuperAdmin && (
-                                <option value="admin">Admin</option>
-                              )}
-                              {/* Only Super Admin can promote to Super Admin (rare) */}
-                              {isSuperAdmin && (
-                                <option value="super_admin">Super Admin</option>
-                              )}
-                            </select>
-
-                            {/* Delete Action Logic */}
-                            {(() => {
-                              const targetIsSuper = user.role === "super_admin";
-                              const targetIsAdmin = user.role === "admin";
-
-                              // 1. Super Admin can delete anyone (except themselves, but UI often allows it, backend blocks. Let's hide for self if possible or just show)
-                              // 2. Admin can delete User/Editor. Cannot delete Admin/SuperAdmin.
-
-                              const canDelete =
-                                isSuperAdmin ||
-                                (isAdmin && !targetIsAdmin && !targetIsSuper);
-
-                              // Prevent deleting yourself visually
-                              const isSelf =
-                                (session?.user as any)?.id === user._id;
-
-                              if (canDelete && !isSelf) {
-                                return (
-                                  <button
-                                    onClick={() => handleDelete(user._id)}
-                                    className="p-2 hover:bg-red-500/10 rounded-lg text-zinc-400 hover:text-red-500 transition-colors"
-                                    title="Delete User"
-                                  >
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      strokeWidth={1.5}
-                                      stroke="currentColor"
-                                      className="w-4 h-4"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                                      />
-                                    </svg>
-                                  </button>
-                                );
-                              }
-                              return null;
-                            })()}
                           </div>
                         ) : (
-                          <span className="text-xs text-zinc-600 italic">
-                            Protected
+                          <div className="h-10 w-10 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-400 ring-2 ring-white/5 shadow-sm">
+                            {(user.name && user.name[0]) || "?"}
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-zinc-100 group-hover:text-yellow-400 transition-colors">
+                            {user.name}
+                          </span>
+                          <span className="text-xs text-zinc-500 font-medium">
+                            {user.email}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 align-middle">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize tracking-wide ${
+                          user.role === "super_admin"
+                            ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            : user.role === "admin"
+                              ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                              : user.role === "editor"
+                                ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                                : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                        }`}
+                      >
+                        {user.role.replace("_", " ")}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 align-middle text-center">
+                      <div className="flex flex-col gap-0.5">
+                        {(user.role === "admin" ||
+                          user.role === "super_admin" ||
+                          user.role === "editor") && (
+                          <span
+                            className={`text-xs font-medium tabular-nums ${user.postCount > 0 ? "text-zinc-200" : "text-zinc-600"}`}
+                          >
+                            {user.postCount} Posts
                           </span>
                         )}
-                      </td>
-                    )}
+                        <span
+                          className={`text-xs font-medium tabular-nums ${user.commentCount > 0 ? "text-yellow-400" : "text-zinc-600"}`}
+                        >
+                          {user.commentCount} Comments
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 align-middle">
+                      <span className="text-xs text-zinc-400 font-medium tabular-nums">
+                        {new Date(user.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 align-middle text-right">
+                      <UserRowActions
+                        userId={user._id}
+                        currentRole={user.role}
+                        userName={user.name}
+                      />
+                    </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-6 py-12 text-center text-zinc-500 font-medium"
+                    >
+                      No users found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-white/5 bg-white/[0.02]">
+              <Pagination totalPages={totalPages} />
+            </div>
+          )}
         </div>
       </div>
-
-      {totalPages > 1 && <Pagination totalPages={totalPages} />}
     </div>
   );
-};
-
-export default UsersPage;
+}

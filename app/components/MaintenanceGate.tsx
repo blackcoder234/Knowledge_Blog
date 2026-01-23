@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Setting from "@/models/Setting";
 import dbConnect from "@/lib/db";
 import MaintenancePage from "@/app/maintenance/page";
+import AnnouncementBar from "./AnnouncementBar";
 
 export default async function MaintenanceGate({
   children,
@@ -10,16 +11,32 @@ export default async function MaintenanceGate({
 }) {
   await dbConnect();
 
-  // Fetch Maintenance Mode Setting
-  // We use findOne since 'key' is unique
+  // Fetch Site Settings (Parallel)
   let isMaintenance = false;
+  let showAnnouncement = false;
+  let announcementMessage = "";
+
   try {
-    const setting = await Setting.findOne({ key: "maintenance_mode" });
-    if (setting && setting.value === true) {
-      isMaintenance = true;
-    }
+    const settings = await Setting.find({
+      key: {
+        $in: [
+          "maintenance_mode",
+          "announcement_active",
+          "announcement_message",
+        ],
+      },
+    });
+
+    const config = settings.reduce((acc: any, curr: any) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+
+    isMaintenance = !!config.maintenance_mode;
+    showAnnouncement = !!config.announcement_active;
+    announcementMessage = config.announcement_message || "";
   } catch (e) {
-    console.error("Failed to check maintenance mode", e);
+    console.error("Failed to check site settings", e);
   }
 
   // Check Current Path
@@ -27,14 +44,21 @@ export default async function MaintenanceGate({
   const pathname = headersList.get("x-pathname") || "";
 
   // Allow Admin Access
-  const isAdmin =
+  const isInternal =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/api");
 
-  if (isMaintenance && !isAdmin) {
+  if (isMaintenance && !isInternal) {
     return <MaintenancePage />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {showAnnouncement && !isInternal && (
+        <AnnouncementBar message={announcementMessage} />
+      )}
+      {children}
+    </>
+  );
 }

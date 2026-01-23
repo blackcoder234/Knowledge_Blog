@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
+import Setting from '@/models/Setting';
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +13,12 @@ export async function POST(request: Request) {
     }
 
     await dbConnect();
+
+    // Check if registration is enabled
+    const regSetting = await Setting.findOne({ key: 'registration_enabled' });
+    if (regSetting && regSetting.value === false) {
+        return NextResponse.json({ error: 'Public registration is currently disabled' }, { status: 403 });
+    }
 
     // Check if user exists
     const existingUser = await User.findOne({ email });

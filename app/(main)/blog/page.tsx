@@ -26,6 +26,7 @@ async function getBlogData(searchParams: {
   category?: string;
   sort?: string;
   page?: string;
+  author?: string; // Added author param
 }) {
   try {
     await dbConnect();
@@ -77,6 +78,21 @@ async function getBlogData(searchParams: {
 
     const filteredCategoryIds = activeFilterCategories.map((c) => c._id);
 
+    // 2.5 Fetch Author Details if filtering by Author
+    let filterLabel = "";
+    if (searchParams.author) {
+      try {
+        const authorDoc = await User.findById(searchParams.author).select(
+          "name",
+        );
+        if (authorDoc) {
+          filterLabel = `Articles by ${authorDoc.name}`;
+        }
+      } catch (e) {
+        console.warn("Invalid author ID:", searchParams.author);
+      }
+    }
+
     // 3. Build Query
     const query: any = { status: "published" };
     if (searchParams.q) {
@@ -106,11 +122,16 @@ async function getBlogData(searchParams: {
       query.category = { $in: filteredCategoryIds };
     }
 
+    if (searchParams.author) {
+      query.author = searchParams.author;
+    }
+
     const isFiltering = !!(
       searchParams.q ||
       (searchParams.lang && searchParams.lang !== "All") ||
       (searchParams.genre && searchParams.genre !== "All") ||
-      (searchParams.category && searchParams.category !== "All")
+      (searchParams.category && searchParams.category !== "All") ||
+      searchParams.author
     );
 
     // Sorting
@@ -175,6 +196,7 @@ async function getBlogData(searchParams: {
       isFiltering,
       totalPages,
       currentPage,
+      filterLabel, // Return the label
       error: null,
     };
   } catch (error: any) {
@@ -204,6 +226,7 @@ export default async function BlogPage(props: {
     category?: string;
     sort?: string;
     page?: string;
+    author?: string;
   }>;
 }) {
   const searchParams = await props.searchParams;
@@ -215,6 +238,7 @@ export default async function BlogPage(props: {
     isFiltering,
     totalPages,
     currentPage,
+    filterLabel,
     error,
   } = await getBlogData(searchParams);
 
@@ -307,7 +331,9 @@ export default async function BlogPage(props: {
               <div className="flex items-center justify-between pb-6 border-b border-white/10">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                   <span className="w-2 h-8 bg-accent rounded-sm"></span>
-                  {isFiltering ? "Search Results" : "Latest Articles"}
+                  <span className="w-2 h-8 bg-accent rounded-sm"></span>
+                  {filterLabel ||
+                    (isFiltering ? "Search Results" : "Latest Articles")}
                 </h2>
                 <span className="text-zinc-500 text-sm">
                   Page {currentPage} of {totalPages || 1}

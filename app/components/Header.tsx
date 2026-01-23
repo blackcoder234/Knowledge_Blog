@@ -42,6 +42,19 @@ export const Header = () => {
     };
   }, [isMobileMenuOpen]);
 
+  const [siteTitle, setSiteTitle] = useState("KnowledgeLog");
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.site_title?.value) {
+          setSiteTitle(data.site_title.value);
+        }
+      })
+      .catch((err) => console.error("Header site title fetch error", err));
+  }, []);
+
   const navLinks = [
     { label: "Home", href: "/" },
     { label: "Blogs", href: "/blog" },
@@ -54,13 +67,12 @@ export const Header = () => {
       <Container>
         <div className="flex h-20 items-center justify-between">
           {/* Logo */}
-          {/* Logo */}
           <Link
             href="/"
             className="text-2xl font-serif font-bold tracking-tight text-white z-50 relative"
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            KnowledgeLog
+            {siteTitle}
           </Link>
 
           {/* Desktop Navigation */}

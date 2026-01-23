@@ -17,7 +17,13 @@ interface Comment {
   };
 }
 
-export const CommentsSection = ({ postId }: { postId: string }) => {
+export const CommentsSection = ({
+  postId,
+  isClosed,
+}: {
+  postId: string;
+  isClosed?: boolean;
+}) => {
   const { data: session } = useSession();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -78,9 +84,15 @@ export const CommentsSection = ({ postId }: { postId: string }) => {
         </span>
       </h3>
 
-      {/* Comment Form */}
+      {/* Comment Form / Closed Message */}
       <div className="mb-12">
-        {session ? (
+        {isClosed ? (
+          <div className="bg-amber-500/10 rounded-xl p-6 border border-amber-500/20 text-center">
+            <p className="text-amber-400 text-sm font-medium">
+              Comments on this post have been closed due to its age.
+            </p>
+          </div>
+        ) : session ? (
           <form
             onSubmit={handleSubmit}
             className="bg-white/5 rounded-xl p-6 border border-white/5"

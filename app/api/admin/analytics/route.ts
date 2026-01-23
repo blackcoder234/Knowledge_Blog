@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Visitor from '@/models/Visitor';
 import PageView from '@/models/PageView';
+import User from '@/models/User';
+import Comment from '@/models/Comment';
+import Post from '@/models/Post';
+import Subscriber from '@/models/Subscriber';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -28,7 +32,7 @@ export async function GET(request: Request) {
     switch (range) {
       case '24h':
         startDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        dateFormat = "%H:00"; 
+        dateFormat = "%Y-%m-%dT%H:00"; 
         break;
       case '7d':
         startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -50,8 +54,9 @@ export async function GET(request: Request) {
         startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     }
 
-    // 1. History (Traffic Trend) - Using PageView (Unique Visitors)
-    const history = await PageView.aggregate([
+    // 1. History: Comparisons
+    // A. Unique Visitors (The "Real" Traffic)
+    const historyVisitors = await PageView.aggregate([
       { $match: { createdAt: { $gte: startDate } } },
       {
         $group: {
@@ -63,6 +68,18 @@ export async function GET(request: Request) {
         $project: {
           _id: 1,
           count: { $size: "$visitors" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // B. Total Page Views (The "Volume")
+    const historyViews = await PageView.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: dateFormat, date: "$createdAt" } },
+          count: { $sum: 1 }
         }
       },
       { $sort: { _id: 1 } }
@@ -180,17 +197,66 @@ export async function GET(request: Request) {
 
     const avgSessionDuration = sessionStats.length > 0 ? Math.round(sessionStats[0].avgDuration / 1000) : 0; // seconds
 
+    // 5. Growth Analytics (Signups)
+    const historySignups = await User.aggregate([
+      { $match: { createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: dateFormat, date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // 6. Engagement Analytics (Comments)
+    const historyComments = await Comment.aggregate([
+       { $match: { createdAt: { $gte: startDate } } },
+       {
+         $group: {
+            _id: { $dateToString: { format: dateFormat, date: "$createdAt" } },
+            count: { $sum: 1 }
+         }
+       },
+       { $sort: { _id: 1 } }
+    ]);
+
+    // Totals for "All Time" contexts or simplified stats
+    const totalUsers = await User.countDocuments({});
+    const totalComments = await Comment.countDocuments({});
+    const totalSubscribers = await Subscriber.countDocuments({});
+    const totalVisitorsAllTime = await Visitor.countDocuments({}); // All time unique visitors
+
+    // Aggregate absolute total likes from all posts
+    const likesAggregation = await Post.aggregate([
+        { $group: { _id: null, totalLikes: { $sum: "$likes" } } }
+    ]);
+    const totalLikes = likesAggregation.length > 0 ? likesAggregation[0].totalLikes : 0;
+
     return NextResponse.json({
-        history, // Page Views
-        historyNew, // New Users
-        historyReturning, // Returning Users
+        history: historyVisitors, // Visitors
+        historyViews, // Page Views
+        historyNew, // New Users (Traffic)
+        historyReturning, // Returning Users (Traffic)
+        historySignups, // Registered User Signups
+        historyComments, // Comments
         stats: {
-            total: totalInRange, // Unique Active Users
+            total: totalInRange, // Unique Active Visitors
             new: newInRange,
             returning: returningInRange,
             bounceRate,
             live: liveUsers,
-            avgDuration: avgSessionDuration
+            avgDuration: avgSessionDuration,
+            // Growth & Community Stats
+            totalUsers,
+            totalComments,
+            totalLikes,
+            totalSubscribers,
+            totalVisitorsAllTime,
+            // Calculate a simple conversion rate for the period (Signups / Unique Visitors)
+            conversionRate: totalInRange > 0 
+                ? ((historySignups.reduce((acc, curr) => acc + curr.count, 0) / totalInRange) * 100).toFixed(2) 
+                : 0
         },
         pages,
         referrers,

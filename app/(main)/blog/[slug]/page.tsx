@@ -13,6 +13,7 @@ import { CommentsSection } from "@/app/components/blog/CommentsSection";
 import { SocialShare } from "@/app/components/blog/SocialShare";
 
 import { Metadata } from "next";
+import Setting from "@/models/Setting";
 
 export const revalidate = 60;
 export const dynamicParams = true; // Allow new posts not generated at build time
@@ -198,6 +199,32 @@ export default async function BlogPostPage({
   const prevPost = await getPrevPost(post.createdAt);
   const authorPosts = await getAuthorPosts(post.author._id, post._id);
 
+  // Fetch Global Comment Settings
+  await dbConnect();
+  const settings = await Setting.find({
+    key: { $in: ["comments_enabled", "auto_close_days"] },
+  });
+  const config = settings.reduce((acc: any, curr: any) => {
+    acc[curr.key] = curr.value;
+    return acc;
+  }, {});
+
+  const isCommentsEnabled =
+    config.comments_enabled !== undefined ? config.comments_enabled : true;
+  const autoCloseDays = parseInt(config.auto_close_days || "0");
+
+  // Logic for Auto-closing
+  let isCommentsClosed = false;
+  if (autoCloseDays > 0) {
+    const postDate = new Date(post.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - postDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > autoCloseDays) {
+      isCommentsClosed = true;
+    }
+  }
+
   return (
     <div className="bg-background min-h-screen pt-20">
       <ReadingProgress />
@@ -363,9 +390,14 @@ export default async function BlogPostPage({
                 )}
               </div>
 
-              <div className="mt-16">
-                <CommentsSection postId={post._id.toString()} />
-              </div>
+              {isCommentsEnabled && (
+                <div className="mt-16">
+                  <CommentsSection
+                    postId={post._id.toString()}
+                    isClosed={isCommentsClosed}
+                  />
+                </div>
+              )}
             </div>
           </article>
 
@@ -418,7 +450,7 @@ export default async function BlogPostPage({
                     title: related.title,
                     excerpt: related.excerpt,
                     date: new Date(related.createdAt).toLocaleDateString(),
-                    category: related.category,
+                    category: related.category?.name || "Article",
                     imageUrl: related.image,
                     likes: related.likes,
                     views: related.views,
