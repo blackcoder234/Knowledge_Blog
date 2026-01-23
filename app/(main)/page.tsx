@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
+import Category from "@/models/Category";
+import User from "@/models/User";
 import { NewsletterForm } from "@/app/components/NewsletterForm";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
