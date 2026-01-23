@@ -49,7 +49,7 @@ export async function PATCH(req: Request) {
     
     const setting = await Setting.findOneAndUpdate(
       { key },
-      { value, updatedBy: session.user?.email },
+      { value, updatedBy: session.user?.name || session.user?.email },
       { upsert: true, new: true }
     );
 
