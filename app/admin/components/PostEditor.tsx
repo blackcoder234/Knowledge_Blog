@@ -465,6 +465,7 @@ export default function PostEditor({
       if (res.ok) {
         const data = await res.json();
         setIsDirty(false); // Saved
+        setFormData((prev) => ({ ...prev, status: finalStatus })); // Hot update status
 
         // Clear Local Storage to prevent stale restore prompts
         const storageKey = `post_draft_${isEdit ? initialData?._id : "new"}`;

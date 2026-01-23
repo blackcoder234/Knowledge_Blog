@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Setting from '@/models/Setting';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { revalidatePath } from 'next/cache';
 
 export async function GET() {
   await dbConnect();
@@ -47,13 +48,17 @@ export async function PATCH(req: Request) {
 
     await dbConnect();
     
-    const setting = await Setting.findOneAndUpdate(
+    const updatedSetting = await Setting.findOneAndUpdate(
       { key },
       { value, updatedBy: session.user?.name || session.user?.email },
       { upsert: true, new: true }
     );
 
-    return NextResponse.json(setting);
+    // BUST CACHE
+    revalidatePath("/");
+    revalidatePath("/admin/settings");
+
+    return NextResponse.json(updatedSetting);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to update setting' }, { status: 500 });

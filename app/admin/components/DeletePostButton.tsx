@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/app/context/ToastContext";
+import { useRouter } from "next/navigation";
 
 export function DeletePostButton({
   id,
@@ -12,6 +13,7 @@ export function DeletePostButton({
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const { showToast } = useToast();
+  const router = useRouter();
 
   const handleDelete = async () => {
     if (disabled) return;
@@ -27,7 +29,7 @@ export function DeletePostButton({
       if (res.ok) {
         showToast("Post deleted successfully", "success");
         // Refresh the page to show updated list
-        window.location.reload();
+        router.refresh();
       } else {
         showToast("Failed to delete post", "error");
       }

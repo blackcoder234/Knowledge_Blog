@@ -141,6 +141,7 @@ export default function SettingsPage() {
       return false;
     } finally {
       setUpdating(false);
+      router.refresh();
     }
   };
 
@@ -260,6 +261,7 @@ export default function SettingsPage() {
       showToast("Something went wrong", "error");
     } finally {
       setUpdating(false);
+      router.refresh();
     }
   };
 

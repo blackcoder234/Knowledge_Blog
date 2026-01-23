@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { revalidatePath } from 'next/cache';
 
 export async function GET(
     request: Request,
@@ -54,6 +55,11 @@ export async function DELETE(
         }
 
         await Post.findByIdAndDelete(id);
+        
+        // BUST CACHE
+        revalidatePath("/admin/posts");
+        revalidatePath(`/blog/${post.slug}`);
+        revalidatePath("/");
 
         return NextResponse.json({ message: "Post deleted" });
     } catch (error: any) {
@@ -109,6 +115,11 @@ export async function PATCH(
         }
 
         const updatedPost = await Post.findByIdAndUpdate(id, body, { new: true });
+
+        // BUST CACHE
+        revalidatePath("/admin/posts");
+        revalidatePath(`/blog/${updatedPost.slug}`);
+        revalidatePath("/");
 
         return NextResponse.json(updatedPost);
     } catch (error: any) {

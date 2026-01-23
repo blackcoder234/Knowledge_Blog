@@ -55,9 +55,7 @@ export default async function MaintenanceGate({
 
   return (
     <>
-      {showAnnouncement && !isInternal && (
-        <AnnouncementBar message={announcementMessage} />
-      )}
+      {showAnnouncement && <AnnouncementBar message={announcementMessage} />}
       {children}
     </>
   );

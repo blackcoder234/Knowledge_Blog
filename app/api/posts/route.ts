@@ -4,6 +4,7 @@ import Post from '@/models/Post';
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +47,10 @@ export async function POST(request: Request) {
         author: authorId,
         readTime: readTimeVal
     });
+
+    // BUST CACHE
+    revalidatePath("/admin/posts");
+    revalidatePath("/");
 
     return NextResponse.json(newPost, { status: 201 });
   } catch (error: any) {

@@ -57,6 +57,26 @@
     var(--font-lora), ui-serif, Georgia, Cambria, "Times New Roman", Times,
     serif;
   --font-display: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+
+  @keyframes shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes slide-down {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
 }
 
 body {
