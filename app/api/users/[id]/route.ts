@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import Post from '@/models/Post';
+import Category from '@/models/Category';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -25,6 +26,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     })
     .sort({ createdAt: -1 })
     .limit(10)
+    .populate({ path: "category", model: Category, select: "name" })
     .lean();
 
     return NextResponse.json({
@@ -32,7 +34,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         posts: posts.map(p => ({
             ...p,
             _id: p._id.toString(),
-            createdAt: p.createdAt.toISOString()
+            createdAt: p.createdAt.toISOString(),
+            category: p.category?.name || "Uncategorized" // Flatten object to string
         }))
     });
   } catch (error: any) {
