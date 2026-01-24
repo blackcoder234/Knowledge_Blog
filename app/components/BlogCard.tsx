@@ -15,7 +15,7 @@ interface BlogPost {
 
 export const BlogCard = ({ post }: { post: BlogPost }) => {
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl bg-card border border-white/5 transition-all hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5">
+    <div className="group flex flex-col overflow-hidden rounded-2xl bg-card border border-white/5 transition-all hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 max-w-full min-w-0">
       {/* Image Container */}
       <div className="relative h-48 w-full overflow-hidden">
         {post.imageUrl ? (

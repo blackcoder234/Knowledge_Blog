@@ -11,6 +11,8 @@ import { Pagination } from "@/app/components/ui/Pagination";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Image from "next/image";
+import { QuickStatusToggle } from "@/app/components/QuickStatusToggle";
+import { FeaturedToggle } from "@/app/components/FeaturedToggle";
 
 export const revalidate = 0; // Always fresh for admin
 
@@ -175,7 +177,7 @@ export default async function PostsPage(props: {
         </div>
 
         {/* Table Container */}
-        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden backdrop-blur-sm">
+        <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl overflow-hidden backdrop-blur-sm w-full">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-white/5 border-b border-white/5">
@@ -190,7 +192,7 @@ export default async function PostsPage(props: {
                     Category
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-zinc-300 uppercase tracking-wider text-center">
-                    Views
+                    Engagement
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold text-zinc-300 uppercase tracking-wider">
                     Status
@@ -212,8 +214,8 @@ export default async function PostsPage(props: {
                       className="group hover:bg-white/5 transition-colors"
                     >
                       <td className="px-6 py-4 align-top">
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-[15px] font-semibold text-zinc-100 truncate max-w-[320px] group-hover:text-yellow-400 transition-colors tracking-tight leading-snug">
+                        <div className="flex flex-col gap-1.5 min-w-[200px]">
+                          <span className="text-[15px] font-semibold text-zinc-100 group-hover:text-yellow-400 transition-colors tracking-tight leading-snug break-words">
                             {post.title}
                           </span>
                           <span className="text-xs text-zinc-400 font-medium flex items-center gap-2">
@@ -262,57 +264,99 @@ export default async function PostsPage(props: {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center align-middle">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className="text-zinc-600">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                              className="w-3.5 h-3.5"
-                            >
-                              <path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-                              <path
-                                fillRule="evenodd"
-                                d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </span>
-                          <span className="font-mono text-sm font-medium text-zinc-300 tabular-nums">
-                            {post.views?.toLocaleString() || 0}
-                          </span>
+                        <div className="flex flex-col items-center gap-1">
+                          {/* Views */}
+                          <div
+                            className="flex items-center gap-1.5"
+                            title="Views"
+                          >
+                            <span className="text-zinc-500">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                className="w-3.5 h-3.5"
+                              >
+                                <path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </span>
+                            <span className="font-mono text-sm font-medium text-zinc-300 tabular-nums">
+                              {post.views?.toLocaleString() || 0}
+                            </span>
+                          </div>
+
+                          {/* Likes */}
+                          <div
+                            className="flex items-center gap-1.5"
+                            title="Likes"
+                          >
+                            <span className="text-zinc-500">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                className="w-3.5 h-3.5 text-rose-500/70"
+                              >
+                                <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.739.739 0 0 1-.69.001l-.002-.001Z" />
+                              </svg>
+                            </span>
+                            <span className="font-mono text-sm font-medium text-zinc-300 tabular-nums">
+                              {post.likes?.toLocaleString() || 0}
+                            </span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 align-middle">
-                        <div className="flex flex-col gap-1">
-                          <span className="flex items-center gap-2">
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                post.status === "published"
-                                  ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
-                                  : post.status === "draft"
-                                    ? "bg-zinc-500"
-                                    : "bg-rose-500"
-                              }`}
-                            ></span>
-                            <span
-                              className={`text-xs font-semibold capitalize tracking-wide ${
-                                post.status === "published"
-                                  ? "text-emerald-400"
-                                  : post.status === "draft"
-                                    ? "text-zinc-400"
-                                    : "text-rose-400"
-                              }`}
-                            >
-                              {post.status}
+                        {canEdit ? (
+                          <div className="flex items-center gap-2">
+                            <QuickStatusToggle
+                              id={post._id}
+                              initialStatus={post.status}
+                            />
+                            <FeaturedToggle
+                              id={post._id}
+                              initialFeatured={post.featured}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <span className="flex items-center gap-2">
+                              {/* Read-only Status Pill */}
+                              <span
+                                className={`flex items-center gap-2 px-2.5 py-1 rounded-full border ${
+                                  post.status === "published"
+                                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                                    : post.status === "archived"
+                                      ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                                      : "bg-zinc-500/10 border-zinc-500/20 text-zinc-400"
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    post.status === "published"
+                                      ? "bg-emerald-500"
+                                      : post.status === "archived"
+                                        ? "bg-rose-500"
+                                        : "bg-zinc-500"
+                                  }`}
+                                ></span>
+                                <span className="text-xs font-semibold capitalize tracking-wide">
+                                  {post.status}
+                                </span>
+                              </span>
                             </span>
-                          </span>
-                          {post.featured && (
-                            <span className="text-[10px] font-extrabold text-amber-500 tracking-wider uppercase px-1.5 py-0.5 bg-amber-500/10 rounded w-fit border border-amber-500/20">
-                              Featured
-                            </span>
-                          )}
-                        </div>
+                            {post.featured && (
+                              <span className="text-[10px] font-extrabold text-amber-500 tracking-wider uppercase px-1.5 py-0.5 bg-amber-500/10 rounded w-fit border border-amber-500/20">
+                                Featured
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right align-middle">
                         <div className="flex justify-end gap-1 items-center">
