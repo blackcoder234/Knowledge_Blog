@@ -258,7 +258,16 @@ const sidebarLinks = [
 
 // ... (sidebarLinks array remains same)
 
-export const AdminSidebar = () => {
+// Add props for Mobile Control
+interface AdminSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export const AdminSidebar = ({
+  isOpen = false,
+  onClose,
+}: AdminSidebarProps) => {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -286,130 +295,39 @@ export const AdminSidebar = () => {
   }, []);
 
   return (
-    <aside className="w-64 border-r border-white/10 bg-[#0D0D0D] flex flex-col fixed top-0 left-0 h-full z-20">
-      <div className="h-20 flex items-center px-6 border-b border-white/10">
-        <Link
-          href={isSuperOrAdmin ? "/admin/dashboard" : "/admin/posts"}
-          className="text-xl font-bold tracking-tight text-white flex items-center gap-2"
-        >
-          <span className="text-accent">
-            {isSuperOrAdmin ? "Admin" : "Editor"}
-          </span>
-          Panel
-        </Link>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+        />
+      )}
 
-      <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-        {sidebarLinks
-          .filter((link) => {
-            if (
-              link.label === "Dashboard" ||
-              link.label === "Users" ||
-              link.label === "Settings" ||
-              link.label === "Analytics" ||
-              link.label === "Messages" ||
-              link.label === "Insights" ||
-              link.label === "Subscribers" ||
-              link.label === "Old Dashboard" ||
-              link.label === "Old Analytics"
-            ) {
-              return isSuperOrAdmin;
-            }
-
-            // Editors can see: Posts, Create Post, Media, Comments
-            return true;
-          })
-          .map((link) => {
-            const isActive = pathname === link.href;
-            const isMessages = link.label === "Messages";
-            const showNotification = isMessages && unreadCount > 0;
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                target={(link as any).target}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all relative ${
-                  isActive
-                    ? "bg-accent/10 text-accent"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {link.icon}
-                {link.label}
-
-                {/* Blinking Notification Dot */}
-                {showNotification && (
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-      </nav>
-
-      <div className="px-4 py-2 border-t border-white/5">
-        <Link
-          href="/"
-          target="_blank"
-          className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all group"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-5 h-5 group-hover:text-accent transition-colors"
+      {/* Sidebar Container */}
+      <aside
+        className={`fixed top-0 left-0 bottom-0 z-50 w-64 bg-[#0A0A0A] border-r border-white/5 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="h-20 flex items-center justify-between px-6 border-b border-white/10">
+          <Link
+            href={isSuperOrAdmin ? "/admin/dashboard" : "/admin/posts"}
+            className="text-xl font-bold tracking-tight text-white flex items-center gap-2"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-            />
-          </svg>
-          View Live Site
-        </Link>
-      </div>
+            <span className="text-xl font-bold text-white tracking-tight">
+              K
+            </span>
+            <span className="text-accent">
+              {isSuperOrAdmin ? "Admin" : "Editor"}
+            </span>
+            Panel
+          </Link>
 
-      <div className="p-4 border-t border-white/10">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white border border-white/10 overflow-hidden relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {session?.user?.image ? (
-              <img
-                src={session.user.image}
-                alt="User"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span>AD</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0 group">
-            <Link
-              href={`/profile/${(session?.user as any)?.id}`}
-              className="block"
-            >
-              <p className="text-sm font-medium text-white truncate group-hover:text-accent transition-colors">
-                {session?.user?.name || "Admin User"}
-              </p>
-              <p className="text-xs text-zinc-500 truncate">
-                {session?.user?.email || "admin@knowologelog.com"}
-              </p>
-              {(session?.user as any)?.role === "super_admin" && (
-                <span className="inline-block mt-1 text-[10px] bg-red-500/20 text-red-500 px-1.5 rounded font-bold uppercase tracking-wider border border-red-500/20">
-                  Super Admin
-                </span>
-              )}
-            </Link>
-          </div>
+          {/* Close Button Mobile */}
           <button
-            onClick={() => signOut({ callbackUrl: "/admin/login" })}
-            className="p-1.5 hover:bg-white/5 rounded-md text-zinc-400 hover:text-red-500 transition-colors"
-            title="Sign Out"
+            onClick={onClose}
+            className="lg:hidden text-zinc-400 hover:text-white"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -417,17 +335,148 @@ export const AdminSidebar = () => {
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="w-5 h-5"
+              className="w-6 h-6"
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
+                d="M6 18 18 6M6 6l12 12"
               />
             </svg>
           </button>
         </div>
-      </div>
-    </aside>
+
+        <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+          {sidebarLinks
+            .filter((link) => {
+              if (
+                link.label === "Dashboard" ||
+                link.label === "Users" ||
+                link.label === "Settings" ||
+                link.label === "Analytics" ||
+                link.label === "Messages" ||
+                link.label === "Insights" ||
+                link.label === "Subscribers" ||
+                link.label === "Old Dashboard" ||
+                link.label === "Old Analytics"
+              ) {
+                return isSuperOrAdmin;
+              }
+
+              // Editors can see: Posts, Create Post, Media, Comments
+              return true;
+            })
+            .map((link) => {
+              const isActive = pathname === link.href;
+              const isMessages = link.label === "Messages";
+              const showNotification = isMessages && unreadCount > 0;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  target={(link as any).target}
+                  onClick={onClose} // Auto-close on mobile nav
+                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all relative ${
+                    isActive
+                      ? "bg-accent/10 text-accent"
+                      : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {link.icon}
+                  {link.label}
+
+                  {/* Blinking Notification Dot */}
+                  {showNotification && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+        </nav>
+
+        <div className="px-4 py-2 border-t border-white/5">
+          <Link
+            href="/"
+            target="_blank"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all group"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-5 h-5 group-hover:text-accent transition-colors"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+              />
+            </svg>
+            View Live Site
+          </Link>
+        </div>
+
+        <div className="p-4 border-t border-white/10">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white border border-white/10 overflow-hidden relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {session?.user?.image ? (
+                <img
+                  src={session.user.image}
+                  alt="User"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>AD</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 group">
+              <Link
+                href={`/profile/${(session?.user as any)?.id}`}
+                className="block"
+              >
+                <p className="text-sm font-medium text-white truncate group-hover:text-accent transition-colors">
+                  {session?.user?.name || "Admin User"}
+                </p>
+                <p className="text-xs text-zinc-500 truncate">
+                  {session?.user?.email || "admin@knowologelog.com"}
+                </p>
+                {(session?.user as any)?.role === "super_admin" && (
+                  <span className="inline-block mt-1 text-[10px] bg-red-500/20 text-red-500 px-1.5 rounded font-bold uppercase tracking-wider border border-red-500/20">
+                    Super Admin
+                  </span>
+                )}
+              </Link>
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/admin/login" })}
+              className="p-1.5 hover:bg-white/5 rounded-md text-zinc-400 hover:text-red-500 transition-colors"
+              title="Sign Out"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 };

@@ -196,8 +196,8 @@ export default function UserProfilePage({
             </div>
 
             <div className="px-6 pb-6 relative">
-              <div className="flex justify-between items-end -mt-10 mb-4">
-                <div className="h-20 w-20 rounded-full bg-zinc-800 border-4 border-[#0D0D0D] flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-xl relative z-10">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end -mt-10 mb-4 gap-4">
+                <div className="h-20 w-20 rounded-full bg-zinc-800 border-4 border-[#0D0D0D] flex items-center justify-center text-2xl font-bold text-white overflow-hidden shadow-xl relative z-10 shrink-0">
                   {user.image ? (
                     <img
                       src={user.image}
@@ -213,7 +213,7 @@ export default function UserProfilePage({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="cursor-pointer bg-white/5 hover:bg-white/10"
+                    className="cursor-pointer bg-white/5 hover:bg-white/10 w-full md:w-auto"
                     onClick={() => router.push("/profile")}
                   >
                     Edit Profile
@@ -383,7 +383,7 @@ export default function UserProfilePage({
     <Container className="py-24 md:py-32">
       <div className="max-w-6xl mx-auto">
         {/* Full Width Banner for Editors */}
-        <div className="h-64 md:h-80 w-full relative rounded-3xl overflow-hidden mb-12 border border-white/10 shadow-2xl">
+        <div className="h-[400px] md:h-80 w-full relative rounded-3xl overflow-hidden mb-12 border border-white/10 shadow-2xl group">
           {user.bannerImage ? (
             <Image
               src={user.bannerImage}
@@ -397,7 +397,7 @@ export default function UserProfilePage({
           <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] to-transparent opacity-80"></div>
 
           {/* Overlaid Info */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 flex flex-col md:flex-row items-end gap-8">
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12 flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8 text-center md:text-left">
             <div className="h-32 w-32 md:h-40 md:w-40 rounded-2xl bg-zinc-800 border-4 border-[#0D0D0D] overflow-hidden shadow-2xl shrink-0">
               {user.image ? (
                 <img
@@ -411,8 +411,8 @@ export default function UserProfilePage({
                 </div>
               )}
             </div>
-            <div className="flex-1 pb-2">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
+            <div className="flex-1 pb-2 w-full">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 items-center">
                 <div>
                   <h1 className="text-4xl md:text-5xl font-black text-white mb-2 leading-tight font-display">
                     {user.name}

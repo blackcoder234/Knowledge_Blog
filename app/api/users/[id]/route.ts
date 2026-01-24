@@ -18,9 +18,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Fetch Authored Posts (Matching by name since we embedded author details)
+    // Fetch Authored Posts
     const posts = await Post.find({ 
-        "author.name": user.name, 
+        author: user._id, 
         status: 'published' 
     })
     .sort({ createdAt: -1 })
