@@ -95,7 +95,13 @@ export const SocialShare = ({
     setHasLiked(!hasLiked);
 
     try {
-      const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
+      const action = hasLiked ? "unlike" : "like"; // Based on PREVIOUS state (if previously liked, now unliking)
+      const res = await fetch(`/api/posts/${postId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+
       if (!res.ok) throw new Error("Failed to like");
 
       const data = await res.json();
@@ -125,7 +131,11 @@ export const SocialShare = ({
         setHasLiked(data.hasLiked);
       }
 
-      if (!previousHasLiked) showToast("Liked!", "success");
+      if (!previousHasLiked) {
+        showToast("Thanks for the love! ❤️", "success");
+      } else {
+        showToast("Unliked 😢", "info");
+      }
     } catch (error) {
       // Revert on error
       setLikes(previousLikes);
