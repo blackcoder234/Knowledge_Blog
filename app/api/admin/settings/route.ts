@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { revalidatePath } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   await dbConnect();
   try {
@@ -55,8 +57,9 @@ export async function PATCH(req: Request) {
     );
 
     // BUST CACHE
-    revalidatePath("/");
-    revalidatePath("/admin/settings");
+    revalidatePath("/", "layout"); // Revalidate Root Layout
+    revalidatePath("/admin", "layout"); // Revalidate Admin Layout
+
 
     return NextResponse.json(updatedSetting);
   } catch (error) {
