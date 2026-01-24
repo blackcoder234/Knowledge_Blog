@@ -32,8 +32,7 @@ export const SocialShare = ({
   // Check initial status
   useEffect(() => {
     if (session?.user) {
-      // We can fetch the user's interaction status for this post
-      // optimizing by fetching user's list of likes/bookmarks
+      // Authenticated user: Check DB status
       fetch("/api/user/interactions?type=ids")
         .then((res) => {
           if (res.ok) return res.json();
@@ -44,6 +43,12 @@ export const SocialShare = ({
           if (data.bookmarked?.includes(postId)) setIsBookmarked(true);
         })
         .catch((err) => console.error(err));
+    } else {
+      // Guest: Check localStorage
+      const localLikes = JSON.parse(
+        localStorage.getItem("guest_likes") || "[]",
+      );
+      if (localLikes.includes(postId)) setHasLiked(true);
     }
   }, [postId, session]);
 
@@ -79,10 +84,6 @@ export const SocialShare = ({
   };
 
   const handleLike = async () => {
-    if (!session) {
-      showToast("Please login to like", "error");
-      return;
-    }
     if (isLiking) return;
     setIsLiking(true);
 
@@ -98,11 +99,33 @@ export const SocialShare = ({
       if (!res.ok) throw new Error("Failed to like");
 
       const data = await res.json();
-      // Sync with server source of truth
-      setLikes(data.likes);
-      setHasLiked(data.hasLiked);
 
-      if (data.hasLiked) showToast("Liked!", "success");
+      // Sync with server source of truth for count
+      setLikes(data.likes);
+
+      // Handle Guest Persistence
+      if (!session) {
+        setHasLiked(!previousHasLiked); // Keep UI state we just toggled
+        const localLikes = JSON.parse(
+          localStorage.getItem("guest_likes") || "[]",
+        );
+        if (!previousHasLiked) {
+          // Just liked
+          if (!localLikes.includes(postId)) {
+            localLikes.push(postId);
+            localStorage.setItem("guest_likes", JSON.stringify(localLikes));
+          }
+        } else {
+          // Just unliked
+          const filtered = localLikes.filter((id: string) => id !== postId);
+          localStorage.setItem("guest_likes", JSON.stringify(filtered));
+        }
+      } else {
+        // Logged in user sync
+        setHasLiked(data.hasLiked);
+      }
+
+      if (!previousHasLiked) showToast("Liked!", "success");
     } catch (error) {
       // Revert on error
       setLikes(previousLikes);
