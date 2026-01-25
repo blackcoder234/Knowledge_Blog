@@ -2,7 +2,8 @@
 import { MetadataRoute } from 'next';
 import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
-import Category from '@/models/Category';
+
+
 
 const BASE_URL = 'https://knowledgelog.blog'; // Production URL
 
@@ -22,15 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  // Fetch all Categories
-  const categories = await Category.find({}).select('slug updatedAt').lean();
-  
-  const categoryEntries: MetadataRoute.Sitemap = categories.map((cat: any) => ({
-    url: `${BASE_URL}/blog/category/${cat.slug}`,
-    lastModified: new Date(cat.updatedAt || new Date()),
-    changeFrequency: 'weekly',
-    priority: 0.6,
-  }));
+
 
   const staticPages: MetadataRoute.Sitemap = [
     {
@@ -77,5 +70,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   ];
 
-  return [...staticPages, ...categoryEntries, ...blogEntries];
+  return [...staticPages, ...blogEntries];
 }
