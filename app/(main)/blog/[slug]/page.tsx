@@ -91,7 +91,10 @@ export async function generateMetadata({
 async function getPost(slug: string) {
   await dbConnect();
   const post = await Post.findOne({ slug })
-    .populate("author", "name image role bio articleSignature title") // Populate author details
+    .populate(
+      "author",
+      "name image role bio articleSignature title socialLinks",
+    ) // Populate author details incl. socialLinks
     .populate("category", "name slug") // Populate category details
     .lean();
   return post;

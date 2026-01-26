@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Container } from "./ui/Container";
 import { Button } from "./ui/Button";
 import { useSession, signOut } from "next-auth/react";
+import { UserBadge } from "./ui/UserBadge";
 
 export const Header = () => {
   const { data: session } = useSession();
@@ -93,34 +94,43 @@ export const Header = () => {
             {session ? (
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                  {/* Write Post Button for Authors */}
+                  {["admin", "super_admin", "editor"].includes(
+                    (session.user as any).role,
+                  ) && (
+                    <Link
+                      href="/admin/posts/create"
+                      className="hidden lg:flex items-center justify-center w-9 h-9 rounded-full bg-zinc-900 border border-white/10 text-zinc-400 hover:text-amber-400 hover:border-amber-400/50 hover:bg-amber-400/10 hover:shadow-[0_0_15px_-3px_rgba(251,191,36,0.3)] transition-all duration-300 group mr-2 relative"
+                      title="Write New Post"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="group-hover:scale-110 transition-transform"
+                      >
+                        <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z" />
+                      </svg>
+                    </Link>
+                  )}
+
                   <div className="text-right">
                     <div className="flex items-center justify-end gap-2 mb-0.5">
                       <div className="text-sm font-bold text-white leading-none">
                         {session.user?.name}
                       </div>
-                      {(session.user as any).role === "admin" ||
-                      (session.user as any).role === "super_admin" ? (
-                        <Link
-                          href="/admin/dashboard"
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-black uppercase tracking-wider hover:bg-white transition-colors ${
-                            (session.user as any).role === "super_admin"
-                              ? "bg-red-500 text-white hover:text-black"
-                              : "bg-accent"
-                          }`}
-                        >
-                          {(session.user as any).role === "super_admin"
-                            ? "Super Admin"
-                            : "Admin"}
-                        </Link>
-                      ) : (session.user as any).role === "editor" ? (
-                        <span className="px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-500/50 text-blue-500 text-[10px] font-bold uppercase tracking-wider">
-                          Editor
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 rounded bg-white/10 text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                          Reader
-                        </span>
-                      )}
+                      <UserBadge
+                        role={(session.user as any).role}
+                        showLabel={false}
+                        className="scale-90"
+                      />
                     </div>
                     <button
                       onClick={() => signOut()}

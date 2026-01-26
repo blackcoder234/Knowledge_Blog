@@ -38,8 +38,12 @@ export async function POST(request: Request) {
         : user.id;
     
     // Calculate read time if content exists, otherwise default
-    const readTimeVal = body.content 
-        ? `${Math.ceil(body.content.split(/\s+/).length / 200)} min read`
+    // Strip HTML tags for more accurate word count
+    const words = body.content 
+        ? body.content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).length
+        : 0;
+    const readTimeVal = words > 0
+        ? `${Math.ceil(words / 200)} min read`
         : '1 min read';
 
     const newPost = await Post.create({

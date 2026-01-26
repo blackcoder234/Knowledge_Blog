@@ -1,6 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Twitter, Linkedin, Github } from "lucide-react";
+import {
+  ArrowRight,
+  Twitter,
+  Linkedin,
+  Github,
+  Facebook,
+  Instagram,
+} from "lucide-react";
 
 interface AuthorBioProps {
   author: {
@@ -15,6 +22,8 @@ interface AuthorBioProps {
       twitter?: string;
       linkedin?: string;
       github?: string;
+      facebook?: string;
+      instagram?: string;
     };
   };
   authorPosts?: any[]; // Allow passing recent posts by author
@@ -93,6 +102,24 @@ export const AuthorBio = ({ author, authorPosts = [] }: AuthorBioProps) => {
                   className="hover:text-white transition-colors"
                 >
                   <Github size={14} />
+                </a>
+              )}
+              {author.socialLinks?.facebook && (
+                <a
+                  href={author.socialLinks.facebook}
+                  target="_blank"
+                  className="hover:text-white transition-colors"
+                >
+                  <Facebook size={14} />
+                </a>
+              )}
+              {author.socialLinks?.instagram && (
+                <a
+                  href={author.socialLinks.instagram}
+                  target="_blank"
+                  className="hover:text-white transition-colors"
+                >
+                  <Instagram size={14} />
                 </a>
               )}
             </div>

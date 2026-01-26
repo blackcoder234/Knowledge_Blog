@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import PostEditor from "../../../components/PostEditor";
+import PostEditor from "../../../components/editor/PostEditor";
 import GlobalLoading from "@/app/loading";
 
 function CreatePostContent() {

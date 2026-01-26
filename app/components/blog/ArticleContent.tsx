@@ -1,20 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import katex from "katex";
+import * as katex from "katex";
 import "katex/dist/katex.min.css";
-import mermaid from "mermaid";
+import * as mermaid from "mermaid";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Initialize mermaid for frontend
 if (typeof window !== "undefined") {
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: "dark",
-    securityLevel: "loose",
-    fontFamily: "Inter, system-ui, sans-serif",
-  });
+  const m = (mermaid as any).default || mermaid;
+  if (typeof m.initialize === "function") {
+    m.initialize({
+      startOnLoad: false,
+      theme: "dark",
+      securityLevel: "loose",
+      fontFamily: "Inter, system-ui, sans-serif",
+    });
+  }
 }
 
 interface ArticleContentProps {
@@ -27,36 +30,6 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
 
   useEffect(() => {
     if (containerRef.current) {
-      // 1. Math Rendering
-      const mathNodes = containerRef.current.querySelectorAll(
-        'span[data-type="math"]',
-      );
-      mathNodes.forEach((node) => {
-        const latex = (node as HTMLElement).getAttribute("data-latex");
-        const displayMode = (node as HTMLElement).getAttribute(
-          "data-display-mode",
-        );
-
-        if (latex) {
-          try {
-            katex.render(latex, node as HTMLElement, {
-              throwOnError: false,
-              displayMode: displayMode === "block",
-              errorColor: "#cc0000",
-            });
-            if (displayMode === "block") {
-              (node as HTMLElement).style.display = "flex";
-              (node as HTMLElement).style.justifyContent = "center";
-              (node as HTMLElement).style.margin = "2.5rem 0";
-              (node as HTMLElement).style.overflowX = "auto";
-              (node as HTMLElement).style.overflowY = "hidden";
-            }
-          } catch (e) {
-            console.error("Katex rendering error:", e);
-          }
-        }
-      });
-
       // 2. Code Block Enhancements (Copy Button & Language Label)
       const codeBlocks = containerRef.current.querySelectorAll("pre");
       codeBlocks.forEach((pre) => {
@@ -113,7 +86,39 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
         h.appendChild(anchor);
       });
 
-      // 4. Mermaid Diagrams
+      // 4. Math Rendering
+      const mathNodes = containerRef.current.querySelectorAll(
+        'span[data-type="math-equation"]',
+      );
+      mathNodes.forEach((node) => {
+        const latex = (node as HTMLElement).getAttribute("data-latex");
+        const isBlock =
+          (node as HTMLElement).getAttribute("data-is-block") === "true";
+
+        if (latex) {
+          try {
+            const k = (katex as any).default || katex;
+            if (typeof k.render === "function") {
+              k.render(latex, node as HTMLElement, {
+                throwOnError: false,
+                displayMode: isBlock,
+                errorColor: "#cc0000",
+              });
+              if (isBlock) {
+                (node as HTMLElement).style.display = "flex";
+                (node as HTMLElement).style.justifyContent = "center";
+                (node as HTMLElement).style.margin = "2.5rem 0";
+                (node as HTMLElement).style.overflowX = "auto";
+                (node as HTMLElement).style.overflowY = "hidden";
+              }
+            }
+          } catch (e) {
+            console.error("Katex rendering error:", e);
+          }
+        }
+      });
+
+      // 5. Mermaid Diagrams
       const mermaidNodes = containerRef.current.querySelectorAll(
         'div[data-type="mermaid"]',
       );
@@ -122,8 +127,13 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
         if (code && !node.querySelector("svg")) {
           try {
             const id = `mermaid-render-${index}`;
-            const { svg } = await mermaid.render(id, code);
-            node.innerHTML = `<div class="mermaid-svg-container w-full flex justify-center py-4 [&>svg]:max-w-full [&>svg]:h-auto">${svg}</div>`;
+            const m = (mermaid as any).default || mermaid;
+            if (typeof m.render === "function") {
+              const { svg } = await m.render(id, code);
+              node.innerHTML = `<div class="mermaid-svg-container w-full flex justify-center py-4 [&>svg]:max-w-full [&>svg]:h-auto">${svg}</div>`;
+            } else {
+              console.error("Mermaid render function not found");
+            }
           } catch (e) {
             console.error("Mermaid Render Error:", e);
             node.innerHTML = `<div class="text-red-500/50 text-[10px] uppercase tracking-widest font-mono p-4 border border-red-500/20 rounded-lg">Diagram Rendering Error</div>`;
@@ -131,7 +141,7 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
         }
       });
 
-      // 5. Image Zoom Listeners
+      // 6. Image Zoom Listeners
       const images = containerRef.current.querySelectorAll("img");
       images.forEach((img) => {
         img.classList.add(
@@ -148,7 +158,7 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
     <>
       <div
         ref={containerRef}
-        className="prose prose-invert prose-2xl max-w-none text-zinc-300/90 
+        className="prose prose-invert prose-xl max-w-none text-zinc-300/90 
           prose-headings:font-serif prose-headings:text-white prose-headings:font-bold
           prose-h2:text-5xl prose-h2:mt-24 prose-h2:mb-12 prose-h2:pb-4 prose-h2:border-b prose-h2:border-white/5
           prose-h3:text-3xl prose-h3:mt-16 prose-h3:mb-8 prose-h3:text-white/90

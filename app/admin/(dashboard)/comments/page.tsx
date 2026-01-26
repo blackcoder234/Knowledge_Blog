@@ -13,11 +13,13 @@ import {
 import Link from "next/link";
 import { useToast } from "@/app/context/ToastContext";
 import GlobalLoading from "@/app/loading";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 export default function CommentsPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const fetchComments = async () => {
@@ -44,21 +46,26 @@ export default function CommentsPage() {
     fetchComments();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this comment?")) return;
+  const handleDelete = (id: string) => {
+    setConfirmId(id);
+  };
 
+  const executeDelete = async () => {
+    if (!confirmId) return;
     try {
-      const res = await fetch(`/api/admin/comments?id=${id}`, {
+      const res = await fetch(`/api/admin/comments?id=${confirmId}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setComments((prev) => prev.filter((c) => c._id !== id));
+        setComments((prev) => prev.filter((c) => c._id !== confirmId));
         showToast("Comment deleted", "success");
       } else {
         showToast("Failed to delete", "error");
       }
     } catch (error) {
       showToast("Error deleting comment", "error");
+    } finally {
+      setConfirmId(null);
     }
   };
 
@@ -291,6 +298,15 @@ export default function CommentsPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={!!confirmId}
+        onClose={() => setConfirmId(null)}
+        onConfirm={executeDelete}
+        title="Delete Comment?"
+        description="Are you sure you want to delete this comment? This action cannot be undone."
+        variant="danger"
+        confirmText="Delete"
+      />
     </div>
   );
 }

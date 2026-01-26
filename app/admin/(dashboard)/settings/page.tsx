@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/app/context/ToastContext";
 import { useRouter } from "next/navigation";
 import GlobalLoading from "@/app/loading";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [announcementActive, setAnnouncementActive] = useState(false);
   const [announcementMessage, setAnnouncementMessage] = useState("");
@@ -239,14 +241,11 @@ export default function SettingsPage() {
     );
   };
 
-  const handlePurgeCache = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to purge the global cache? This will force the server to rebuild all pages on the next request.",
-      )
-    )
-      return;
+  const handlePurgeCache = () => {
+    setShowPurgeConfirm(true);
+  };
 
+  const confirmPurgeCache = async () => {
     setUpdating(true);
     try {
       const res = await fetch("/api/admin/system/revalidate", {
@@ -261,6 +260,7 @@ export default function SettingsPage() {
       showToast("Something went wrong", "error");
     } finally {
       setUpdating(false);
+      setShowPurgeConfirm(false);
       router.refresh();
     }
   };
@@ -841,6 +841,15 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        isOpen={showPurgeConfirm}
+        onClose={() => setShowPurgeConfirm(false)}
+        onConfirm={confirmPurgeCache}
+        title="Purge Global Cache?"
+        description="Are you sure you want to purge the global cache? This will force the server to rebuild all pages on the next request."
+        variant="warning"
+        confirmText="Purge Cache"
+      />
     </div>
   );
 }

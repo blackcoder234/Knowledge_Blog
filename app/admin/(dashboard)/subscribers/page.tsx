@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 interface Subscriber {
   _id: string;
@@ -27,6 +28,10 @@ export default function SubscribersPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [confirmData, setConfirmData] = useState<{
+    id: string;
+    email: string;
+  } | null>(null);
   const { showToast } = useToast() || { showToast: console.log };
 
   useEffect(() => {
@@ -60,22 +65,27 @@ export default function SubscribersPage() {
     }
   };
 
-  const handleDelete = async (id: string, email: string) => {
-    if (!confirm(`Are you sure you want to remove ${email} from the list?`))
-      return;
+  const handleDelete = (id: string, email: string) => {
+    setConfirmData({ id, email });
+  };
+
+  const executeDelete = async () => {
+    if (!confirmData) return;
 
     try {
-      const res = await fetch(`/api/admin/subscribers?id=${id}`, {
+      const res = await fetch(`/api/admin/subscribers?id=${confirmData.id}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setSubscribers((prev) => prev.filter((s) => s._id !== id));
+        setSubscribers((prev) => prev.filter((s) => s._id !== confirmData.id));
         showToast("Subscriber removed", "success");
       } else {
         throw new Error("Delete failed");
       }
     } catch (error) {
       showToast("Failed to remove subscriber", "error");
+    } finally {
+      setConfirmData(null);
     }
   };
 
@@ -219,6 +229,15 @@ export default function SubscribersPage() {
           </tbody>
         </table>
       </div>
+      <ConfirmDialog
+        isOpen={!!confirmData}
+        onClose={() => setConfirmData(null)}
+        onConfirm={executeDelete}
+        title="Remove Subscriber?"
+        description={`Are you sure you want to remove ${confirmData?.email} from the list?`}
+        variant="danger"
+        confirmText="Remove"
+      />
     </div>
   );
 }

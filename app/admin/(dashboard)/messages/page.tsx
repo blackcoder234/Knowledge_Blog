@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/app/context/ToastContext";
 import GlobalLoading from "@/app/loading";
 import { Mail, MailOpen, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const fetchMessages = async () => {
@@ -31,19 +33,27 @@ export default function MessagesPage() {
     fetchMessages();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this message?")) return;
+  const handleDelete = (id: string) => {
+    setConfirmId(id);
+  };
+
+  const executeDelete = async () => {
+    if (!confirmId) return;
 
     try {
-      const res = await fetch(`/api/contact/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/contact/${confirmId}`, {
+        method: "DELETE",
+      });
       if (res.ok) {
-        setMessages((prev) => prev.filter((m) => m._id !== id));
+        setMessages((prev) => prev.filter((m) => m._id !== confirmId));
         showToast("Message deleted", "success");
       } else {
         showToast("Failed to delete", "error");
       }
     } catch (error) {
       showToast("Error deleting message", "error");
+    } finally {
+      setConfirmId(null);
     }
   };
 
@@ -168,6 +178,15 @@ export default function MessagesPage() {
           </table>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={!!confirmId}
+        onClose={() => setConfirmId(null)}
+        onConfirm={executeDelete}
+        title="Delete Message?"
+        description="Are you sure you want to delete this message?"
+        variant="danger"
+        confirmText="Delete"
+      />
     </div>
   );
 }

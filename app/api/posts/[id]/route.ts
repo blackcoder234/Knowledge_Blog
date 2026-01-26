@@ -111,7 +111,8 @@ export async function PATCH(
 
         // Recalculate read time if content is being updated
         if (body.content) {
-            body.readTime = `${Math.ceil(body.content.split(/\s+/).length / 200)} min read`;
+            const words = body.content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).length;
+            body.readTime = `${Math.ceil(words / 200)} min read`;
         }
 
         const updatedPost = await Post.findByIdAndUpdate(id, body, { new: true });

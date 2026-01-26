@@ -1,3 +1,5 @@
+"use client";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -5,7 +7,6 @@ import {
   Image as ImageIcon,
   CheckCircle,
   Type,
-  Save,
   Sigma,
   Search,
   Command,
@@ -33,24 +34,25 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-          {/* Backdrop */}
+          {/* Backdrop - optimized */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/80"
           />
 
           {/* Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
             className="relative w-full max-w-4xl max-h-[85vh] bg-[#121212] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row"
           >
-            {/* Sidebar Navigation (Left) */}
-            <div className="w-full md:w-64 bg-[#18181b] border-b md:border-b-0 md:border-r border-white/5 flex flex-col">
+            {/* Sidebar Navigation */}
+            <div className="w-full md:w-64 bg-[#18181b] border-b md:border-b-0 md:border-r border-white/5 flex flex-col shrink-0">
               <div className="p-6 border-b border-white/5">
                 <div className="flex items-center gap-3 text-white">
                   <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
@@ -72,7 +74,7 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200 ${
                         activeTab === tab.id
                           ? "bg-cyan-900/20 text-cyan-400 border border-cyan-500/20"
                           : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent"
@@ -95,12 +97,11 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
               </div>
             </div>
 
-            {/* Content Area (Right) */}
+            {/* Content Area */}
             <div className="flex-1 overflow-y-auto bg-[#09090b] relative">
               <div className="p-8 max-w-3xl mx-auto space-y-8">
-                {/* 1. MATH & SCIENCE TAB */}
                 {activeTab === "math" && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="space-y-8">
                     <div>
                       <h3 className="text-2xl font-bold text-white mb-2">
                         Mathematical Notation
@@ -203,9 +204,8 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                   </div>
                 )}
 
-                {/* 2. WRITING TAB */}
                 {activeTab === "writing" && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="space-y-8">
                     <div>
                       <h3 className="text-2xl font-bold text-white mb-2">
                         Writing & Structures
@@ -217,7 +217,6 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                     </div>
 
                     <div className="grid gap-6">
-                      {/* Slash Command */}
                       <div className="bg-[#18181b] p-6 rounded-xl border border-white/5">
                         <h4 className="flex items-center gap-2 text-white font-bold mb-4">
                           <Command size={18} className="text-cyan-400" /> The
@@ -228,8 +227,7 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                           <kbd className="bg-white/10 px-2 py-1 rounded text-white font-mono">
                             /
                           </kbd>{" "}
-                          at the start of any new line to trigger the universal
-                          menu.
+                          at the start of any new line.
                         </p>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                           {[
@@ -250,16 +248,11 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                         </div>
                       </div>
 
-                      {/* Callouts */}
                       <div className="bg-[#18181b] p-6 rounded-xl border border-white/5">
                         <h4 className="flex items-center gap-2 text-white font-bold mb-4">
                           <CheckCircle size={18} className="text-green-500" />{" "}
                           Callout Blocks
                         </h4>
-                        <p className="text-sm text-zinc-400 mb-6">
-                          Use these to highlight critical info. Hover over the
-                          icon in the editor to switch types.
-                        </p>
                         <div className="space-y-4">
                           <div className="flex items-start gap-4 p-3 bg-blue-500/10 border-l-4 border-blue-500 rounded text-sm text-blue-200">
                             <span>ℹ️</span>
@@ -276,7 +269,7 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                               <strong className="block text-yellow-100 mb-1">
                                 Warning
                               </strong>
-                              Critical cautions or limitations.
+                              Critical cautions.
                             </div>
                           </div>
                           <div className="flex items-start gap-4 p-3 bg-purple-500/10 border-l-4 border-purple-500 rounded text-sm text-purple-200">
@@ -285,50 +278,17 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                               <strong className="block text-purple-100 mb-1">
                                 Tip
                               </strong>
-                              Helpful hints or best practices.
+                              Helpful hints.
                             </div>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Code Blocks */}
-                      <div className="bg-[#18181b] p-6 rounded-xl border border-white/5">
-                        <h4 className="flex items-center gap-2 text-white font-bold mb-4">
-                          <code className="bg-cyan-500/20 text-cyan-400 p-1 rounded">
-                            <Type size={14} />
-                          </code>{" "}
-                          Smart Code Blocks
-                        </h4>
-                        <p className="text-sm text-zinc-400 mb-4">
-                          Insert code using <code>```</code> or from the menu.
-                          We now automatically provide:
-                        </p>
-                        <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1">
-                          <li>
-                            <strong className="text-white">
-                              Syntax Highlighting
-                            </strong>{" "}
-                            (auto-detected)
-                          </li>
-                          <li>
-                            <strong className="text-white">Copy Button</strong>{" "}
-                            (one-click)
-                          </li>
-                          <li>
-                            <strong className="text-white">
-                              Language Label
-                            </strong>{" "}
-                            (in header)
-                          </li>
-                        </ul>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* 3. SEO TAB */}
                 {activeTab === "seo" && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="space-y-8">
                     <div className="flex gap-4 items-start">
                       <div className="p-3 bg-pink-500/10 rounded-xl text-pink-500">
                         <Search size={24} />
@@ -338,34 +298,33 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                           Search Engine Optimization
                         </h3>
                         <p className="text-zinc-400">
-                          Optimize your content to rank higher on Google.
+                          Optimize your content to rank higher.
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-4">
                       <SeoCard
-                        title="Meta Title & Description"
-                        desc="The title and description that appear in Google results. Keep titles under 60 chars and descriptions under 160 chars."
+                        title="Meta Title"
+                        desc="Keep titles under 60 chars."
                         status="Critical"
                       />
                       <SeoCard
-                        title="Canonical URL"
-                        desc="If you republished this from another site (like Medium), paste the original URL here to avoid duplicate content penalties."
-                        status="Optional"
+                        title="Meta Description"
+                        desc="Keep under 160 chars."
+                        status="Critical"
                       />
                       <SeoCard
                         title="Featured Image"
-                        desc="Required for social media cards (Twitter/LinkedIn). Use 16:9 aspect ratio, at least 1200x630px."
+                        desc="16:9 aspect ratio, at least 1200x630px."
                         status="Required"
                       />
                     </div>
                   </div>
                 )}
 
-                {/* 4. VISUALS TAB (New) */}
                 {activeTab === "visuals" && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="space-y-8">
                     <div className="flex gap-4 items-start">
                       <div className="p-3 bg-purple-500/10 rounded-xl text-purple-500">
                         <ImageIcon size={24} />
@@ -374,105 +333,32 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                         <h3 className="text-2xl font-bold text-white mb-2">
                           Visuals & Media
                         </h3>
-                        <p className="text-zinc-400">
-                          Create diagrams, resize images, and organize content.
-                        </p>
+                        <p className="text-zinc-400">Diagrams and images.</p>
                       </div>
                     </div>
 
-                    {/* Mermaid Section */}
-                    <div className="bg-[#18181b] p-6 rounded-xl border border-white/5 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-white font-bold flex items-center gap-2">
-                          <code className="text-purple-400 bg-purple-900/20 px-1.5 py-0.5 rounded text-xs">
-                            /mermaid
-                          </code>
-                          Mermaid Diagrams
-                        </h4>
-                        <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded-full border border-purple-500/20">
-                          New
-                        </span>
-                      </div>
-                      <p className="text-sm text-zinc-400">
-                        Create flowcharts, sequence diagrams, and gantt charts
-                        using code. Type{" "}
-                        <code className="text-cyan-400">/mermaid</code> to
-                        insert a block.
-                      </p>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-3 bg-black/40 rounded border border-white/5 text-xs font-mono text-zinc-300">
-                          <div className="text-zinc-500 mb-2">// Flowchart</div>
-                          graph TD
-                          <br />
-                          &nbsp;&nbsp;A[Start] --&gt; B&#123;Is it
-                          working?&#125;
-                          <br />
-                          &nbsp;&nbsp;B -- Yes --&gt; C[Great!]
-                          <br />
-                          &nbsp;&nbsp;B -- No --&gt; D[Fix it]
-                        </div>
-                        <div className="p-3 bg-black/40 rounded border border-white/5 text-xs font-mono text-zinc-300">
-                          <div className="text-zinc-500 mb-2">// Sequence</div>
-                          sequenceDiagram
-                          <br />
-                          &nbsp;&nbsp;Alice-&gt;&gt;John: Hello John, how are
-                          you?
-                          <br />
-                          &nbsp;&nbsp;John--&gt;&gt;Alice: Great!
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Images Section */}
                     <div className="bg-[#18181b] p-6 rounded-xl border border-white/5 space-y-4">
                       <h4 className="text-white font-bold flex items-center gap-2">
-                        <ImageIcon size={18} className="text-cyan-400" />
-                        Smart Images
-                      </h4>
-                      <ul className="text-sm text-zinc-400 space-y-2 list-disc list-inside">
-                        <li>
-                          <strong className="text-white">Resizing:</strong>{" "}
-                          Click an image and drag the handle (bottom-right) to
-                          resize.
-                        </li>
-                        <li>
-                          <strong className="text-white">Captions:</strong> Type
-                          directly into the field below the image to add a
-                          caption.
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* ToC Section */}
-                    <div className="bg-[#18181b] p-6 rounded-xl border border-white/5 space-y-4">
-                      <h4 className="text-white font-bold flex items-center gap-2">
-                        <BookOpen size={18} className="text-yellow-400" />
-                        Table of Contents
+                        <code className="text-purple-400 bg-purple-900/20 px-1.5 py-0.5 rounded text-xs">
+                          /mermaid
+                        </code>
+                        Diagrams
                       </h4>
                       <p className="text-sm text-zinc-400">
-                        An interactive Table of Contents is automatically
-                        generated based on your
-                        <strong className="text-white">
-                          {" "}
-                          Heading 1, 2, and 3
-                        </strong>{" "}
-                        elements. It appears in the right sidebar for readers.
+                        Type <code className="text-cyan-400">/mermaid</code> to
+                        insert charts.
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* 5. SHORTCUTS TAB */}
                 {activeTab === "shortcuts" && (
-                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="space-y-8">
                     <div>
                       <h3 className="text-2xl font-bold text-white mb-2">
                         Keyboard Shortcuts
                       </h3>
-                      <p className="text-zinc-400">
-                        Write faster without lifting your hands.
-                      </p>
+                      <p className="text-zinc-400">Write faster.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -490,14 +376,6 @@ export const EditorGuide = ({ isOpen, onClose }: EditorGuideProps) => {
                       <ShortcutKey
                         keys={["Cmd/Ctrl", "Shift", "Z"]}
                         action="Redo"
-                      />
-                      <ShortcutKey
-                        keys={["Cmd/Ctrl", "Alt", "1"]}
-                        action="Heading 1"
-                      />
-                      <ShortcutKey
-                        keys={["Cmd/Ctrl", "Alt", "2"]}
-                        action="Heading 2"
                       />
                     </div>
                   </div>

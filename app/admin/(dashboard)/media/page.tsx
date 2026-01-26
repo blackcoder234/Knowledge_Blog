@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../../../context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 
 // Types
 interface MediaItem {
@@ -29,6 +30,7 @@ export default function MediaLibraryPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast() || { showToast: console.log };
@@ -79,22 +81,27 @@ export default function MediaLibraryPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this image?"))
-      return;
+  const handleDelete = (id: string) => {
+    setConfirmId(id);
+  };
+
+  const executeDelete = async () => {
+    if (!confirmId) return;
 
     try {
-      const res = await fetch(`/api/admin/media?id=${id}`, {
+      const res = await fetch(`/api/admin/media?id=${confirmId}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setMedia((prev) => prev.filter((item) => item._id !== id));
+        setMedia((prev) => prev.filter((item) => item._id !== confirmId));
         showToast("Image deleted", "success");
       } else {
         throw new Error("Delete failed");
       }
     } catch (error) {
       showToast("Failed to delete image", "error");
+    } finally {
+      setConfirmId(null);
     }
   };
 
@@ -233,6 +240,15 @@ export default function MediaLibraryPage() {
           </AnimatePresence>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={!!confirmId}
+        onClose={() => setConfirmId(null)}
+        onConfirm={executeDelete}
+        title="Delete Image?"
+        description="Are you sure you want to permanently delete this image? This cannot be undone."
+        variant="danger"
+        confirmText="Delete"
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "@/app/components/ui/ConfirmDialog";
 import { Container } from "../../components/ui/Container";
 import GlobalLoading from "@/app/loading";
 import { useToast } from "@/app/context/ToastContext";
@@ -17,6 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { AuthorSettings } from "@/app/components/profile/AuthorSettings";
+import { UserBadge } from "@/app/components/ui/UserBadge";
 
 export default function ProfilePage() {
   const { data: session, status, update } = useSession();
@@ -33,7 +35,14 @@ export default function ProfilePage() {
     image: "",
     bannerImage: "",
     articleSignature: "",
-    socialLinks: { twitter: "", linkedin: "", github: "", website: "" },
+    socialLinks: {
+      twitter: "",
+      linkedin: "",
+      github: "",
+      website: "",
+      facebook: "",
+      instagram: "",
+    },
   });
   const [initialData, setInitialData] = useState({
     name: "",
@@ -45,7 +54,14 @@ export default function ProfilePage() {
     image: "",
     bannerImage: "",
     articleSignature: "",
-    socialLinks: { twitter: "", linkedin: "", github: "", website: "" },
+    socialLinks: {
+      twitter: "",
+      linkedin: "",
+      github: "",
+      website: "",
+      facebook: "",
+      instagram: "",
+    },
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -65,12 +81,16 @@ export default function ProfilePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedBanner, setSelectedBanner] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const [hasPassword, setHasPassword] = useState(true);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
     if (session?.user) {
+      // ... (init object same as before) ...
       const init = {
         name: session.user.name || "",
         title: (session.user as any).title || "",
@@ -81,7 +101,14 @@ export default function ProfilePage() {
         image: session.user.image || "",
         bannerImage: "",
         articleSignature: "",
-        socialLinks: { twitter: "", linkedin: "", github: "", website: "" },
+        socialLinks: {
+          twitter: "",
+          linkedin: "",
+          github: "",
+          website: "",
+          facebook: "",
+          instagram: "",
+        },
       };
 
       fetch("/api/user/profile/me")
@@ -91,6 +118,9 @@ export default function ProfilePage() {
         })
         .then((data) => {
           if (data) {
+            // Update hasPassword state
+            setHasPassword(data.hasPassword !== false); // Default to true if undefined
+
             const fetchedInit = {
               name: data.name || "",
               title: data.title || "",
@@ -106,6 +136,8 @@ export default function ProfilePage() {
                 linkedin: data.socialLinks?.linkedin || "",
                 github: data.socialLinks?.github || "",
                 website: data.socialLinks?.website || "",
+                facebook: data.socialLinks?.facebook || "",
+                instagram: data.socialLinks?.instagram || "",
               },
             };
             setFormData(fetchedInit);
@@ -262,8 +294,13 @@ export default function ProfilePage() {
   };
 
   const handlePasswordUpdate = async () => {
-    if (!passwordData.currentPassword || !passwordData.newPassword) {
-      showToast("Please fill in current and new passwords", "error");
+    // If user has password, require current one. If not, we skip this check.
+    if (hasPassword && !passwordData.currentPassword) {
+      showToast("Please enter your current password", "error");
+      return;
+    }
+    if (!passwordData.newPassword) {
+      showToast("Please enter a new password", "error");
       return;
     }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -277,7 +314,9 @@ export default function ProfilePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          currentPassword: passwordData.currentPassword,
+          currentPassword: hasPassword
+            ? passwordData.currentPassword
+            : undefined,
           newPassword: passwordData.newPassword,
         }),
       });
@@ -291,6 +330,7 @@ export default function ProfilePage() {
           newPassword: "",
           confirmPassword: "",
         });
+        setHasPassword(true); // User now has a password
       } else {
         showToast(json.error || "Failed to update password", "error");
       }
@@ -301,14 +341,11 @@ export default function ProfilePage() {
     }
   };
 
-  const handleDeactivateAccount = async () => {
-    if (
-      !confirm(
-        "Are you ABSOLUTELY sure? This action cannot be undone. All your data will be permanently lost.",
-      )
-    )
-      return;
+  const handleDeactivateAccount = () => {
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDeactivate = async () => {
     try {
       const res = await fetch("/api/user/delete", { method: "DELETE" });
       if (res.ok) {
@@ -319,6 +356,8 @@ export default function ProfilePage() {
       }
     } catch (err) {
       showToast("Something went wrong", "error");
+    } finally {
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -516,19 +555,7 @@ export default function ProfilePage() {
 
               {/* Dynamic Badge */}
               <div className="mb-4">
-                {(session.user as any).role === "super_admin" ? (
-                  <span className="inline-block px-3 py-1 rounded-full bg-red-500/20 border border-red-500/50 text-red-500 text-xs font-bold uppercase tracking-wider">
-                    Super Admin
-                  </span>
-                ) : (session.user as any).role === "admin" ? (
-                  <span className="inline-block px-3 py-1 rounded-full bg-accent/20 border border-accent/50 text-accent text-xs font-bold uppercase tracking-wider">
-                    Administrator
-                  </span>
-                ) : (
-                  <span className="inline-block px-3 py-1 rounded-full bg-white/10 border border-white/10 text-zinc-400 text-xs font-bold uppercase tracking-wider">
-                    Reader
-                  </span>
-                )}
+                <UserBadge role={(session.user as any).role} />
               </div>
 
               <p className="text-sm text-zinc-400 mb-6">
@@ -690,19 +717,6 @@ export default function ProfilePage() {
                 />
               )}
 
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-400">
-                  Location
-                </label>
-                <input
-                  name="location"
-                  type="text"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder="e.g. London, UK"
-                />
-              </div>
-
               {/* Online Presence */}
               <div className="border-t border-white/5 pt-4 mt-2">
                 <h4 className="text-sm font-bold text-white mb-4">
@@ -758,6 +772,32 @@ export default function ProfilePage() {
                       value={formData.socialLinks.website}
                       onChange={handleSocialChange}
                       placeholder="https://your-site.com"
+                      className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-zinc-400">
+                      Facebook
+                    </label>
+                    <input
+                      name="facebook"
+                      type="text"
+                      value={(formData.socialLinks as any).facebook || ""}
+                      onChange={handleSocialChange}
+                      placeholder="Facebook URL"
+                      className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-zinc-400">
+                      Instagram
+                    </label>
+                    <input
+                      name="instagram"
+                      type="text"
+                      value={(formData.socialLinks as any).instagram || ""}
+                      onChange={handleSocialChange}
+                      placeholder="Instagram URL"
                       className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50 text-sm"
                     />
                   </div>
@@ -839,19 +879,21 @@ export default function ProfilePage() {
               Security
             </h3>
             <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-400">
-                  Current Password
-                </label>
-                <input
-                  name="currentPassword"
-                  type="password"
-                  value={passwordData.currentPassword}
-                  onChange={handlePassChange}
-                  placeholder="••••••••"
-                  className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50"
-                />
-              </div>
+              {hasPassword && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-zinc-400">
+                    Current Password
+                  </label>
+                  <input
+                    name="currentPassword"
+                    type="password"
+                    value={passwordData.currentPassword}
+                    onChange={handlePassChange}
+                    placeholder="••••••••"
+                    className="w-full bg-[#1A1A1A] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-accent/50"
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-zinc-400">
@@ -901,6 +943,15 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeactivate}
+        title="Deactivate Account?"
+        description="Are you ABSOLUTELY sure? This action cannot be undone. All your data will be permanently lost."
+        variant="danger"
+        confirmText="Yes, Deactivate"
+      />
     </Container>
   );
 }
