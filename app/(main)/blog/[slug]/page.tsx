@@ -329,7 +329,7 @@ export default async function BlogPostPage({
 
             <div className="max-w-3xl">
               {/* Intro (Bold) */}
-              <p className="text-2xl font-serif text-white/90 mb-12 italic leading-relaxed opacity-90">
+              <p className="text-xl font-serif text-white/90 mb-12 italic leading-relaxed opacity-90">
                 {post.excerpt}
               </p>
 

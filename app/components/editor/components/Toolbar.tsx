@@ -259,6 +259,19 @@ const ListStyleDropdown = ({
                 <span className="w-4 text-center font-serif">I</span> I, II,
                 III...
               </button>
+              <div className="h-px bg-white/10 my-1" />
+              <button
+                onClick={() => setListStyle("list-bengali-number")}
+                className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-white/10 rounded text-gray-300"
+              >
+                <span className="w-4 text-center font-bold">১</span> ১, ২, ৩...
+              </button>
+              <button
+                onClick={() => setListStyle("list-bengali-alpha")}
+                className="flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-white/10 rounded text-gray-300"
+              >
+                <span className="w-4 text-center font-bold">ক</span> ক, খ, গ...
+              </button>
             </>
           )}
         </div>

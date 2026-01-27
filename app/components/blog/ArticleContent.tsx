@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import * as katex from "katex";
 import "katex/dist/katex.min.css";
+import hljs from "highlight.js";
+import "highlight.js/styles/atom-one-dark.css";
 import * as mermaid from "mermaid";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-
 // Initialize mermaid for frontend
 if (typeof window !== "undefined") {
   const m = (mermaid as any).default || mermaid;
@@ -30,27 +31,55 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
 
   useEffect(() => {
     if (containerRef.current) {
+      // 1. Syntax Highlighting
+      hljs.highlightAll();
+
       // 2. Code Block Enhancements (Copy Button & Language Label)
       const codeBlocks = containerRef.current.querySelectorAll("pre");
       codeBlocks.forEach((pre) => {
-        if (pre.querySelector(".copy-btn")) return; // Prevent double injection
+        // Cleanup existing injections to prevent duplicates (React Strict Mode fix)
+        // Note: We must escape the forward slash in the selector
+        const existingWrapper = pre.closest(".group\\/code");
+        if (existingWrapper) {
+          // If we already wrapped it, just ensure we don't double-add,
+          // but cleaner is to ignore or reset.
+          // For simplicity, we'll check inside the wrapper.
+          if (existingWrapper.querySelector(".copy-btn")) return;
+        }
 
-        const wrapper = document.createElement("div");
-        wrapper.className = "relative group/code mb-8";
-        pre.parentNode?.insertBefore(wrapper, pre);
-        wrapper.appendChild(pre);
+        // Check if we need to wrap
+        if (
+          pre.parentNode &&
+          !(pre.parentNode as HTMLElement).classList.contains("group/code")
+        ) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "relative group/code mb-8";
+          pre.parentNode.insertBefore(wrapper, pre);
+          wrapper.appendChild(pre);
+        }
+
+        const wrapper = pre.parentNode as HTMLElement;
+        // Double check injection
+        if (wrapper.querySelector(".copy-btn")) return;
+
+        // Force Code Content Spacing (Fix vertical overlap)
+        const codeElement = pre.querySelector("code");
+        if (codeElement) {
+          codeElement.style.display = "block";
+          codeElement.style.paddingTop = "2.5rem"; // Force content down below label
+        }
 
         // Language Label
         const code = pre.querySelector("code");
         const lang =
           Array.from(code?.classList || [])
             .find((c) => c.startsWith("language-"))
-            ?.replace("language-", "") || "code";
+            ?.replace("language-", "") || "text";
 
         if (lang) {
           const label = document.createElement("span");
           label.className =
-            "absolute top-0 right-12 px-2 py-1 text-[10px] uppercase font-bold text-zinc-500 select-none opacity-0 group-hover/code:opacity-100 transition-opacity";
+            "injected-label absolute top-4 left-6 text-xs font-bold text-zinc-500 select-none pointer-events-none";
           label.textContent = lang;
           wrapper.appendChild(label);
         }
@@ -58,15 +87,27 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
         // Copy Button
         const btn = document.createElement("button");
         btn.className =
-          "copy-btn absolute top-2 right-2 p-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 opacity-0 group-hover/code:opacity-100 transition-all z-10";
-        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+          "copy-btn absolute top-3 right-4 py-1.5 text-zinc-400 hover:text-white transition-colors z-20 flex items-center gap-2 text-xs font-medium bg-transparent border-none cursor-pointer";
+
+        // Initial State: [Icon] Copy
+        btn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span>Copy</span>
+        `;
 
         btn.onclick = () => {
           const text = code?.innerText || "";
           navigator.clipboard.writeText(text).then(() => {
-            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-500"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            btn.innerHTML = `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-green-400"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span class="text-green-400">Copied!</span>
+            `;
+
             setTimeout(() => {
-              btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+              btn.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>Copy</span>
+              `;
             }, 2000);
           });
         };
@@ -141,33 +182,75 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
         }
       });
 
-      // 6. Image Zoom Listeners
-      const images = containerRef.current.querySelectorAll("img");
-      images.forEach((img) => {
-        img.classList.add(
-          "cursor-zoom-in",
-          "transition-transform",
-          "hover:scale-[1.01]",
-        );
-        img.onclick = () => setZoomImage(img.src);
-      });
+      // 6. Image Zoom Listeners removed (handled via CSS and Event Delegation)
     }
   }, [content]);
+
+  const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "IMG" && !target.closest("a")) {
+      setZoomImage((target as HTMLImageElement).src);
+    }
+  };
 
   return (
     <>
       <div
         ref={containerRef}
+        onClick={handleImageClick}
         className="prose prose-invert prose-xl max-w-none text-zinc-300/90 
-          prose-headings:font-serif prose-headings:text-white prose-headings:font-bold
-          prose-h2:text-5xl prose-h2:mt-24 prose-h2:mb-12 prose-h2:pb-4 prose-h2:border-b prose-h2:border-white/5
-          prose-h3:text-3xl prose-h3:mt-16 prose-h3:mb-8 prose-h3:text-white/90
-          prose-p:text-xl prose-p:leading-relaxed prose-p:mb-10 prose-p:font-light
+          prose-headings:font-serif prose-headings:text-white
+          
+          /* Typography Hierarchy */
+          prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-8 prose-h1:text-white
+          prose-h2:text-3xl prose-h2:mt-16 prose-h2:mb-8 prose-h2:pb-4 prose-h2:border-b prose-h2:border-white/5 prose-h2:font-bold
+          prose-h3:text-2xl prose-h3:mt-12 prose-h3:mb-6 prose-h3:font-semibold
+          prose-h4:text-xl prose-h4:mt-8 prose-h4:mb-4 prose-h4:font-bold prose-h4:text-white
+          prose-h5:text-lg prose-h5:mt-6 prose-h5:mb-2 prose-h5:font-bold prose-h5:text-zinc-200
+          prose-h6:text-sm prose-h6:mt-6 prose-h6:mb-2 prose-h6:font-bold prose-h6:uppercase prose-h6:tracking-widest prose-h6:text-zinc-400
+          
+          prose-p:text-xl prose-p:leading-relaxed prose-p:mb-8 prose-p:font-light
+          prose-a:text-accent prose-a:no-underline prose-a:border-b prose-a:border-accent/30 hover:prose-a:border-accent prose-a:transition-colors
+          
+          /* Lists & HR */
+          prose-ul:my-8 prose-ul:list-disc prose-ul:pl-6
+          prose-ol:my-8 prose-ol:list-decimal prose-ol:pl-6
+          prose-li:my-3 prose-li:text-zinc-300/90
+          [&_li_>_ul]:my-2 [&_li_>_ol]:my-2  /* Nested List Spacing (Subtle) */
+          prose-li:marker:text-accent/50
+          prose-hr:my-16 prose-hr:border-white/10
+          
           prose-strong:text-white prose-strong:font-bold
-          prose-blockquote:border-l-accent prose-blockquote:bg-accent/5 prose-blockquote:py-8 prose-blockquote:px-12 prose-blockquote:not-italic prose-blockquote:rounded-r-3xl prose-blockquote:text-2xl prose-blockquote:my-16
           prose-code:text-accent prose-code:bg-accent/5 prose-code:px-2 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none
-          prose-pre:bg-zinc-900/80 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-3xl prose-pre:p-10 prose-pre:my-12
-          prose-img:rounded-[2.5rem] prose-img:border prose-img:border-white/10 prose-img:shadow-2xl prose-img:my-20
+          
+          /* Code Blocks */
+          prose-pre:bg-zinc-900/80 prose-pre:border prose-pre:border-white/20 prose-pre:rounded-xl prose-pre:px-6 prose-pre:pb-6 prose-pre:pt-16 prose-pre:my-12
+          
+          /* Images */
+          prose-img:rounded-xl prose-img:border prose-img:border-white/20 prose-img:shadow-xl prose-img:my-12
+          [&_img]:cursor-zoom-in
+
+          /* Tables (Industry Standard UI Style) */
+          /* Layout & Sizing */
+          [&_table]:w-auto [&_table]:min-w-[50%] [&_table]:border-collapse [&_table]:my-8 [&_table]:block [&_table]:overflow-x-auto md:[&_table]:table [&_table]:table-auto
+          [&_col]:w-auto!important [&_col]:min-w-[auto]!important
+          [&_td]:w-auto!important [&_th]:w-auto!important
+          
+          /* Table Container & Head */
+          [&_table]:border [&_table]:border-white/20 [&_table]:rounded-lg [&_table]:overflow-hidden
+          [&_thead]:bg-zinc-800/50 [&_thead]:border-b [&_thead]:border-white/20
+          
+          /* Header Cells */
+          [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-semibold [&_th]:text-zinc-400 [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider
+          [&_th]:border-r [&_th]:border-white/20 [&_th:last-child]:border-r-0
+          
+          /* Body Cells */
+          [&_td]:px-4 [&_td]:py-3 [&_td]:border-b [&_td]:border-white/10 [&_td]:text-zinc-300 [&_td]:text-sm [&_td]:align-middle
+          [&_td]:border-r [&_td]:border-white/10 [&_td:last-child]:border-r-0
+          
+          /* Interactions */
+          [&_tbody_tr:last-child_td]:border-b-0
+          [&_tbody_tr:hover]:bg-white/5 [&_tbody_tr]:transition-colors
           ProseMirror"
         dangerouslySetInnerHTML={{ __html: content }}
       />

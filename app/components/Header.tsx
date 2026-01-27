@@ -132,12 +132,24 @@ export const Header = () => {
                         className="scale-90"
                       />
                     </div>
-                    <button
-                      onClick={() => signOut()}
-                      className="text-[10px] text-zinc-500 hover:text-red-500 transition-colors uppercase font-bold tracking-wider"
-                    >
-                      Sign Out
-                    </button>
+                    <div className="flex items-center justify-end gap-3 mt-1">
+                      {["admin", "super_admin"].includes(
+                        (session.user as any).role,
+                      ) && (
+                        <Link
+                          href="/admin/dashboard"
+                          className="text-[10px] text-zinc-500 hover:text-accent transition-colors uppercase font-bold tracking-wider"
+                        >
+                          Dashboard
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => signOut()}
+                        className="text-[10px] text-zinc-500 hover:text-red-500 transition-colors uppercase font-bold tracking-wider"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                   <div className="h-10 w-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden relative cursor-pointer hover:border-accent transition-colors group">
                     <Link href={`/profile/${(session.user as any).id}`}>
