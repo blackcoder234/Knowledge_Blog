@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "Terms of Use | KnowledgeLog",
   description:
     "Terms outlining the rules for using KnowledgeLog, including content ownership, user conduct, and liability disclaimers.",
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function TermsPage() {

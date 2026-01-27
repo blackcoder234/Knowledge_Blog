@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "Privacy Policy - KnowledgeLog",
   description:
     "Comprehensive details on how KnowledgeLog collects, stores, and protects user data, including Google Auth, newsletter subscriptions, and analytics.",
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function PrivacyPage() {

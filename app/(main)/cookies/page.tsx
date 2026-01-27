@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: "Cookie Policy - KnowledgeLog",
   description:
     "Explanation of the specific cookies used by KnowledgeLog, primarily for authentication and essential site functionality.",
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function CookiesPage() {
