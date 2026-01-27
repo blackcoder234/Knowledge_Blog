@@ -215,9 +215,13 @@ export default async function PostsPage(props: {
                     >
                       <td className="px-6 py-4 align-top">
                         <div className="flex flex-col gap-1.5 min-w-[200px]">
-                          <span className="text-[15px] font-semibold text-zinc-100 group-hover:text-yellow-400 transition-colors tracking-tight leading-snug break-words">
+                          <Link
+                            href={`/blog/${post.slug}`}
+                            target="_blank"
+                            className="text-[15px] font-semibold text-zinc-100 group-hover:text-yellow-400 hover:underline transition-colors tracking-tight leading-snug break-words cursor-pointer"
+                          >
                             {post.title}
-                          </span>
+                          </Link>
                           <span className="text-xs text-zinc-400 font-medium flex items-center gap-2">
                             <span className="tabular-nums">
                               {new Date(post.createdAt).toLocaleDateString(
