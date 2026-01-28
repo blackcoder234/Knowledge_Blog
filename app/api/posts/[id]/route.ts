@@ -104,6 +104,17 @@ export async function PATCH(
             }
         }
 
+        if (body.status === 'scheduled') {
+             // If scheduling, ensure they provided a date OR it already has one
+             if (!body.scheduledPublishDate && !post.scheduledPublishDate) {
+                 return NextResponse.json({ error: 'Cannot schedule without a date.' }, { status: 400 });
+             }
+             const merged = { ...post.toObject(), ...body };
+             if (!merged.excerpt || !merged.content || !merged.image) {
+                 return NextResponse.json({ error: 'Cannot schedule without Content, Excerpt, and Featured Image.' }, { status: 400 });
+             }
+        }
+
         // PERMISSION: Only Super Admin can change the Author
         if (user.role !== 'super_admin') {
             delete body.author;

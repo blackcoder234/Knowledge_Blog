@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AdminSidebar } from "../../components/AdminSidebar";
+import { AdminAutoRefresher } from "@/app/components/admin/AdminAutoRefresher";
 
 export default function AdminDashboardLayout({
   children,
@@ -16,6 +17,9 @@ export default function AdminDashboardLayout({
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
+
+      {/* Auto Refresh Data every 30 seconds */}
+      <AdminAutoRefresher interval={30000} />
 
       <main className="flex-1 lg:ml-64 transition-all duration-300 min-w-0">
         {/* Mobile Header */}

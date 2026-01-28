@@ -151,9 +151,12 @@ export default function PostEditor({
         ogImage: initialData.ogImage || "",
         noindex: initialData.noindex || false,
         scheduledPublishDate: initialData.scheduledPublishDate
-          ? new Date(initialData.scheduledPublishDate)
-              .toISOString()
-              .slice(0, 16)
+          ? (() => {
+              // Convert DB UTC Date -> Local Time String (YYYY-MM-DDTHH:mm) for input
+              const d = new Date(initialData.scheduledPublishDate);
+              const pad = (n: number) => n.toString().padStart(2, "0");
+              return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            })()
           : "",
       });
       setIsDirty(false);
@@ -416,6 +419,10 @@ export default function PostEditor({
         canonicalUrl:
           currentData.canonicalUrl ||
           `${window.location.origin}/blog/${currentData.slug}`,
+        // Ensure date is sent as ISO String (UTC) if it exists
+        scheduledPublishDate: currentData.scheduledPublishDate
+          ? new Date(currentData.scheduledPublishDate).toISOString()
+          : undefined,
       };
       const res = await fetch(url, {
         method: method,

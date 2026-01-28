@@ -48,11 +48,17 @@ export function EditorHeader({
 }: EditorHeaderProps) {
   const [showSchedulePopover, setShowSchedulePopover] = useState(false);
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
+  // Helper to format date for datetime-local input (Local Time: YYYY-MM-DDTHH:mm)
+  const toLocalISOString = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
   const [dateStr, setDateStr] = useState(() => {
+    // Default to Current Time + 15 Minutes
     const d = new Date();
-    d.setDate(d.getDate() + 1);
-    d.setHours(9, 0, 0, 0);
-    return d.toISOString().slice(0, 16);
+    d.setMinutes(d.getMinutes() + 15);
+    return toLocalISOString(d);
   });
 
   const handleScheduleClick = () => {
@@ -92,10 +98,26 @@ export function EditorHeader({
                   ? "bg-green-500"
                   : status === "archived"
                     ? "bg-red-500"
-                    : "bg-yellow-500"
+                    : status === "scheduled"
+                      ? "bg-amber-500"
+                      : "bg-yellow-500"
               }`}
             ></span>
-            <span className="capitalize">{status} Mode</span>
+            <span className="capitalize font-medium">
+              {status === "scheduled" && dateStr ? (
+                <span className="text-amber-400 flex items-center gap-1">
+                  Scheduled for{" "}
+                  {new Date(dateStr).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </span>
+              ) : (
+                `${status} Mode`
+              )}
+            </span>
             <span className="text-zinc-600 mx-2">|</span>
             <span
               className={`transition-colors ${isDirty ? "text-yellow-500" : "text-zinc-500"}`}
@@ -197,7 +219,7 @@ export function EditorHeader({
                     <span>...</span>
                   </>
                 ) : status === "scheduled" ? (
-                  "Scheduled"
+                  "Update Schedule"
                 ) : (
                   "Publish Now"
                 )}

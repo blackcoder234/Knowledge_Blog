@@ -223,16 +223,42 @@ export default async function PostsPage(props: {
                             {post.title}
                           </Link>
                           <span className="text-xs text-zinc-400 font-medium flex items-center gap-2">
-                            <span className="tabular-nums">
-                              {new Date(post.createdAt).toLocaleDateString(
-                                "en-US",
-                                {
+                            {post.status === "scheduled" &&
+                            post.scheduledPublishDate ? (
+                              <span className="text-amber-500 flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                  className="w-3 h-3"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                {new Date(
+                                  post.scheduledPublishDate,
+                                ).toLocaleString("en-US", {
                                   month: "short",
                                   day: "numeric",
-                                  year: "numeric",
-                                },
-                              )}
-                            </span>
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            ) : (
+                              <span className="tabular-nums">
+                                {new Date(post.createdAt).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  },
+                                )}
+                              </span>
+                            )}
                           </span>
                         </div>
                       </td>
@@ -337,7 +363,9 @@ export default async function PostsPage(props: {
                                     ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
                                     : post.status === "archived"
                                       ? "bg-rose-500/10 border-rose-500/20 text-rose-500"
-                                      : "bg-zinc-500/10 border-zinc-500/20 text-zinc-400"
+                                      : post.status === "scheduled"
+                                        ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
+                                        : "bg-zinc-500/10 border-zinc-500/20 text-zinc-400"
                                 }`}
                               >
                                 <span
@@ -346,7 +374,9 @@ export default async function PostsPage(props: {
                                       ? "bg-emerald-500"
                                       : post.status === "archived"
                                         ? "bg-rose-500"
-                                        : "bg-zinc-500"
+                                        : post.status === "scheduled"
+                                          ? "bg-amber-500"
+                                          : "bg-zinc-500"
                                   }`}
                                 ></span>
                                 <span className="text-xs font-semibold capitalize tracking-wide">

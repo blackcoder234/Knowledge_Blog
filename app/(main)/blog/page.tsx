@@ -8,6 +8,7 @@ import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
 import Category from "@/models/Category";
 import User from "@/models/User"; // Required for population
+import { JoinCommunityCard } from "@/app/components/blog/JoinCommunityCard";
 
 import { Metadata } from "next";
 
@@ -407,6 +408,7 @@ export default async function BlogPage(props: {
               <div className="sticky top-24 space-y-10">
                 {/* 1. Newsletter Card */}
                 <div className="bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] border border-white/10 rounded-3xl p-8 relative overflow-hidden group shadow-xl">
+                  {/* ... Newsletter content ... */}
                   <div className="absolute top-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:bg-accent/20 transition-colors"></div>
                   <h3 className="text-xl font-bold text-white mb-3 font-display">
                     KnowledgeLog Weekly
@@ -426,6 +428,9 @@ export default async function BlogPage(props: {
                     </button>
                   </div>
                 </div>
+
+                {/* 1.5. Join Community Card */}
+                <JoinCommunityCard />
 
                 {/* 2. Popular Topics Cloud (New) */}
                 <div>

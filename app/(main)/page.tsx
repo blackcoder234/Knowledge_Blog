@@ -11,21 +11,83 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Subscriber from "@/models/Subscriber";
 
+import Setting from "@/models/Setting";
+
 // Fetch posts for the landing page
 async function getLandingData() {
   try {
     await dbConnect();
 
-    // Latest: 3 latest published posts
-    const latest = await Post.find({ status: "published" })
+    // Fetch Quote Settings
+    const settings = await Setting.find({
+      key: { $in: ["home_quote_text", "home_quote_author", "home_quote_link"] },
+    });
+    const config = settings.reduce((acc: any, curr: any) => {
+      acc[curr.key] = curr.value;
+      return acc;
+    }, {});
+
+    const quote = {
+      text:
+        config.home_quote_text ||
+        "When information is everywhere, understanding becomes rare. KnowledgeLog slows the pace, inviting readers to think, question, and connect ideas across science, history, and culture — not to follow trends, but to build perspective.",
+      author: config.home_quote_author || "KnowledgeLog Editorial",
+      link: config.home_quote_link || "/blog",
+    };
+
+    // Featured: 3 featured (or trending) posts for maximum attraction
+    let posts = await Post.find({ status: "published", featured: true })
       .sort({ createdAt: -1 })
       .limit(3)
       .populate("author", "name image")
       .populate("category", "name")
       .lean();
 
+    // Fallback: If no featured posts, use popular posts (views)
+    if (posts.length < 3) {
+      const popular = await Post.find({
+        status: "published",
+        _id: { $nin: posts.map((p: any) => p._id) },
+      })
+        .sort({ views: -1 })
+        .limit(3 - posts.length)
+        .populate("author", "name image")
+        .populate("category", "name")
+        .lean();
+      posts = [...posts, ...popular];
+    }
+
+    // Final Fallback: Latest
+    if (posts.length < 3) {
+      const latest = await Post.find({
+        status: "published",
+        _id: { $nin: posts.map((p: any) => p._id) },
+      })
+        .sort({ createdAt: -1 })
+        .limit(3 - posts.length)
+        .populate("author", "name image")
+        .populate("category", "name")
+        .lean();
+      posts = [...posts, ...latest];
+    }
+
+    // Trending: Fetch top 5 viewed posts for ticker
+    const trending = await Post.find({ status: "published" })
+      .sort({ views: -1 })
+      .limit(5)
+      .select("title slug")
+      .lean();
+
+    // Authors: Fetch top 4 authors with most posts or specific roles
+    const authors = await User.find({
+      role: { $in: ["admin", "super_admin", "editor"] },
+    })
+      .select("name image bio _id")
+      .limit(4)
+      .lean();
+
     return {
-      latest: latest.map((p: any) => ({
+      latest: posts.map((p: any) => ({
         ...p,
         _id: p._id.toString(),
         category: p.category?.name || "Uncategorized",
@@ -35,19 +97,37 @@ async function getLandingData() {
           image: p.author?.image || "/placeholder-user.jpg",
         },
       })),
+      trending: trending.map((p: any) => ({
+        title: p.title,
+        slug: p.slug,
+      })),
+      quote,
+      authors: authors.map((a: any) => ({
+        ...a,
+        _id: a._id.toString(),
+      })),
     };
   } catch (error) {
     console.error("Error fetching landing data:", error);
     return {
       latest: [],
+      trending: [],
+      quote: {
+        text: "Error loading quote.",
+        author: "System",
+        link: "#",
+      },
+      authors: [],
     };
   }
 }
 
 export const revalidate = 60; // Revalidate every minute
 
+import { TrendingTicker } from "@/app/components/ui/TrendingTicker";
+
 export default async function LandingPage() {
-  const { latest } = await getLandingData();
+  const { latest, trending, quote, authors } = await getLandingData();
 
   // Check session for newsletter pre-filling
   const session = await getServerSession(authOptions);
@@ -65,12 +145,15 @@ export default async function LandingPage() {
 
   return (
     <div className="bg-background min-h-screen">
+      {/* 0. Trending Ticker */}
+      <TrendingTicker posts={trending} />
+
       {/* 
         1) Hero / Editorial Introduction
         - 2 Column Grid
         - Updated Image: Abstract Light/Glass
       */}
-      <section className="relative pt-24 pb-20 md:pt-36 md:pb-32 border-b border-white/5 overflow-hidden">
+      <section className="relative pt-12 pb-20 md:pt-20 md:pb-32 border-b border-white/5 overflow-hidden">
         <Container>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
@@ -163,16 +246,53 @@ export default async function LandingPage() {
         </Container>
       </section>
 
-      {/* 3. Latest 3 Articles (Full Color, Clean Grid) */}
-      <section className="py-24 bg-[#0A0A0A]">
+      {/* 2.5 Featured Quote Section (New) */}
+      <section className="py-24 bg-zinc-950 border-b border-white/5 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+        <Container>
+          <div className="max-w-6xl mx-auto text-center relative z-10">
+            {/* Quote Mark */}
+            <span className="block text-7xl text-accent/25 font-serif leading-none mb-6">
+              “
+            </span>
+
+            {/* Main Quote Text - Font Serif (Lora) */}
+            <blockquote className="text-2xl md:text-3xl lg:text-4xl font-serif text-zinc-100 font-normal leading-relaxed tracking-wide mb-10 text-balance italic">
+              "{quote.text}"
+            </blockquote>
+
+            {/* Citation - Font Sans (Inter/Space) */}
+            <cite className="not-italic flex flex-col items-center gap-2">
+              <span className="w-12 h-px bg-accent/50 mb-2"></span>
+              <span className="text-sm font-bold uppercase tracking-[0.2em] text-accent font-sans">
+                {quote.author}
+              </span>
+            </cite>
+
+            {quote.link && quote.link !== "#" && (
+              <div className="mt-12">
+                <Link
+                  href={quote.link}
+                  className="text-xs font-medium uppercase tracking-widest border-b border-zinc-700 text-zinc-500 hover:text-white hover:border-white transition-all pb-1 font-sans"
+                >
+                  Read the Full Manifesto
+                </Link>
+              </div>
+            )}
+          </div>
+        </Container>
+      </section>
+
+      {/* 3. Featured Stories (Simple Grid) */}
+      <section className="py-24 bg-[#0A0A0A]" id="recent-writing">
         <Container>
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
             <div>
               <span className="text-accent text-xs font-bold uppercase tracking-widest mb-2 block">
-                Recently Published
+                Editor's Choice
               </span>
               <h2 className="text-3xl md:text-5xl font-serif text-white tracking-tight">
-                Latest <span className="text-zinc-500 italic">Writing</span>
+                Featured <span className="text-zinc-500 italic">Stories</span>
               </h2>
             </div>
             <Link
@@ -228,7 +348,7 @@ export default async function LandingPage() {
       {/* 4. Philosophy Section */}
       <section className="py-20 bg-[#050505] border-y border-white/5">
         <Container>
-          <div className="max-w-3xl mx-auto text-center space-y-6">
+          <div className="max-w-3xl mx-auto text-center space-y-6 mb-20">
             <span className="text-accent text-xs font-bold uppercase tracking-widest">
               Our Philosophy
             </span>
@@ -238,6 +358,36 @@ export default async function LandingPage() {
               depth."
             </p>
           </div>
+
+          {/* FUTURE: Our Voices / Writers - Uncomment when data is available
+           {authors.length > 0 && (
+               <div className="border-t border-white/5 pt-16">
+                   <h3 className="text-center text-sm font-bold text-zinc-500 uppercase tracking-widest mb-10">
+                       Our Voices
+                   </h3>
+                   <div className="flex flex-wrap justify-center gap-12 md:gap-20">
+                       {authors.map((author: any) => (
+                           <div key={author._id} className="text-center group">
+                               <div className="relative w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-accent transition-colors">
+                                   <Image 
+                                        src={author.image || "/placeholder-user.jpg"} 
+                                        alt={author.name} 
+                                        fill 
+                                        className="object-cover"
+                                    />
+                               </div>
+                               <h4 className="text-white font-bold group-hover:text-accent transition-colors">
+                                   {author.name}
+                               </h4>
+                               <p className="text-xs text-zinc-500 mt-1 uppercase tracking-wide">
+                                   Editor
+                               </p>
+                           </div>
+                       ))}
+                   </div>
+               </div>
+           )}
+           */}
         </Container>
       </section>
 

@@ -10,6 +10,7 @@ import MaintenanceGate from "./components/MaintenanceGate";
 import dbConnect from "@/lib/db";
 import Setting from "@/models/Setting";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { GlobalNotificationObserver } from "./components/GlobalNotificationObserver";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const spaceGrotesk = Space_Grotesk({
@@ -94,6 +95,7 @@ export default async function RootLayout({
         {gaId && <GoogleAnalytics gaId={gaId} />}
         <AuthProvider>
           <ToastProvider>
+            <GlobalNotificationObserver />
             <Suspense fallback={null}>
               <ClientTracker />
               <Analytics />

@@ -161,6 +161,7 @@ import { ViewCounter } from "@/app/components/blog/ViewCounter";
 import { ReadingProgress } from "@/app/components/blog/ReadingProgress";
 import { AuthorBio } from "@/app/components/blog/AuthorBio";
 import { ArticleContent } from "@/app/components/blog/ArticleContent";
+import { JoinCommunityCard } from "@/app/components/blog/JoinCommunityCard";
 
 export default async function BlogPostPage({
   params,
@@ -427,6 +428,9 @@ export default async function BlogPostPage({
                 />
               </div>
             </div>
+
+            {/* Join Community Card */}
+            <JoinCommunityCard />
           </aside>
         </div>
 

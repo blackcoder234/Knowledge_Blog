@@ -31,6 +31,17 @@ export async function POST(request: Request) {
         }
     }
 
+    if (body.status === 'scheduled') {
+        if (!body.scheduledPublishDate) {
+             return NextResponse.json({ error: 'Scheduled posts require a date.' }, { status: 400 });
+        }
+        // Scheduled posts must be valid enough to publish automatically later,
+        // so we enforce the same rules as 'published' usually.
+        if (!body.excerpt || !body.content || !body.image) {
+             return NextResponse.json({ error: 'Scheduled posts require Content, Excerpt, and a Featured Image (to be ready for auto-publish).' }, { status: 400 });
+        }
+    }
+
     // Use Real User ID for Reference
     // Super Admin can assign author, otherwise defaults to current user
     const authorId = (user.role === 'super_admin' && body.author) 

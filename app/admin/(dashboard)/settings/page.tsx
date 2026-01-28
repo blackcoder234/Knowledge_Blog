@@ -58,6 +58,18 @@ export default function SettingsPage() {
   const [adminEmail, setAdminEmail] = useState("");
   const [newsletterSubject, setNewsletterSubject] = useState("");
 
+  // Homepage Settings
+  const [homeQuoteText, setHomeQuoteText] = useState("");
+  const [homeQuoteAuthor, setHomeQuoteAuthor] = useState("");
+  const [homeQuoteLink, setHomeQuoteLink] = useState("");
+
+  // Global Notification
+  const [notificationActive, setNotificationActive] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationType, setNotificationType] = useState<
+    "info" | "warning" | "success" | "error"
+  >("info");
+
   const [settingsMetadata, setSettingsMetadata] = useState<any>({});
 
   const isSuperAdmin = (session?.user as any)?.role === "super_admin";
@@ -106,6 +118,21 @@ export default function SettingsPage() {
         setSocialInstagram(data.social_instagram?.value || "");
         setAdminEmail(data.admin_email?.value || "");
         setNewsletterSubject(data.newsletter_subject?.value || "");
+
+        // Home Quote
+        setHomeQuoteText(
+          data.home_quote_text?.value ||
+            "When information is everywhere, understanding becomes rare. KnowledgeLog slows the pace, inviting readers to think, question, and connect ideas across science, history, and culture — not to follow trends, but to build perspective.",
+        );
+        setHomeQuoteAuthor(
+          data.home_quote_author?.value || "KnowledgeLog Editorial",
+        );
+        setHomeQuoteLink(data.home_quote_link?.value || "/blog");
+
+        // Notifications
+        setNotificationActive(!!data.general_notification_active?.value);
+        setNotificationMessage(data.general_notification?.value || "");
+        setNotificationType(data.general_notification_type?.value || "info");
       }
     } catch (error) {
       console.error("Failed to load settings", error);
@@ -203,6 +230,25 @@ export default function SettingsPage() {
 
   const saveContactSetting = async (key: string, value: string) => {
     await updateSetting(key, value);
+  };
+
+  const toggleNotification = async () => {
+    const newValue = !notificationActive;
+    await updateSetting("general_notification_active", newValue);
+    // When activating, also update ID to force re-show for everyone
+    if (newValue) {
+      await updateSetting("general_notification_id", Date.now().toString());
+    }
+    setNotificationActive(newValue);
+  };
+
+  const saveNotificationMessage = async () => {
+    await updateSetting("general_notification", notificationMessage);
+  };
+
+  const saveNotificationType = async (type: string) => {
+    await updateSetting("general_notification_type", type);
+    setNotificationType(type as any); // Optimistic update
   };
 
   const AuditTrail = ({ keys }: { keys: string[] }) => {
@@ -537,13 +583,217 @@ export default function SettingsPage() {
           />
         </div>
 
-        {/* --- 2. Communication Hub (Announcement) --- */}
+        {/* --- 2. Real-time Notification Banner --- */}
+        <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div className="flex items-start justify-between mb-6">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span className="text-blue-500">🔔</span>
+                Live Notification Bar
+              </h3>
+              <p className="text-zinc-400 text-sm max-w-lg">
+                Instantly push a banner URL/alert to all active users without
+                them reloading.
+              </p>
+            </div>
+            <button
+              onClick={toggleNotification}
+              disabled={updating}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black ${
+                notificationActive ? "bg-blue-500" : "bg-zinc-700"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  notificationActive ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {/* Type Selector */}
+            <div className="flex gap-2">
+              {(["info", "warning", "success", "error"] as const).map(
+                (type) => (
+                  <button
+                    key={type}
+                    onClick={() => saveNotificationType(type)}
+                    className={`px-3 py-1 text-xs font-bold uppercase rounded-md border ${
+                      notificationType === type
+                        ? "bg-zinc-100 text-black border-white"
+                        : "bg-zinc-900 text-zinc-500 border-zinc-700 hover:border-zinc-500"
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ),
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                Notification Message
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={notificationMessage}
+                  onChange={(e) => setNotificationMessage(e.target.value)}
+                  placeholder="e.g. New Feature Released: Check out the dashboard!"
+                  className="flex-1 bg-black/50 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all"
+                />
+                <button
+                  onClick={saveNotificationMessage}
+                  disabled={updating}
+                  className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg transition-colors"
+                  title="Save Message"
+                >
+                  <Save size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+          <AuditTrail
+            keys={[
+              "general_notification_active",
+              "general_notification",
+              "general_notification_type",
+            ]}
+          />
+        </div>
+
+        {/* --- 2.5 Homepage Interactions (Featured Quote) --- */}
+        <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="text-purple-500">✨</span>
+              Homepage Interactions
+            </h3>
+            <p className="text-zinc-400 text-sm">
+              Customize the "Featured Quote" section on the homepage.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  Quote Text
+                </label>
+                <span
+                  className={`text-xs ${
+                    homeQuoteText.split(/\s+/).filter((w) => w.length > 0)
+                      .length > 70
+                      ? "text-red-500 font-bold"
+                      : "text-zinc-500"
+                  }`}
+                >
+                  {
+                    homeQuoteText.split(/\s+/).filter((w) => w.length > 0)
+                      .length
+                  }{" "}
+                  / 70 words
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <textarea
+                  value={homeQuoteText}
+                  onChange={(e) => setHomeQuoteText(e.target.value)}
+                  placeholder="Type a meaningful quote..."
+                  rows={4}
+                  className={`flex-1 bg-black/50 border rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-1 transition-all resize-none ${
+                    homeQuoteText.split(/\s+/).filter((w) => w.length > 0)
+                      .length > 70
+                      ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                      : "border-zinc-700 focus:border-purple-500/50 focus:ring-purple-500/50"
+                  }`}
+                />
+                <button
+                  onClick={() =>
+                    updateSetting("home_quote_text", homeQuoteText)
+                  }
+                  disabled={
+                    updating ||
+                    homeQuoteText.split(/\s+/).filter((w) => w.length > 0)
+                      .length > 70
+                  }
+                  className="h-10 p-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-400 rounded-lg transition-colors"
+                >
+                  <Save size={16} />
+                </button>
+              </div>
+              {homeQuoteText.split(/\s+/).filter((w) => w.length > 0).length >
+                70 && (
+                <p className="text-xs text-red-500 mt-1">
+                  Text is too long. Please keep it under 70 words to maintain
+                  homepage design integrity.
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  Quote Author
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={homeQuoteAuthor}
+                    onChange={(e) => setHomeQuoteAuthor(e.target.value)}
+                    placeholder="e.g. KnowledgeLog Editorial"
+                    className="flex-1 bg-black/50 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                  />
+                  <button
+                    onClick={() =>
+                      updateSetting("home_quote_author", homeQuoteAuthor)
+                    }
+                    disabled={updating}
+                    className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg transition-colors"
+                  >
+                    <Save size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  Link (Optional)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={homeQuoteLink}
+                    onChange={(e) => setHomeQuoteLink(e.target.value)}
+                    placeholder="/blog/my-post"
+                    className="flex-1 bg-black/50 border border-zinc-700 rounded-lg px-4 py-2 text-sm text-zinc-200 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                  />
+                  <button
+                    onClick={() =>
+                      updateSetting("home_quote_link", homeQuoteLink)
+                    }
+                    disabled={updating}
+                    className="p-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 rounded-lg transition-colors"
+                  >
+                    <Save size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <AuditTrail
+            keys={["home_quote_text", "home_quote_author", "home_quote_link"]}
+          />
+        </div>
+
+        {/* --- 3. Communication Hub (Announcement) --- */}
         <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40">
           <div className="flex items-start justify-between mb-6">
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <span className="text-yellow-500">📢</span>
-                Global Announcement
+                Global Announcement (Static)
               </h3>
               <p className="text-zinc-400 text-sm max-w-lg">
                 Display a banner message at the top of every page. Useful for
@@ -602,7 +852,7 @@ export default function SettingsPage() {
           <AuditTrail keys={["announcement_active", "announcement_message"]} />
         </div>
 
-        {/* --- 3. Community Controls --- */}
+        {/* --- 4. Community Controls --- */}
         <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -704,7 +954,7 @@ export default function SettingsPage() {
           />
         </div>
 
-        {/* --- 4. Technical & SEO --- */}
+        {/* --- 5. Technical & SEO --- */}
         {isSuperAdmin && (
           <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40">
             <div className="mb-6">
@@ -768,7 +1018,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {/* --- 5. Infrastructure --- */}
+        {/* --- 6. Infrastructure --- */}
         {isSuperAdmin && (
           <div className="p-6 rounded-2xl border border-red-900/30 bg-red-900/5">
             <div className="mb-6">
@@ -799,7 +1049,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handlePurgeCache}
                   disabled={updating}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors border border-zinc-700"
+                  className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   <RefreshCw
                     size={14}
@@ -817,38 +1067,39 @@ export default function SettingsPage() {
                   <div>
                     <h4 className="font-bold text-sm">Maintenance Mode</h4>
                     <p className="text-xs text-zinc-500">
-                      Lock public site access.
+                      Take the site offline.
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={toggleMaintenance}
                   disabled={updating}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+                  className={`w-full py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2 ${
                     maintenanceMode
-                      ? "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
-                      : "bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700"
+                      ? "bg-red-500 hover:bg-red-600 text-white"
+                      : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                   }`}
                 >
-                  <Power size={14} />
+                  <Hammer size={14} />
                   {maintenanceMode
                     ? "Disable Maintenance"
                     : "Enable Maintenance"}
                 </button>
               </div>
             </div>
-            <AuditTrail keys={["maintenance_mode"]} />
+            <AuditTrail keys={["maintenance_mode", "last_cache_purge"]} />
           </div>
         )}
       </div>
+
       <ConfirmDialog
         isOpen={showPurgeConfirm}
         onClose={() => setShowPurgeConfirm(false)}
         onConfirm={confirmPurgeCache}
         title="Purge Global Cache?"
-        description="Are you sure you want to purge the global cache? This will force the server to rebuild all pages on the next request."
+        description="This will clear the entire server cache (ISR). The next visitor to any page will trigger a regeneration. This might temporarily increase server load."
+        confirmText="Yes, Purge Everything"
         variant="warning"
-        confirmText="Purge Cache"
       />
     </div>
   );

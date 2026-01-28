@@ -16,7 +16,8 @@ export interface IPost extends Document {
   views: number;
   likes: number;
   featured: boolean;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "published" | "archived" | "scheduled";
+  scheduledPublishDate?: Date;
   // SEO Metadata
   seoTitle?: string;
   seoDescription?: string;
@@ -48,9 +49,11 @@ const PostSchema: Schema = new Schema(
     featured: { type: Boolean, default: false },
     status: {
       type: String,
-      enum: ["draft", "published", "archived"],
+      enum: ["draft", "published", "archived", "scheduled"],
       default: "draft",
     },
+    // Schedule Field
+    scheduledPublishDate: { type: Date },
     // SEO Fields
     seoTitle: { type: String },
     seoDescription: { type: String },
