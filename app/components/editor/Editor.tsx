@@ -21,7 +21,7 @@ import "./editor.css";
 
 interface EditorProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, json?: any) => void;
   onImageUpload?: (file: File) => Promise<string>;
   onEditorReady?: (editor: TiptapEditor) => void;
   onSave?: () => void;
@@ -102,7 +102,9 @@ export const Editor = forwardRef<any, EditorProps>(
         },
       },
       onUpdate: ({ editor }) => {
-        onChange(editor.getHTML());
+        const html = editor.getHTML();
+        const json = editor.getJSON();
+        onChange(html, json);
       },
       onCreate: ({ editor }) => {
         if (onEditorReady) {

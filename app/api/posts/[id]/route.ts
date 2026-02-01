@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
+import PostRevision from '@/models/PostRevision';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { revalidatePath } from 'next/cache';
@@ -121,19 +122,55 @@ export async function PATCH(
         }
 
         // Recalculate read time if content is being updated
-        if (body.content) {
-            const words = body.content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).length;
+        if (body.content || body.contentJson) {
+            let plainText = "";
+            if (body.contentJson) {
+                // Extract text from JSON
+                const getText = (node: any): string => {
+                    if (node.type === 'text') return node.text || '';
+                    if (node.content && Array.isArray(node.content)) {
+                        return node.content.map(getText).join(' ');
+                    }
+                    return '';
+                };
+                plainText = getText(body.contentJson);
+            } else if (body.content) {
+                plainText = body.content.replace(/<[^>]*>/g, ' ');
+            }
+            
+            const words = plainText.trim().split(/\s+/).length;
             body.readTime = `${Math.ceil(words / 200)} min read`;
         }
 
-        const updatedPost = await Post.findByIdAndUpdate(id, body, { new: true });
+        // SAVE REVISION BEFORE UPDATE
+        // We only save a revision if we are actually changing content/title/status
+        // and if the post is already published or draft (not just a minor view count update, though that's usually separate)
+        // Here we assume all PATCHes to this endpoint are content updates.
+        
+        try {
+            await PostRevision.create({
+                postId: post._id,
+                title: post.title,
+                excerpt: post.excerpt,
+                content: post.content,
+                contentJson: post.contentJson,
+                author: user.id || post.author, // The person performing the overwrite (current user)
+                tags: post.tags,
+                image: post.image
+            });
+        } catch (revError) {
+             console.error("Failed to create revision", revError);
+             // We don't block the main update if revision fails, but we log it.
+        }
+
+        const finalPost = await Post.findByIdAndUpdate(id, body, { new: true });
 
         // BUST CACHE
         revalidatePath("/admin/posts");
-        revalidatePath(`/blog/${updatedPost.slug}`);
+        revalidatePath(`/blog/${finalPost.slug}`);
         revalidatePath("/");
 
-        return NextResponse.json(updatedPost);
+        return NextResponse.json(finalPost);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

@@ -334,7 +334,10 @@ export default async function BlogPostPage({
                 {post.excerpt}
               </p>
 
-              <ArticleContent content={post.content} />
+              <ArticleContent
+                content={post.content}
+                contentJson={post.contentJson}
+              />
 
               <div className="mt-32">
                 <AuthorBio author={post.author} authorPosts={authorPosts} />

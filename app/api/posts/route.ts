@@ -48,11 +48,24 @@ export async function POST(request: Request) {
         ? body.author 
         : user.id;
     
-    // Calculate read time if content exists, otherwise default
-    // Strip HTML tags for more accurate word count
-    const words = body.content 
-        ? body.content.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).length
-        : 0;
+    // Calculate read time
+    let plainText = "";
+    if (body.contentJson) {
+        // Extract text from JSON
+        const getText = (node: any): string => {
+            if (node.type === 'text') return node.text || '';
+            if (node.content && Array.isArray(node.content)) {
+                return node.content.map(getText).join(' ');
+            }
+            return '';
+        };
+        plainText = getText(body.contentJson);
+    } else if (body.content) {
+        // Fallback: Strip HTML
+        plainText = body.content.replace(/<[^>]*>/g, ' ');
+    }
+
+    const words = plainText.trim().split(/\s+/).length;
     const readTimeVal = words > 0
         ? `${Math.ceil(words / 200)} min read`
         : '1 min read';

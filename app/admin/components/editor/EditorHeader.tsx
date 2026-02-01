@@ -29,6 +29,8 @@ interface EditorHeaderProps {
   onValidate: () => boolean;
   isSubmitting: boolean;
   router: any;
+  onHistory: () => void;
+  showHistory: boolean;
 }
 
 export function EditorHeader({

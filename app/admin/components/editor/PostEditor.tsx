@@ -13,7 +13,9 @@ import { Button } from "@/app/components/ui/Button";
 import { useDebouncedCallback } from "use-debounce";
 
 // Sub-components
-import { EditorHeader } from "./EditorHeader";
+import { RevisionsModal } from "./RevisionsModal"; // Add Import
+import { EditorHeader } from "./EditorHeader"; // This import was missing and is needed for EditorHeader component
+
 import { EditorMain } from "./EditorMain";
 import { EditorSEO } from "./EditorSEO";
 import { EditorSidebar } from "./EditorSidebar";
@@ -95,6 +97,24 @@ export default function PostEditor({
   >("image");
 
   const [showGuide, setShowGuide] = useState(false);
+  const [showRevisions, setShowRevisions] = useState(false);
+
+  const handleRevisionRestore = (revision: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      title: revision.title,
+      content: revision.content || "",
+      contentJson: revision.contentJson || null,
+      excerpt: revision.excerpt || "",
+      tags: Array.isArray(revision.tags) ? revision.tags.join(", ") : "",
+    }));
+    setIsDirty(true);
+    showToast(
+      `Restored version from ${new Date(revision.createdAt).toLocaleString()}`,
+      "success",
+    );
+  };
+
   const [editorInstance, setEditorInstance] = useState<TiptapEditor | null>(
     null,
   );
@@ -120,6 +140,7 @@ export default function PostEditor({
     ogImage: "",
     noindex: false,
     scheduledPublishDate: "",
+    contentJson: null as any,
   });
 
   useEffect(() => {
@@ -158,6 +179,7 @@ export default function PostEditor({
               return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
             })()
           : "",
+        contentJson: initialData.contentJson || null,
       });
       setIsDirty(false);
     }
@@ -171,7 +193,7 @@ export default function PostEditor({
           const draftTime = parsed.timestamp || 0;
 
           if (!isEdit) {
-            if (draftData.title || draftData.content) {
+            if (draftData.title || draftData.content || draftData.contentJson) {
               setFormData(draftData);
               setIsDirty(true);
               showToast("Restored your previous session", "info");
@@ -348,15 +370,18 @@ export default function PostEditor({
     on every single keystroke. This makes the editor significantly more responsive
     on large documents.
   */
-  const debouncedSetContent = useDebouncedCallback((value: string) => {
-    setFormData((prev) => ({ ...prev, content: value }));
-    setIsDirty(true);
-  }, 500);
+  const debouncedSetContent = useDebouncedCallback(
+    (value: string, json?: any) => {
+      setFormData((prev) => ({ ...prev, content: value, contentJson: json }));
+      setIsDirty(true);
+    },
+    500,
+  );
 
-  const handleContentChange = (value: string) => {
+  const handleContentChange = (value: string, json?: any) => {
     // Immediate update for local ref if needed (optional),
     // but we primarily want to delay the state update.
-    debouncedSetContent(value);
+    debouncedSetContent(value, json);
   };
 
   const uploadFile = async (file: File): Promise<string> => {
@@ -668,6 +693,15 @@ export default function PostEditor({
         onPublish={() => handleSubmit("published")}
         isSubmitting={isSubmitting}
         router={router}
+        onHistory={() => setShowRevisions(true)}
+        showHistory={isEdit}
+      />
+
+      <RevisionsModal
+        isOpen={showRevisions}
+        onClose={() => setShowRevisions(false)}
+        postId={initialData?._id}
+        onRestore={handleRevisionRestore}
       />
 
       <RestoreDraftPrompt

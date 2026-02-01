@@ -1,12 +1,11 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-
-
 export interface IPost extends Document {
   title: string;
   slug: string;
   excerpt: string;
   content: string;
+  contentJson?: any; // Added for JSON storage
   category: any; // Populated Category | ObjectId
   language: string;
   image: string;
@@ -34,6 +33,7 @@ const PostSchema: Schema = new Schema(
     slug: { type: String, required: true, unique: true },
     excerpt: { type: String, required: true },
     content: { type: String, required: true },
+    contentJson: { type: Schema.Types.Mixed }, // Added for JSON storage (hybrid approach)
     category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     language: { type: String, default: "English" }, // Added language field
     image: { type: String, required: true },
@@ -63,8 +63,6 @@ const PostSchema: Schema = new Schema(
   },
   { timestamps: true },
 );
-
-
 
 // Prevent overwrite model error in development
 export default mongoose.models.Post ||

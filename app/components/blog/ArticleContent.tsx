@@ -21,15 +21,24 @@ if (typeof window !== "undefined") {
   }
 }
 
+import { JsonRenderer } from "./JsonRenderer";
+
 interface ArticleContentProps {
-  content: string;
+  content: string; // HTML Fallback
+  contentJson?: any; // Preferred
 }
 
-export const ArticleContent = ({ content }: ArticleContentProps) => {
+export const ArticleContent = ({
+  content,
+  contentJson,
+}: ArticleContentProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomImage, setZoomImage] = useState<string | null>(null);
 
+  // LEGACY: Only run these DOM manipulations if we are rendering HTML string
   useEffect(() => {
+    if (contentJson) return; // Skip if using JSON renderer
+
     if (containerRef.current) {
       // 1. Syntax Highlighting
       hljs.highlightAll();
@@ -181,17 +190,24 @@ export const ArticleContent = ({ content }: ArticleContentProps) => {
           }
         }
       });
-
-      // 6. Image Zoom Listeners removed (handled via CSS and Event Delegation)
     }
-  }, [content]);
+  }, [content, contentJson]);
 
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only for fallback HTML images. JSON renderer handles its own clicks if needed.
     const target = e.target as HTMLElement;
     if (target.tagName === "IMG" && !target.closest("a")) {
       setZoomImage((target as HTMLImageElement).src);
     }
   };
+
+  if (contentJson) {
+    return (
+      <div className="prose prose-invert prose-xl max-w-none">
+        <JsonRenderer content={contentJson} />
+      </div>
+    );
+  }
 
   return (
     <>
