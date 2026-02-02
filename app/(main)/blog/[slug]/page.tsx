@@ -46,7 +46,7 @@ export async function generateMetadata({
   const description = post.seoDescription || post.excerpt || post.title;
   const image = post.ogImage || post.image;
   const canonical =
-    post.canonicalUrl || `https://knowledgelog.blog/blog/${slug}`;
+    post.canonicalUrl || `https://www.knowledgelog.blog/blog/${slug}`;
   const robots: Metadata["robots"] = post.noindex
     ? { index: false, follow: false }
     : {
@@ -358,7 +358,7 @@ export default async function BlogPostPage({
                 </div>
                 <div className="flex gap-4">
                   <SocialShare
-                    url={`https://knowledgelog.blog/blog/${slug}`}
+                    url={`https://www.knowledgelog.blog/blog/${slug}`}
                     title={post.title}
                     postId={post._id.toString()}
                     initialLikes={post.likes || 0}

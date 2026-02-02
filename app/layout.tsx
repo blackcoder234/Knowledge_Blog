@@ -44,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const fullDescription = siteTagline;
 
   return {
-    metadataBase: new URL("https://knowledgelog.blog"),
+    metadataBase: new URL("https://www.knowledgelog.blog"),
     title: {
       default: `${siteTitle} | ${siteTagline}`,
       template: `%s | ${siteTitle}`,
@@ -53,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: siteTitle,
       description: siteTagline,
-      url: "https://knowledgelog.blog",
+      url: "https://www.knowledgelog.blog",
       siteName: siteTitle,
       locale: "en_US",
       type: "website",

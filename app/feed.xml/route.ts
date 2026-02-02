@@ -20,8 +20,8 @@ export async function GET() {
   const feed = new Feed({
     title: "KnowledgeLog",
     description: "Science, Tech & Future Insights",
-    id: "https://knowledgelog.blog/",
-    link: "https://knowledgelog.blog/",
+    id: "https://www.knowledgelog.blog/",
+    link: "https://www.knowledgelog.blog/",
     language: "en", // optional, used only in RSS 2.0, possible values: http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
     image: "https://knowledgelog.blog/icon.png",
     favicon: "https://knowledgelog.blog/favicon.ico",
