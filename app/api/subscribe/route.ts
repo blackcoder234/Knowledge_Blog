@@ -20,6 +20,31 @@ export async function POST(req: Request) {
 
     await Subscriber.create({ email });
 
+    // ----------------------------------------------------------------------
+    // HYBRID SYNC: Push to Buttondown (External Provider)
+    // ----------------------------------------------------------------------
+    const BUTTONDOWN_API_KEY = process.env.BUTTONDOWN_API_KEY;
+    if (BUTTONDOWN_API_KEY) {
+      try {
+        const buttondownRes = await fetch("https://api.buttondown.email/v1/subscribers", {
+          method: "POST",
+          headers: {
+            "Authorization": `Token ${BUTTONDOWN_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        });
+
+        if (!buttondownRes.ok) {
+           const bdError = await buttondownRes.json();
+           console.error("Buttondown Sync Failed:", bdError);
+           // We do NOT throw here. We want the user to succeed even if external sync fails.
+        }
+      } catch (bdErr) {
+        console.error("Buttondown Network Error:", bdErr);
+      }
+    }
+
     return NextResponse.json({ message: "Successfully subscribed!", success: true }, { status: 201 });
   } catch (error) {
     console.error("Subscription error:", error);

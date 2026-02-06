@@ -7,7 +7,9 @@ import { signOut, useSession } from "next-auth/react";
 
 // Updated sidebar links with new Users and Profile sections
 const sidebarLinks = [
+  // --- OVERVIEW ---
   {
+    header: "Overview",
     label: "Dashboard",
     href: "/admin/dashboard",
     icon: (
@@ -47,7 +49,10 @@ const sidebarLinks = [
       </svg>
     ),
   },
+
+  // --- CONTENT ---
   {
+    header: "Content",
     label: "Posts",
     href: "/admin/posts",
     icon: (
@@ -63,26 +68,6 @@ const sidebarLinks = [
           strokeLinecap="round"
           strokeLinejoin="round"
           d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: "Comments",
-    href: "/admin/comments",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-        className="w-5 h-5"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
         />
       </svg>
     ),
@@ -108,26 +93,6 @@ const sidebarLinks = [
     ),
   },
   {
-    label: "Messages",
-    href: "/admin/messages",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-        className="w-5 h-5"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
-        />
-      </svg>
-    ),
-  },
-  {
     label: "Media",
     href: "/admin/media",
     icon: (
@@ -148,6 +113,29 @@ const sidebarLinks = [
     ),
   },
   {
+    label: "Comments",
+    href: "/admin/comments",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+        className="w-5 h-5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
+        />
+      </svg>
+    ),
+  },
+
+  // --- AUDIENCE ---
+  {
+    header: "Audience",
     label: "Users",
     href: "/admin/users",
     icon: (
@@ -168,8 +156,8 @@ const sidebarLinks = [
     ),
   },
   {
-    label: "Subscribers",
-    href: "/admin/subscribers",
+    label: "Messages",
+    href: "/admin/messages",
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -188,6 +176,49 @@ const sidebarLinks = [
     ),
   },
   {
+    label: "Subscribers",
+    href: "/admin/subscribers",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+        className="w-5 h-5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"
+        />
+      </svg>
+    ),
+  },
+  {
+    label: "Newsletter",
+    href: "/admin/newsletter",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+        className="w-5 h-5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+        />
+      </svg>
+    ),
+  },
+
+  // --- SYSTEM ---
+  {
+    header: "System",
     label: "Settings",
     href: "/admin/settings",
     icon: (
@@ -212,7 +243,10 @@ const sidebarLinks = [
       </svg>
     ),
   },
+
+  // --- LEGACY ---
   {
+    header: "Legacy",
     label: "Old Dashboard",
     href: "/admin/old/dump/dashboard",
     target: "_blank",
@@ -357,6 +391,7 @@ export const AdminSidebar = ({
                 link.label === "Messages" ||
                 link.label === "Insights" ||
                 link.label === "Subscribers" ||
+                link.label === "Newsletter" ||
                 link.label === "Old Dashboard" ||
                 link.label === "Old Analytics"
               ) {
@@ -372,61 +407,53 @@ export const AdminSidebar = ({
               const showNotification = isMessages && unreadCount > 0;
 
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  target={(link as any).target}
-                  onClick={onClose} // Auto-close on mobile nav
-                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all relative ${
-                    isActive
-                      ? "bg-accent/10 text-accent"
-                      : "text-zinc-400 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  {link.icon}
-                  {link.label}
-
-                  {/* Blinking Notification Dot */}
-                  {showNotification && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                    </span>
+                <div key={link.href}>
+                  {(link as any).header && (
+                    <div className="px-4 mt-6 mb-2 text-[10px] uppercase font-bold text-zinc-600 tracking-wider">
+                      {(link as any).header}
+                    </div>
                   )}
-                </Link>
+                  <Link
+                    href={link.href}
+                    target={(link as any).target}
+                    onClick={onClose} // Auto-close on mobile nav
+                    className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all relative group ${
+                      isActive
+                        ? "bg-gradient-to-r from-accent/20 to-transparent text-accent border-l-2 border-accent"
+                        : "text-zinc-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent"
+                    }`}
+                  >
+                    <span
+                      className={
+                        isActive
+                          ? "text-accent"
+                          : "group-hover:text-white transition-colors"
+                      }
+                    >
+                      {link.icon}
+                    </span>
+                    {link.label}
+
+                    {/* Blinking Notification Dot */}
+                    {showNotification && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                      </span>
+                    )}
+                  </Link>
+                </div>
               );
             })}
         </nav>
 
-        <div className="px-4 py-2 border-t border-white/5">
-          <Link
-            href="/"
-            target="_blank"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all group"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5 group-hover:text-accent transition-colors"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-              />
-            </svg>
-            View Live Site
-          </Link>
-        </div>
-
-        <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-white border border-white/10 overflow-hidden relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* Compact Footer: User & Live Site Combined */}
+        <div className="p-4 border-t border-white/5">
+          <div className="flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5">
+            {/* Avatar */}
+            <div className="h-9 w-9 rounded-full bg-zinc-800 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white overflow-hidden relative shadow-sm ring-1 ring-white/10">
               {session?.user?.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={session.user.image}
                   alt="User"
@@ -436,27 +463,29 @@ export const AdminSidebar = ({
                 <span>AD</span>
               )}
             </div>
-            <div className="flex-1 min-w-0 group">
+
+            {/* User Info & Live Link */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
               <Link
                 href={`/profile/${(session?.user as any)?.id}`}
-                className="block"
+                className="block truncate text-sm font-semibold text-zinc-200 hover:text-white transition-colors"
               >
-                <p className="text-sm font-medium text-white truncate group-hover:text-accent transition-colors">
-                  {session?.user?.name || "Admin User"}
-                </p>
-                <p className="text-xs text-zinc-500 truncate">
-                  {session?.user?.email || "admin@knowologelog.com"}
-                </p>
-                {(session?.user as any)?.role === "super_admin" && (
-                  <span className="inline-block mt-1 text-[10px] bg-red-500/20 text-red-500 px-1.5 rounded font-bold uppercase tracking-wider border border-red-500/20">
-                    Super Admin
-                  </span>
-                )}
+                {session?.user?.name || "Admin"}
+              </Link>
+
+              <Link
+                href="/"
+                target="_blank"
+                className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-zinc-500 hover:text-accent font-medium transition-colors mt-0.5"
+              >
+                View Live Site <span className="text-[9px]">↗</span>
               </Link>
             </div>
+
+            {/* Logout */}
             <button
               onClick={() => signOut({ callbackUrl: "/admin/login" })}
-              className="p-1.5 hover:bg-white/5 rounded-md text-zinc-400 hover:text-red-500 transition-colors"
+              className="p-2 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
               title="Sign Out"
             >
               <svg
