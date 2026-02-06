@@ -23,6 +23,7 @@ interface ToolbarMinimalProps {
   editor: Editor | null;
   onSave?: () => void;
   saveStatus?: "saved" | "saving" | "unsaved";
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
 const ToolbarButton = ({
@@ -62,6 +63,7 @@ export const ToolbarMinimal = ({
   editor,
   onSave,
   saveStatus,
+  onImageUpload,
 }: ToolbarMinimalProps) => {
   if (!editor) return null;
 
@@ -70,8 +72,13 @@ export const ToolbarMinimal = ({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      editor.chain().focus().setImage({ src: url }).run();
+      if (onImageUpload) {
+        // Now just fire and forget, the Editor component handles the optimistic UI
+        onImageUpload(file);
+      } else {
+        const url = URL.createObjectURL(file);
+        editor.chain().focus().setImage({ src: url }).run();
+      }
     }
     if (event.target.value) {
       event.target.value = "";

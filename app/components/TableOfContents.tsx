@@ -12,7 +12,7 @@ export const TableOfContents = () => {
 
   useEffect(() => {
     const findHeadings = () => {
-      const article = document.querySelector(".prose");
+      const article = document.querySelector(".prose-article");
       if (!article) return false;
 
       const elements = article.querySelectorAll("h1, h2, h3");

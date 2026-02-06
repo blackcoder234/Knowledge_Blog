@@ -1,0 +1,481 @@
+/* 
+ * BALANCED TYPOGRAPHY THEME
+ * Focus: High Readability + Compact Components
+ * Logic: Boost Body Text, Reset Component Text for Scale
+ */
+
+/* ==========================================================================
+   BASE TYPOGRAPHY (Global Reads)
+   ========================================================================== */
+.prose-article {
+  /* Editorial Style applied to Balanced Theme */
+  font-family: var(--font-lora), "Georgia", "Cambria", "Times New Roman", serif;
+  font-size: 19px; /* Editorial Size */
+  line-height: 1.5; /* Elegant Leading */
+  /* color: #aeaeafe4;  */
+  color: #d4d4d8; /* Zinc-300:*/
+  max-width: 68ch; 
+  margin: 0 auto;
+  font-weight: 300; 
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dark Mode Optimization */
+.prose-article strong { color: #f4f4f5; font-weight: 600; }
+.prose-article em { color: var(--accent); font-style: italic; }
+
+/* ==========================================================================
+   HEADINGS (Distinct Hierarchy)
+   ========================================================================== */
+.prose-article h1, 
+.prose-article h2, 
+.prose-article h3, 
+.prose-article h4,
+.prose-article h5,
+.prose-article h6 {
+  color: #e4e4e7; /* Zinc-200: Crisp but not harsh */
+  font-family: var(--font-lora), serif;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.6em; /* Match Editor */
+}
+
+/* Specific Sizes & Margins (Editor Ratios) */
+.prose-article h1 { 
+  font-size: 2.25em; 
+  line-height: 1.2; 
+  margin-top: 1.5em; /* Adjusted for flow */
+}
+
+.prose-article h2 { 
+  font-size: 1.8em; 
+  margin-top: 1.5em; /* Match Editor */
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid rgba(255,255,255,0.05); 
+}
+
+.prose-article h3 { 
+  font-size: 1.5em; 
+  margin-top: 1.4em;
+}
+
+.prose-article h4 { 
+  font-size: 1.25em; 
+  margin-top: 1.3em;
+}
+
+.prose-article h5 { 
+  font-size: 1.1em; 
+  margin-top: 1.2em;
+}
+
+.prose-article h6 { 
+  font-size: 1em; 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em; 
+  color: var(--text-secondary, #93939b); /* Muted for H6 */
+  margin-top: 1.2em;
+}
+
+/* ==========================================================================
+   BODY TEXT & PARAGRAPHS
+   ========================================================================== */
+.prose-article p {
+  margin-top: 1.0em;
+  margin-bottom: 1.0em;
+}
+
+/* ==========================================================================
+   COMPONENT STYLES - Callouts, Blackquotes, Bullets, Codeblock
+   ========================================================================== */
+   
+/* 1. CALLOUTS: Editorial Style (Serif + Balanced Size) */
+.prose-article blockquote[class*="callout"] {
+  font-size: 1.15rem; 
+  line-height: 1.65; 
+  /* font-family:"Inter", sans-serif; */
+  /* font-family: system-ui, -apple-system, sans-serif; */
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  margin: 2em 0;
+  padding: 1.25rem 1.5rem;
+  border-radius: 4px; 
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08); 
+  display: flex;
+  gap: 1.2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.08); 
+}
+.prose-article blockquote[class*="callout"] p { margin: 0; /* Remove paragraph spacing inside box */ }
+
+/* Specific Colors per Type */
+.prose-article .callout-info { 
+    /* Background & Border exist already... add TEXT color */
+    color: #93c5fd; /* nice readable blue */
+}
+.prose-article .callout-warning { 
+    color: #fde047; /* yellow-300 */
+}
+.prose-article .callout-danger { 
+    color: #fca5a5; /* red-300 */
+}
+.prose-article .callout-success { 
+    color: #86efac; /* green-300 */
+}
+
+/* Callout Icons & Colors */
+.prose-article blockquote[class*="callout"]::before {
+  content: ""; width: 22px; height: 22px; flex-shrink: 0;
+  background-size: contain; background-repeat: no-repeat;
+  margin-top: 3px; /* Optical alignment fixes */
+}
+.prose-article .callout-info { border-left: 3px solid #3b82f6; background: rgba(59, 130, 246, 0.05) !important; color: #bfdbfe; }
+.prose-article .callout-info::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E"); }
+
+.prose-article .callout-warning { border-left: 3px solid #eab308; background: rgba(234, 179, 8, 0.05) !important; color: #fef08a; }
+.prose-article .callout-warning::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23eab308' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E"); }
+
+.prose-article .callout-danger { border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.05) !important; color: #fecaca; }
+.prose-article .callout-danger::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3-1.6 1.9-4.8 1.9-4.8 1.9-4.8 1.3 2.1.8 3.5.5 4.6z'/%3E%3C/svg%3E"); }
+
+.prose-article .callout-success { border-left: 3px solid #22c55e; background: rgba(34, 197, 94, 0.05) !important; color: #bbf7d0; }
+.prose-article .callout-success::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpolyline points='22 4 12 14.01 9 11.01'/%3E%3C/svg%3E"); }
+
+
+
+
+/* Blackquotes */
+/* Default Quote (Editorial Style) */
+.prose-article blockquote:not([class*="callout"]):not([class*="quote-"]) {
+  position: relative; 
+  border-left: 3px solid var(--accent); 
+  margin: 2em 0;
+  padding-left: 2.25em; 
+  padding-top: 0.3em; 
+  padding-bottom: 0.3em;
+  padding-right: 1em;
+  border-radius: 0 4px 4px 0;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  /* font-family: "Bradley Hand", "Bradley Hand ITC", cursive; */
+  font-style: italic;
+  font-size: 1.1em;
+  color: #e9e1e1;
+  background: rgba(250, 204, 21, 0.02); 
+}
+
+/* Quote Symbol */
+.prose-article blockquote:not([class*="callout"]):not([class*="quote-"])::before {
+  content: "“";
+  position: absolute;
+  left: 0.2em; 
+  top: 0.1em;
+  font-family: var(--font-lora);
+  font-size: 3em; 
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.3; 
+  pointer-events: none;
+}
+
+
+/* Quote: Paper Style */
+.prose-article blockquote.quote-paper {
+  position: relative; 
+  background: #fff8dbb1;
+  color: #495057;
+  border-left: 3px solid #f7b826;
+  font-family: "Courier New", monospace;
+  /* font-family: "American Typewriter", "Courier New", serif; */
+  font-size: 1em;
+  font-style: normal;
+  margin: 2em 0;
+  padding-left: 2.25em; 
+  padding-top: 0.2em; 
+  padding-bottom: 0.2em;
+  padding-right: 1em;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Quote Symbol for Paper */
+.prose-article blockquote.quote-paper::before {
+  content: "“";
+  position: absolute;
+  left: 0.2em;
+  top: 0.3em;
+  font-family: var(--font-lora); /* Keep Serif for elegance even on Courier block */
+  font-size: 3em; 
+  line-height: 1;
+  color: #fab005; /* Match border color */
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Quote: Filled Style */
+.prose-article blockquote.quote-filled {
+  border-left: none;
+  background: #222224ce;
+  color: #e4e4e7d5;
+  padding-left: 1.6em;
+  padding-top: 0.2em; 
+  padding-bottom: 0.2em;
+  padding-right: 1em;
+  border-radius: 0.5rem;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-style: italic;
+  font-size: 1em;
+  margin: 2em 0;
+
+}
+
+/* 
+=================================
+2. LISTS 
+================================
+ */
+
+.prose-article ul, .prose-article ol {
+  margin: 1.5em 0;
+  padding-left: 2.5em; 
+}
+.prose-article li {
+  margin-bottom: -.2em; 
+  padding-left: 0.4em; 
+  line-height: 1.5; 
+  display: list-item;
+}
+
+.prose-article li > ul,
+.prose-article li > ol {
+  margin-top: -0.5em;
+  margin-bottom: -0.5em;
+}
+
+/* --- Standard Bullet Variants --- */
+.prose-article ul.list-disc > li { list-style-type: disc; }
+.prose-article ul.list-circle > li { list-style-type: circle; }
+.prose-article ul.list-square > li { list-style-type: square; }
+
+/* --- Bengali List Support --- */
+@counter-style bengali-alpha {
+  system: fixed;
+  symbols: "ক" "খ" "গ" "ঘ" "ঙ" "চ" "ছ" "জ" "ঝ" "ঞ" "ট" "ঠ" "ড" "ঢ" "ণ" "ত" "থ" "দ" "ধ" "ন" "প" "ফ" "ব" "ভ" "ম" "য" "র" "ল" "শ" "ষ" "স" "হ" "ড়" "ঢ়" "য়" "ৎ" "ং" "ঃ" "ঁ";
+  suffix: ". ";
+}
+.prose-article ol.list-bengali-number { list-style-type: bengali; }
+.prose-article ol.list-bengali-alpha { list-style-type: bengali-alpha; }
+
+/* --- Custom Ordered List Styles --- */
+.prose-article ol.list-decimal { list-style-type: decimal; }
+.prose-article ol.list-alpha { list-style-type: lower-alpha; }
+.prose-article ol.list-alpha-upper { list-style-type: upper-alpha; }
+.prose-article ol.list-roman { list-style-type: lower-roman; }
+.prose-article ol.list-roman-upper { list-style-type: upper-roman; }
+
+/* --- Custom Graphic Bullets (Fixed Gold Color) --- */
+/* Arrow */
+.prose-article ul.list-arrow > li {
+  list-style-type: none;
+  position: relative;
+}
+.prose-article ul.list-arrow > li::before {
+  content: "➢";
+  position: absolute;
+  left: -1.5em;
+  color: var(--accent); /* Theme Gold */
+}
+
+/* Diamond */
+.prose-article ul.list-diamond > li {
+  list-style-type: none;
+  position: relative;
+}
+.prose-article ul.list-diamond > li::before {
+  content: "❖";
+  position: absolute;
+  left: -1.5em;
+  color: var(--accent);
+  font-size: 0.8em;
+  top: 0.3em; /* Optical Adjustment */
+}
+
+/* Star */
+.prose-article ul.list-star > li {
+  list-style-type: none;
+  position: relative;
+}
+.prose-article ul.list-star > li::before {
+  content: "★";
+  position: absolute;
+  left: -1.5em;
+  color: var(--accent);
+  font-size: 0.8em;
+  top: 0.3em;
+}
+
+/* Triangle */
+.prose-article ul.list-triangle > li {
+  list-style-type: none;
+  position: relative;
+}
+.prose-article ul.list-triangle > li::before {
+  content: "‣";
+  position: absolute;
+  left: -1em;
+  color: var(--accent);
+  font-size: 1.2em;
+  line-height: 1;
+  top: 0.1em;
+}
+
+/* --- Task Lists --- */
+.prose-article ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+.prose-article ul[data-type="taskList"] li {
+  display: flex !important; /* Force flex for alignment */
+  list-style: none; /* No bullet */
+}
+.prose-article ul[data-type="taskList"] li label {
+  margin-right: 0.5em;
+  user-select: none;
+}
+.prose-article ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+/* 3. TABLES: Industry Standard Data Tables */
+.prose-article table {
+  font-family: system-ui, -apple-system, sans-serif; 
+  font-size: 0.9em; 
+  line-height: 1.6;
+  width: max-content; 
+  max-width: 100%; 
+  border-collapse: collapse;
+  /* border & rounded handled by wrapper in renderer */
+}
+
+/* Headers */
+.prose-article th {
+  background: #18181b; /* Zinc-900 */
+  color: #a1a1aa; /* Zinc-400 */
+  text-transform: uppercase;
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding:1rem 1.35rem;
+  border: 1px solid rgba(255,255,255,0.1); /* Full Border */
+  text-align: left;
+}
+
+/* Cells */
+.prose-article td {
+  padding: 1rem 1.35rem; /* Tighter padding */
+  border: 1px solid rgba(255,255,255,0.08); /* Full Border */
+  color: #e4e4e7; /* Zinc-200 */
+  vertical-align: top;
+}
+
+/* Reset Paragraphs inside Tables */
+.prose-article td p,
+.prose-article th p {
+  margin: 0;
+}
+
+/* Zebra Striping & Hover */
+.prose-article tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+.prose-article tr:hover td {
+  background: rgba(255, 255, 255, 0.03); /* Interaction feedback */
+  transition: background 0.15s ease;
+}
+
+
+/* 4. CODE BLOCKS: Industry Standard (Developer Look) */
+.prose-article pre {
+  margin: 2em 0;
+  padding: 1rem;
+  background: #0d0d0d; /* Deep Editor Black */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-family: Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.7em; 
+  line-height: 1.5;
+  color: #e2e8f0; 
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.5); 
+}
+
+/* Ensure code inside pre inherits correctly */
+.prose-article pre code {
+  font-family: inherit;
+  font-size: 1em; /* Do not shrink further */
+  color: inherit;
+  background: transparent;
+  padding: 0;
+  border: none;
+  font-style: normal; /* No italics from body */
+  font-weight: 400;
+}
+
+/* Inline Code (Not in Pre) */
+.prose-article :not(pre) > code {
+   background: #1f1f22; /* Solid dark grey instead of transparent */
+   border: 1px solid rgba(255,255,255,0.1); /* Adds definition */
+   color: #e2e8f0;
+   padding: 0.1em 0.3em;
+   border-radius: 4px;
+   font-size: 0.85em;
+   font-family: "JetBrains Mono", monospace; /* Match your choice above */
+   font-weight: 500;
+}
+
+
+
+/* 6. LINKS: Modern Tech Standard */
+.prose-article a {
+  color: var(--accent); /* Brand Color */
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.2); /* Subtle underline by default */
+  text-underline-offset: 4px; /* Space between text and line */
+  text-decoration-thickness: 1px;
+  transition: all 0.2s ease;
+}
+.prose-article a:hover {
+  color: #fff; /* Brighten text on hover */
+  text-decoration-color: var(--accent); /* Highlight line */
+  background: rgba(255, 255, 255, 0.05); /* Optional: very subtle highlight pill */
+  border-radius: 2px;
+}
+
+
+/* 5. IMAGES & VISUALS */
+.prose-article img {
+  border-radius: 0.5rem; /* Rounded corners */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+  margin-top: 1em;
+  margin-bottom: 2em;
+  max-width: 100%;
+  height: auto;
+  transition: transform 0.3s ease;
+}
+
+/* Hover Effect for Clickable Images */
+.prose-article img.cursor-zoom-in:hover {
+  transform: scale(1.01); /* Micro-interaction */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15); /* deeper shadow on hover */
+}
+
+/* Captions */
+.prose-article figcaption {
+  text-align: center;
+  font-family: system-ui, -apple-system, sans-serif; /* Use Sans for UI elements/captions */
+  font-size: 0.85em;
+  color: #a1a1aa; /* text-zinc-400 */
+  margin-top: -1em; /* Pull closer to image */
+  margin-bottom: 2em;
+}
+

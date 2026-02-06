@@ -22,6 +22,7 @@ interface CMSEditorLayoutProps {
   lastSaved?: Date;
   title?: string;
   onTitleChange?: (val: string) => void;
+  onImageUpload?: (file: File) => Promise<string>;
   modals: {
     link: {
       isOpen: boolean;
@@ -48,6 +49,7 @@ export const CMSEditorLayout = ({
   lastSaved,
   title,
   onTitleChange,
+  onImageUpload,
   modals,
 }: CMSEditorLayoutProps) => {
   const [isFocusMode, setFocusMode] = useState(false);
@@ -93,6 +95,7 @@ export const CMSEditorLayout = ({
           onSave={onSave}
           saveStatus={saveStatus}
           onExitZenMode={onToggleZenMode}
+          onImageUpload={onImageUpload}
         />
 
         <main className="flex-1 w-full flex justify-center p-4 md:p-8 pb-32 overflow-y-auto">

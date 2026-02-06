@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Inter, Space_Grotesk, Lora } from "next/font/google";
 import "./globals.css";
+import "./styles/typography-balanced.css";
 import { AuthProvider } from "./providers";
 import { ToastProvider } from "./context/ToastContext";
 import ClientTracker from "./components/ClientTracker";

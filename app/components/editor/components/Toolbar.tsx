@@ -627,7 +627,8 @@ export const Toolbar = ({
   onSave,
   saveStatus,
   onExitZenMode,
-}: ToolbarProps) => {
+  onImageUpload,
+}: ToolbarProps & { onImageUpload?: (file: File) => Promise<string> }) => {
   if (!editor) return null;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -635,8 +636,13 @@ export const Toolbar = ({
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      editor.chain().focus().setImage({ src: url }).run();
+      if (onImageUpload) {
+        // Fire and forget, parent Editor handles optimistic UI
+        onImageUpload(file);
+      } else {
+        const url = URL.createObjectURL(file);
+        editor.chain().focus().setImage({ src: url }).run();
+      }
     }
     // Reset value so same file can be selected again
     if (event.target.value) {

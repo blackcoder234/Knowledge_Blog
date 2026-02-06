@@ -52,9 +52,10 @@ export const editorExtensions = [
     addAttributes() {
       return {
         class: {
-          default: 'border-l-4 border-gray-300 pl-4 italic',
+          default: null,
           parseHTML: (element) => element.getAttribute('class'),
           renderHTML: (attributes) => {
+            if (!attributes.class) return {};
             return { class: attributes.class };
           },
         },
@@ -65,10 +66,11 @@ export const editorExtensions = [
     addAttributes() {
       return {
         class: {
-          default: 'list-disc list-outside leading-3 -mt-2',
+          default: null,
           parseHTML: (element) => element.getAttribute('class'),
           renderHTML: (attributes) => {
-             return { class: attributes.class };
+            if (!attributes.class) return {};
+            return { class: attributes.class };
           },
         },
       };
@@ -78,10 +80,11 @@ export const editorExtensions = [
     addAttributes() {
       return {
         class: {
-          default: 'list-decimal list-outside leading-3 -mt-2',
+          default: null,
           parseHTML: (element) => element.getAttribute('class'),
           renderHTML: (attributes) => {
-             return { class: attributes.class };
+            if (!attributes.class) return {};
+            return { class: attributes.class };
           },
         },
       };
@@ -90,9 +93,7 @@ export const editorExtensions = [
   Underline,
   Link.configure({
     openOnClick: false,
-    HTMLAttributes: {
-      class: 'text-blue-400 hover:text-blue-300 underline cursor-pointer transition-colors',
-    },
+    autolink: true,
   }),
   ImageResizeExtension,
   TextAlign.configure({
@@ -109,16 +110,12 @@ export const editorExtensions = [
   }),
   Table.configure({
     resizable: true,
-    HTMLAttributes: {
-      class: 'my-6 rounded-lg overflow-hidden border border-gray-700',
-    },
   }),
   TableRow,
   TableHeader,
   TableCell,
   CodeBlockLowlight.configure({
     lowlight,
-    // HTMLAttributes removed as NodeView handles styling
   }).extend({
     addNodeView() {
       return ReactNodeViewRenderer(CodeBlockComponent);
@@ -128,16 +125,9 @@ export const editorExtensions = [
     className: 'has-focus',
     mode: 'all',
   }),
-  TaskList.configure({
-    HTMLAttributes: {
-      class: 'not-prose pl-2',
-    },
-  }),
+  TaskList,
   TaskItem.configure({
     nested: true,
-    HTMLAttributes: {
-      class: 'flex gap-2 items-start my-1',
-    },
   }),
   TextStyle,
   Color,

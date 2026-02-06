@@ -1,14 +1,18 @@
 "use client";
 
-import React, { FC } from "react";
-import Image from "next/image";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  createContext,
+  useContext,
+} from "react";
 import Link from "next/link";
-import { Copy, Check } from "lucide-react";
-import { motion } from "framer-motion";
 import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-dark.css";
 import * as katex from "katex";
 import "katex/dist/katex.min.css";
+import * as mermaid from "mermaid";
 
 /* --------------------------------------------------------------------------------
  * TYPES
@@ -26,6 +30,15 @@ type JSONContent = {
 };
 
 /* --------------------------------------------------------------------------------
+ * CONTEXT: Renderer Config
+ * -------------------------------------------------------------------------------- */
+type RendererContextType = {
+  onImageClick?: (src: string) => void;
+};
+
+const RendererContext = createContext<RendererContextType>({});
+
+/* --------------------------------------------------------------------------------
  * HELPER: Render Marks (Bold, Italic, Link, etc.)
  * -------------------------------------------------------------------------------- */
 const renderTextWithMarks = (node: JSONContent) => {
@@ -34,35 +47,27 @@ const renderTextWithMarks = (node: JSONContent) => {
   let element: React.ReactNode = node.text;
 
   // Mark Order Priority: Link > Code > Bold/Italic
-  // But usually we just wrap iteratively.
-
   if (node.marks) {
     node.marks.forEach((mark) => {
       switch (mark.type) {
         case "bold":
-          element = <strong className="text-white font-bold">{element}</strong>;
+          element = <strong>{element}</strong>;
           break;
         case "italic":
-          element = <em className="italic">{element}</em>;
+          element = <em>{element}</em>;
           break;
         case "strike":
-          element = <s className="line-through opacity-70">{element}</s>;
+          element = <s>{element}</s>;
           break;
         case "underline":
-          element = (
-            <u className="underline underline-offset-4 decoration-accent/30">
-              {element}
-            </u>
-          );
+          element = <u>{element}</u>;
           break;
         case "code":
-          element = (
-            <code className="px-1.5 py-0.5 rounded bg-accent/10 border border-accent/20 text-accent font-mono text-sm">
-              {element}
-            </code>
-          );
+          // Output semantic code tag. Prose styles handle the look.
+          element = <code>{element}</code>;
           break;
         case "link":
+          // Uses Next.js Link for optimized routing, but relies on Prose for styling
           element = (
             <Link
               href={mark.attrs?.href || "#"}
@@ -72,21 +77,15 @@ const renderTextWithMarks = (node: JSONContent) => {
                   ? "noopener noreferrer"
                   : undefined
               }
-              className="text-accent hover:text-accent/80 underline decoration-accent/30 hover:decoration-accent transition-all"
             >
               {element}
             </Link>
           );
           break;
         case "highlight":
-          element = (
-            <mark className="bg-yellow-500/20 text-yellow-200 rounded px-1">
-              {element}
-            </mark>
-          );
+          element = <mark>{element}</mark>;
           break;
         case "textStyle":
-          // Handle color if present
           if (mark.attrs?.color) {
             element = (
               <span style={{ color: mark.attrs.color }}>{element}</span>
@@ -101,91 +100,117 @@ const renderTextWithMarks = (node: JSONContent) => {
 };
 
 /* --------------------------------------------------------------------------------
- * COMPONENT: Code Block (with Copy & Highlight)
+ * COMPONENT: Mermaid Block
  * -------------------------------------------------------------------------------- */
-const CodeBlock = ({ node }: { node: JSONContent }) => {
-  const language = node.attrs?.language || "text";
-  const rawCode = node.content?.map((c) => c.text).join("") || "";
-  const [copied, setCopied] = React.useState(false);
+const MermaidBlock = ({ code }: { code: string }) => {
+  const [svg, setSvg] = useState<string>("");
 
-  // Syntax Highlight (Client-side)
-  // We can use a ref or just simple dangerouslySetInnerHTML with hljs result
-  const highlightedCode = React.useMemo(() => {
-    try {
-      if (language && hljs.getLanguage(language)) {
-        return hljs.highlight(rawCode, { language }).value;
+  useEffect(() => {
+    const renderChart = async () => {
+      try {
+        const m = (mermaid as any).default || mermaid;
+        // Unique ID for each diagram
+        const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+        if (typeof m.render === "function") {
+          const { svg } = await m.render(id, code);
+          setSvg(svg);
+        }
+      } catch (e) {
+        console.error("Mermaid render error", e);
       }
-      return hljs.highlightAuto(rawCode).value;
-    } catch (e) {
-      return rawCode;
-    }
-  }, [rawCode, language]);
+    };
+    renderChart();
+  }, [code]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(rawCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  if (!svg)
+    return (
+      <div className="text-zinc-500 animate-pulse font-mono text-xs p-4 border border-white/10 rounded">
+        Loading diagram...
+      </div>
+    );
 
   return (
-    <div className="relative group my-8 rounded-xl overflow-hidden border border-white/10 bg-[#0d1117] shadow-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-white/5">
-        <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
-          {language}
-        </span>
-        <button
-          onClick={handleCopy}
-          className="p-1.5 rounded-md hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
-          title="Copy code"
-        >
-          {copied ? (
-            <Check size={14} className="text-green-400" />
-          ) : (
-            <Copy size={14} />
-          )}
-        </button>
-      </div>
-      {/* Code */}
-      <div className="p-4 overflow-x-auto">
-        <pre className="font-mono text-sm leading-relaxed text-zinc-300">
-          <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
-        </pre>
-      </div>
-    </div>
+    <div
+      className="mermaid-svg-container w-full flex justify-center py-4 [&>svg]:max-w-full [&>svg]:h-auto"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   );
 };
+
+/* --------------------------------------------------------------------------------
+ * COMPONENT: Code Block (Semantic Match)
+ * -------------------------------------------------------------------------------- */
+// CodeBlock component is now imported from ./CodeBlock.tsx
+// Using the dedicated component for consistent industry-standard styling
+import { CodeBlock } from "./CodeBlock"; // Ensure this import path is correct based on file structure
 
 /* --------------------------------------------------------------------------------
  * COMPONENT: Math Block (Katex)
  * -------------------------------------------------------------------------------- */
 const MathBlock = ({ node }: { node: JSONContent }) => {
-  const latex = node.content?.[0]?.text || ""; // Assuming text content
-  // OR it might be in attrs in some extensions
-  // Let's assume text node inside math block for now, or adapt if schema differs.
-  // Actually, Tiptap math extension usually calls it 'math_display' or 'math_inline'.
-  // If it's a block, it renders standard Katex display mode.
-
-  // Fallback if structure is slightly different (e.g. attrs.latex)
-  const formula = latex || node.attrs?.latex || "";
+  const latex = node.content?.[0]?.text || node.attrs?.latex || "";
+  const isBlock = node.attrs?.isBlock ?? true; // Default to block if undefined, or check your specific node logic
 
   const html = React.useMemo(() => {
     try {
-      return katex.renderToString(formula, {
-        displayMode: true,
+      return katex.renderToString(latex, {
+        displayMode: isBlock, // Respect the attribute
         throwOnError: false,
         errorColor: "#cc0000",
       });
     } catch (e) {
       return "Math Error";
     }
-  }, [formula]);
+  }, [latex, isBlock]);
+
+  // If Block: Centered div with margin
+  if (isBlock) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          margin: "1.5rem 0", // Reduced from 2.5rem for tighter fit
+          overflowX: "auto",
+        }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
+  // If Inline: Span with no extra margin
+  return (
+    <span className="math-inline" dangerouslySetInnerHTML={{ __html: html }} />
+  );
+};
+
+/* --------------------------------------------------------------------------------
+ * HELPER: Class Sanitizer
+ * Removes explicit Tailwind utility classes saved by the editor,
+ * keeping only semantic classes (callouts, custom lists, alignments).
+ * -------------------------------------------------------------------------------- */
+const sanitizeClass = (cls: string | undefined): string | undefined => {
+  if (!cls) return undefined;
 
   return (
-    <div
-      className="my-8 flex justify-center overflow-x-auto p-4"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    cls
+      .split(" ")
+      .filter((c) => {
+        // Keep semantic custom classes
+        if (c.startsWith("callout")) return true;
+        if (c.startsWith("quote-")) return true;
+        if (c.startsWith("list-")) return true;
+
+        // Keep alignment classes if used
+        if (
+          ["text-left", "text-center", "text-right", "text-justify"].includes(c)
+        )
+          return true;
+
+        // Discard purely visual utility classes (border-*, text-gray-*, pl-*, etc.)
+        return false;
+      })
+      .join(" ") || undefined
   );
 };
 
@@ -194,30 +219,31 @@ const MathBlock = ({ node }: { node: JSONContent }) => {
  * -------------------------------------------------------------------------------- */
 export const JsonRenderer = ({
   content,
+  onImageClick,
 }: {
   content: JSONContent | JSONContent[];
+  onImageClick?: (src: string) => void;
 }) => {
-  // Handle if content is the top-level doc { type: 'doc', content: [...] }
   const nodes = Array.isArray(content) ? content : content.content;
-
   if (!nodes) return null;
 
   return (
-    <div className="space-y-2">
-      {" "}
-      {/* Tiny generic spacing, relying on block margins */}
+    <RendererContext.Provider value={{ onImageClick }}>
       {nodes.map((node, index) => (
         <NodeRenderer key={index} node={node} />
       ))}
-    </div>
+    </RendererContext.Provider>
   );
 };
 
 const NodeRenderer = ({ node }: { node: JSONContent }) => {
   switch (node.type) {
+    case "doc":
+      return <JsonRenderer content={node.content || []} />;
+
     case "paragraph":
       return (
-        <p className="text-xl leading-relaxed font-light text-zinc-300/90 my-6">
+        <p className={sanitizeClass(node.attrs?.class)}>
           {node.content?.map((c, i) =>
             c.type === "text" ? (
               renderTextWithMarks(c)
@@ -231,56 +257,59 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
     case "heading":
       const level = node.attrs?.level || 1;
       const Tag = `h${level}` as React.ElementType;
-      const sizes: Record<string, string> = {
-        h1: "text-4xl font-bold text-white mb-8 mt-12",
-        h2: "text-3xl font-bold text-white mb-6 mt-12 border-b border-white/10 pb-4",
-        h3: "text-2xl font-semibold text-white mb-4 mt-8",
-        h4: "text-xl font-bold text-white mb-4 mt-8",
-        h5: "text-lg font-bold text-zinc-200 mb-2 mt-6",
-        h6: "text-sm font-bold uppercase tracking-widest text-zinc-400 mb-2 mt-6",
-      };
-
-      // Generate an ID for anchor links (if missing, we assume one)
-      // Simple text-to-slug logic for anchors
       const textContent = node.content?.map((c) => c.text).join(" ") || "";
       const slug = textContent.toLowerCase().replace(/[^\w]+/g, "-");
 
+      // Structure aligned with ArticleContent post-processor
       return (
-        <Tag id={slug} className={`font-serif ${sizes[`h${level}`] || ""}`}>
-          {/* Anchor Link on Hover */}
-          <span className="group flex items-center">
-            {node.content?.map((c, i) =>
-              c.type === "text" ? (
-                renderTextWithMarks(c)
-              ) : (
-                <NodeRenderer key={i} node={c} />
-              ),
-            )}
-            <a
-              href={`#${slug}`}
-              className="ml-2 text-accent opacity-0 group-hover:opacity-100 transition-opacity no-underline"
-            >
-              #
-            </a>
-          </span>
+        <Tag id={slug} className="group flex items-center">
+          {node.content?.map((c, i) =>
+            c.type === "text" ? (
+              renderTextWithMarks(c)
+            ) : (
+              <NodeRenderer key={i} node={c} />
+            ),
+          )}
+          <a
+            href={`#${slug}`}
+            className="anchor-link ml-2 opacity-0 focus:opacity-100 group-hover:opacity-100 transition-opacity text-accent no-underline"
+          >
+            #
+          </a>
         </Tag>
       );
 
     case "image":
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { onImageClick } = useContext(RendererContext);
+      const { width, height, textAlign } = node.attrs || {};
+
+      // Calculate alignment styles for the FIGURE container
+      const figureStyle: React.CSSProperties = {
+        textAlign: (textAlign as any) || "center",
+        // If the editor saves specific alignments, handle them (e.g. float? usually just text-align for simple block images)
+        display: "block",
+        margin: "2em auto", // Default vertical spacing
+      };
+
+      // Calculate image specific styles
+      const imgStyle: React.CSSProperties = {
+        width: width || "100%",
+        maxWidth: "100%",
+        height: height || "auto",
+        display: "inline-block", // Allows text-align on parent to work
+      };
+
       return (
-        <figure className="my-10">
-          <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
-            {/* Native Next.js Image or simple img? 
-                        Next.js Image requires known width/height which Tiptap might not give precisely per resize.
-                        We'll use standard img for flexibility with max-w-full.
-                     */}
-            <img
-              src={node.attrs?.src}
-              alt={node.attrs?.alt || ""}
-              className="w-full h-auto cursor-zoom-in"
-              style={{ width: node.attrs?.width || "100%" }}
-            />
-          </div>
+        <figure style={figureStyle}>
+          <img
+            src={node.attrs?.src}
+            alt={node.attrs?.alt || ""}
+            title={node.attrs?.title}
+            onClick={() => onImageClick?.(node.attrs?.src)}
+            style={imgStyle}
+            className={onImageClick ? "cursor-zoom-in" : ""}
+          />
           {node.attrs?.title && (
             <figcaption className="text-center text-sm text-zinc-500 mt-3 italic">
               {node.attrs.title}
@@ -290,11 +319,14 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
       );
 
     case "codeBlock":
-      return <CodeBlock node={node} />;
+      const language = node.attrs?.language || "text";
+      const rawCode = node.content?.map((c) => c.text).join("") || "";
+      return <CodeBlock language={language} code={rawCode} />;
 
     case "blockquote":
+      // Rely on globals.css for styling (including callouts)
       return (
-        <blockquote className="border-l-4 border-accent pl-6 italic text-zinc-400 my-8 py-2 text-lg bg-white/5 rounded-r-lg">
+        <blockquote className={sanitizeClass(node.attrs?.class)}>
           {node.content?.map((c, i) => (
             <NodeRenderer key={i} node={c} />
           ))}
@@ -303,7 +335,7 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
 
     case "bulletList":
       return (
-        <ul className="list-disc pl-6 my-6 text-zinc-300 space-y-2 marker:text-accent/60">
+        <ul className={sanitizeClass(node.attrs?.class)}>
           {node.content?.map((c, i) => (
             <NodeRenderer key={i} node={c} />
           ))}
@@ -312,7 +344,7 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
 
     case "orderedList":
       return (
-        <ol className="list-decimal pl-6 my-6 text-zinc-300 space-y-2 marker:text-accent font-medium">
+        <ol className={sanitizeClass(node.attrs?.class)}>
           {node.content?.map((c, i) => (
             <NodeRenderer key={i} node={c} />
           ))}
@@ -321,33 +353,15 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
 
     case "listItem":
       return (
-        <li className="pl-2">
-          {/* List Items often wrapp Text in Paragraphs, we want to unwrap if simple, or keep if complex. 
-                     Tiptap schema: listItem -> [paragraph -> text]
-                     We usually just render children.
-                 */}
-          {node.content?.map((c, i) =>
-            // If it's a generic paragraph inside a list item, we might want to strip the excessive margin of 'p'
-            // or just render it. Let's inspect type.
-            c.type === "paragraph" ? (
-              <span key={i} className="block mb-2">
-                {c.content?.map((sub, j) =>
-                  sub.type === "text" ? (
-                    renderTextWithMarks(sub)
-                  ) : (
-                    <NodeRenderer key={j} node={sub} />
-                  ),
-                )}
-              </span>
-            ) : (
-              <NodeRenderer key={i} node={c} />
-            ),
-          )}
+        <li>
+          {node.content?.map((c, i) => (
+            <NodeRenderer key={i} node={c} />
+          ))}
         </li>
       );
 
     case "horizontalRule":
-      return <hr className="border-white/10 my-16" />;
+      return <hr />;
 
     case "youtube":
       return (
@@ -361,16 +375,61 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
         </div>
       );
 
-    // Add Math Equation Support
     case "mathEquation":
       return <MathBlock node={node} />;
 
+    case "mermaid":
+      // Supports standard Tiptap Mermaid nodes
+      const code = node.attrs?.code || node.content?.[0]?.text || "";
+      return <MermaidBlock code={code} />;
+
+    case "table":
+      // Output raw table, let Prose handle styling/scrolling
+      // Wrapped in a div for responsive scrolling (Industrial Standard)
+      return (
+        <div className="overflow-x-auto my-8 w-full">
+          <table className="w-auto text-left border-collapse border border-white/10 rounded-lg shadow-sm">
+            <tbody>
+              {node.content?.map((c, i) => (
+                <NodeRenderer key={i} node={c} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+
+    case "tableRow":
+      return (
+        <tr>
+          {node.content?.map((c, i) => (
+            <NodeRenderer key={i} node={c} />
+          ))}
+        </tr>
+      );
+
+    case "tableHeader":
+      return (
+        <th>
+          {node.content?.map((c, i) => (
+            <NodeRenderer key={i} node={c} />
+          ))}
+        </th>
+      );
+
+    case "tableCell":
+      return (
+        <td>
+          {node.content?.map((c, i) => (
+            <NodeRenderer key={i} node={c} />
+          ))}
+        </td>
+      );
+
     case "text":
-      // Usually handled by parent, but if standalone:
       return renderTextWithMarks(node);
 
     default:
-      console.warn("Unknown node type:", node.type, node);
+      console.warn("Unknown node type:", node.type);
       return null;
   }
 };

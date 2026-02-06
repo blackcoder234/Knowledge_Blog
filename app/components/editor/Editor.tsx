@@ -58,6 +58,62 @@ export const Editor = forwardRef<any, EditorProps>(
     const [isYoutubeModalOpen, setIsYoutubeModalOpen] = useState(false);
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
 
+    // Optimistic Image Upload Handler
+    const handleImageFile = async (file: File): Promise<string> => {
+      if (!onImageUpload || !editor) return "";
+
+      // 1. Create temporary preview
+      const blobUrl = URL.createObjectURL(file);
+      // const uniqueId = `img-upload-${Date.now()}`;
+
+      // 2. Insert image immediately with "uploading" state
+      editor.commands.command(({ tr, dispatch }) => {
+        if (dispatch) {
+          const node = editor.schema.nodes.image.create({
+            src: blobUrl,
+            class: "is-uploading", // Defined in editor.css
+          });
+          tr.replaceSelectionWith(node);
+        }
+        return true;
+      });
+
+      try {
+        // 3. Perform actual upload
+        const url = await onImageUpload(file);
+
+        if (url) {
+          // 4. Swap blob with real URL and remove class
+          // We need to find the specific node.
+          editor.view.state.doc.descendants((node, pos) => {
+            if (node.type.name === "image" && node.attrs.src === blobUrl) {
+              const tr = editor.view.state.tr.setNodeMarkup(pos, undefined, {
+                ...node.attrs,
+                src: url,
+                class: null, // Remove the class
+              });
+              editor.view.dispatch(tr);
+              return false; // Stop iteration
+            }
+            return true;
+          });
+          return url;
+        }
+      } catch (error) {
+        console.error("Image upload failed", error);
+        // Remove the failed image
+        editor.view.state.doc.descendants((node, pos) => {
+          if (node.type.name === "image" && node.attrs.src === blobUrl) {
+            const tr = editor.view.state.tr.delete(pos, pos + node.nodeSize);
+            editor.view.dispatch(tr);
+            return false;
+          }
+          return true;
+        });
+      }
+      return "";
+    };
+
     const editor = useEditor({
       extensions: editorExtensions,
       content: value,
@@ -69,6 +125,22 @@ export const Editor = forwardRef<any, EditorProps>(
             className,
           ),
         },
+        handlePaste: (view, event) => {
+          const items = Array.from(event.clipboardData?.items || []);
+          const imageItem = items.find((item) =>
+            item.type.startsWith("image/"),
+          );
+
+          if (imageItem && onImageUpload) {
+            const file = imageItem.getAsFile();
+            if (file) {
+              event.preventDefault();
+              handleImageFile(file); // Use optimistic handler
+              return true;
+            }
+          }
+          return false;
+        },
         handleDrop: (view, event, _slice, moved) => {
           if (
             !moved &&
@@ -78,23 +150,74 @@ export const Editor = forwardRef<any, EditorProps>(
           ) {
             const file = event.dataTransfer.files[0];
             if (file.type.startsWith("image/") && onImageUpload) {
-              onImageUpload(file).then((url) => {
-                if (url) {
-                  const { schema } = view.state;
-                  const coordinates = view.posAtCoords({
-                    left: event.clientX,
-                    top: event.clientY,
-                  });
-                  if (coordinates) {
-                    const node = schema.nodes.image.create({ src: url });
-                    const transaction = view.state.tr.insert(
-                      coordinates.pos,
-                      node,
-                    );
-                    view.dispatch(transaction);
-                  }
-                }
+              event.preventDefault();
+              // Create a synthesized File object to pass to our handler if needed,
+              // or just call handleImageFile directly?
+              // handleImageFile relies on `editor` instance which might not be fully ready inside `editorProps` init?
+              // Actually, `editor` variable in `useEditor` hook isn't available inside `editorProps` definition because it's const cyclic dependency.
+              // BUT: `handleImageFile` is defined in the component scope. `useEditor` runs once.
+              // We need to use the `view` passed to handleDrop to get the editor instance or just use logic inline?
+              // `handleImageFile` uses `editor` state variable which is null initially!
+              // FIX: Logic must be inline or use a ref that is stable?
+              // Even better: Extract logic to a standalone function that takes `view`?
+              // Let's inline the logic for Drop but using the `view` provided by Tiptap event.
+
+              const blobUrl = URL.createObjectURL(file);
+
+              // Insert Optimistic
+              const { schema } = view.state;
+              const coordinates = view.posAtCoords({
+                left: event.clientX,
+                top: event.clientY,
               });
+              if (coordinates) {
+                const node = schema.nodes.image.create({
+                  src: blobUrl,
+                  class: "is-uploading",
+                });
+                const tr = view.state.tr.insert(coordinates.pos, node);
+                view.dispatch(tr);
+
+                // Async Upload
+                onImageUpload(file)
+                  .then((url) => {
+                    if (url) {
+                      // Swap
+                      view.state.doc.descendants((node, pos) => {
+                        if (
+                          node.type.name === "image" &&
+                          node.attrs.src === blobUrl
+                        ) {
+                          const tr = view.state.tr.setNodeMarkup(
+                            pos,
+                            undefined,
+                            { ...node.attrs, src: url, class: null },
+                          );
+                          view.dispatch(tr);
+                          return false;
+                        }
+                        return true;
+                      });
+                    }
+                  })
+                  .catch((e) => {
+                    // Fail
+                    view.state.doc.descendants((node, pos) => {
+                      if (
+                        node.type.name === "image" &&
+                        node.attrs.src === blobUrl
+                      ) {
+                        const tr = view.state.tr.delete(
+                          pos,
+                          pos + node.nodeSize,
+                        );
+                        view.dispatch(tr);
+                        return false;
+                      }
+                      return true;
+                    });
+                  });
+              }
               return true;
             }
           }
@@ -191,6 +314,7 @@ export const Editor = forwardRef<any, EditorProps>(
           lastSaved={new Date()} // In a real app we might want to pass this prop too
           title={title}
           onTitleChange={onTitleChange}
+          onImageUpload={handleImageFile}
           modals={{
             link: {
               isOpen: isLinkModalOpen,
@@ -229,6 +353,7 @@ export const Editor = forwardRef<any, EditorProps>(
               editor={editor}
               onSave={onSave}
               saveStatus={saveStatus}
+              onImageUpload={handleImageFile}
             />
           </div>
 

@@ -1,0 +1,301 @@
+/* 
+ * MODERN EDITORIAL THEME (Medium-Inspired)
+ * Focus: Cleanliness, Readability, High X-Height, Generous Whitespace
+ * Target Class: .prose-article
+ */
+
+:root {
+  /* Core Colors - Neutral & Sharp */
+  --prose-body: #242424;         /* Almost black, softer than #000 */
+  --prose-headings: #1a1a1a;     /* Deep black for contrast */
+  --prose-links: #1a8917;        /* Medium's iconic green accent */
+  --prose-captions: #757575;     /* Subtle gray */
+  --prose-borders: #e6e6e6;      /* Very light borders */
+  --prose-code-bg: #f2f2f2;      /* Light gray for inline code */
+  --prose-pre-bg: #282c34;       /* One Dark background for blocks */
+  
+  /* Dark Mode Overrides (Assumes .dark class on parent/body) */
+  --bg-deep: #050505;
+  --text-primary: #e5e5e5;
+  --text-secondary: #a3a3a3;
+}
+
+/* ==========================================================================
+   BASE TYPOGRAPHY CONTAINER
+   ========================================================================== */
+.prose-article {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-size: 20px; /* Medium's standard body size */
+  line-height: 1.58; /* Gold standard for readability */
+  color: #d1d5db; /* Zinc-300 for dark mode default */
+  max-width: 680px; /* Optimal reading width (approx 65-75 chars) */
+  margin: 0 auto;
+  letter-spacing: -0.003em; /* Slightly tighter for modern sans */
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   HEADINGS
+   ========================================================================== */
+.prose-article h1, 
+.prose-article h2, 
+.prose-article h3, 
+.prose-article h4 {
+  font-family: var(--font-inter); /* Keep headings sans-serif for modern look */
+  color: #f3f4f6; /* Zinc-100 */
+  font-weight: 700;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+  letter-spacing: -0.02em; /* Tighten large text */
+}
+
+/* H1 is usually the article title, handled outside, but just in case */
+.prose-article h1 { font-size: 42px; line-height: 1.1; margin-top: 0; }
+.prose-article h2 { font-size: 30px; margin-top: 1.8em; border-bottom: 0; /* No border for clean look */ }
+.prose-article h3 { font-size: 24px; margin-top: 1.6em; }
+.prose-article h4 { font-size: 20px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; color: var(--text-secondary); }
+
+/* ==========================================================================
+   BODY TEXT & PARAGRAPHS
+   ========================================================================== */
+.prose-article p {
+  margin-top: 1.2em;
+  margin-bottom: 1.2em;
+}
+
+/* Dropcap option (use <span class="dropcap">) */
+.prose-article .dropcap {
+  float: left;
+  font-size: 4.8rem;
+  line-height: 0.8;
+  margin-right: 0.1em;
+  margin-top: 0.1em;
+  font-family: var(--font-serif); /* Serif dropcap contrasts nicely with Sans body */
+  color: var(--accent-primary, #ffd700);
+}
+
+/* ==========================================================================
+   LINKS
+   ========================================================================== */
+.prose-article a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: all 0.2s ease;
+}
+
+.prose-article a:hover {
+  color: var(--accent-primary, #ffd700);
+  text-decoration-color: var(--accent-primary, #ffd700);
+  background: rgba(255, 215, 0, 0.1);
+}
+
+/* ==========================================================================
+   LISTS (Modern & Bengali Support)
+   ========================================================================== */
+.prose-article ul, 
+.prose-article ol {
+  margin: 1.5em 0;
+  padding-left: 1.5em;
+  list-style-position: outside;
+}
+
+.prose-article li {
+  margin-bottom: 0.5em;
+  padding-left: 0.4em; /* Breathable spacing from bullet */
+}
+
+/* Standard Styles */
+.prose-article ul { list-style-type: disc; }
+.prose-article ol { list-style-type: decimal; }
+
+/* Bengali Support */
+@counter-style bengali-alpha {
+  system: fixed;
+  symbols: "ক" "খ" "গ" "ঘ" "ঙ" "চ" "ছ" "জ" "ঝ" "ঞ" "ট" "ঠ" "ড" "ঢ" "ণ" "ত" "থ" "দ" "ধ" "ন" "প" "ফ" "ব" "ভ" "ম" "য" "র" "ল" "শ" "ষ" "স" "হ" "ড়" "ঢ়" "য়" "ৎ" "ং" "ঃ" "ঁ";
+  suffix: ". ";
+}
+
+.prose-article ol.list-bengali-number { list-style-type: bengali; }
+.prose-article ol.list-bengali-alpha { list-style-type: bengali-alpha; }
+
+/* Fancy Bullets */
+.prose-article ul.list-arrow { list-style: none; }
+.prose-article ul.list-arrow li::before { content: "→"; color: var(--accent-primary); width: 1.2em; display: inline-block; margin-left: -1.2em; }
+
+.prose-article ul.list-check { list-style: none; }
+.prose-article ul.list-check li::before { content: "✓"; color: #22c55e; font-weight: bold; width: 1.2em; display: inline-block; margin-left: -1.2em; }
+
+/* ==========================================================================
+   BLOCKQUOTES & CALLOUTS
+   ========================================================================== */
+/* Standard Editorial Quote (Medium style) */
+.prose-article blockquote:not([class*="callout"]) {
+  border-left: 3px solid #fff; /* Stark white line */
+  margin: 2em 0;
+  padding-left: 1.2em;
+  font-style: italic;
+  font-size: 1.1em;
+  color: #e5e5e5;
+  font-family: var(--font-serif);
+}
+
+/* Pull Quotes (Center emphasized) */
+.prose-article blockquote.pull-quote {
+  border: none;
+  text-align: center;
+  font-size: 1.8em;
+  line-height: 1.4;
+  font-weight: 700;
+  padding: 1em 0;
+  color: var(--accent-primary);
+  position: relative;
+}
+.prose-article blockquote.pull-quote::before {
+  content: "“";
+  font-size: 3em;
+  display: block;
+  line-height: 0.1;
+  margin-bottom: 0.2em;
+  color: rgba(255,255,255,0.1);
+}
+
+/* Callouts (Alert Boxes) */
+.prose-article blockquote[class*="callout"] {
+  margin: 2em 0;
+  padding: 1rem 1.2rem;
+  border-radius: 8px;
+  border-left: 4px solid;
+  display: flex;
+  gap: 1rem;
+  font-style: normal;
+  font-size: 0.95em;
+  align-items: flex-start;
+}
+
+.prose-article blockquote[class*="callout"] p { margin: 0; }
+
+.prose-article blockquote[class*="callout"]::before {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin-top: 2px;
+}
+
+/* Callout Variants */
+.prose-article .callout-info { background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; color: #bfdbfe; }
+.prose-article .callout-info::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E"); }
+
+.prose-article .callout-warning { background: rgba(234, 179, 8, 0.1); border-color: #eab308; color: #fef08a; }
+.prose-article .callout-warning::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23eab308' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E"); }
+
+.prose-article .callout-danger { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #fecaca; }
+.prose-article .callout-danger::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.2-2.2.5-3.3.3-1.6 1.9-4.8 1.9-4.8 1.9-4.8 1.3 2.1.8 3.5.5 4.6z'/%3E%3C/svg%3E"); }
+
+/* ==========================================================================
+   CODE BLOCKS
+   ========================================================================== */
+.prose-article pre {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin: 2em 0;
+  overflow-x: auto;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.prose-article pre code {
+  color: #e5e5e5;
+  font-family: 'Fira Code', 'Menlo', monospace;
+  font-size: 0.85em; /* Smaller than body text */
+  line-height: 1.6;
+  background: transparent;
+  padding: 0;
+}
+
+/* Inline Code */
+.prose-article :not(pre) > code {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: 'Menlo', monospace;
+}
+
+/* ==========================================================================
+   MEDIA & IMAGES
+   ========================================================================== */
+.prose-article img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 2.5em 0 1em; /* More space above */
+  display: block;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.prose-article figcaption {
+  text-align: center;
+  font-size: 0.85em;
+  color: var(--text-secondary);
+  margin-top: 0.5em; /* Close to image */
+  margin-bottom: 2.5em; /* Space after caption */
+  font-style: italic;
+}
+
+/* Video Containers */
+.prose-article .video-embed {
+  margin: 2.5em 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* ==========================================================================
+   TABLES
+   ========================================================================== */
+.prose-article table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2em 0;
+  font-size: 0.9em;
+}
+
+.prose-article th {
+  text-align: left;
+  border-bottom: 2px solid rgba(255,255,255,0.1);
+  padding: 0.8em;
+  font-weight: 600;
+  color: #fff;
+}
+
+.prose-article td {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  padding: 0.8em;
+  vertical-align: top;
+}
+
+.prose-article tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+
+/* ==========================================================================
+   UTILITIES
+   ========================================================================== */
+.prose-article hr {
+  border: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+  margin: 3em 0;
+}
