@@ -7,8 +7,16 @@ import User from '@/models/User';
 export async function GET() {
   await dbConnect();
 
+  const now = new Date();
+  const publishedFilter = {
+      $or: [
+        { status: "published" },
+        { status: "scheduled", scheduledPublishDate: { $lte: now } },
+      ],
+  };
+
   const posts = await Post.find({ 
-    status: 'published',
+    ...publishedFilter,
     noindex: { $ne: true } 
   })
   .sort({ createdAt: -1 })

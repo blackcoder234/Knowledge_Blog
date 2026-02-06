@@ -17,6 +17,13 @@ import Setting from "@/models/Setting";
 async function getLandingData() {
   try {
     await dbConnect();
+    const now = new Date();
+    const publishedFilter = {
+      $or: [
+        { status: "published" },
+        { status: "scheduled", scheduledPublishDate: { $lte: now } },
+      ],
+    };
 
     // Fetch Quote Settings
     const settings = await Setting.find({
@@ -36,7 +43,7 @@ async function getLandingData() {
     };
 
     // Featured: 3 featured (or trending) posts for maximum attraction
-    let posts = await Post.find({ status: "published", featured: true })
+    let posts = await Post.find({ ...publishedFilter, featured: true })
       .sort({ createdAt: -1 })
       .limit(3)
       .populate("author", "name image")
@@ -46,7 +53,7 @@ async function getLandingData() {
     // Fallback: If no featured posts, use popular posts (views)
     if (posts.length < 3) {
       const popular = await Post.find({
-        status: "published",
+        ...publishedFilter,
         _id: { $nin: posts.map((p: any) => p._id) },
       })
         .sort({ views: -1 })
@@ -60,7 +67,7 @@ async function getLandingData() {
     // Final Fallback: Latest
     if (posts.length < 3) {
       const latest = await Post.find({
-        status: "published",
+        ...publishedFilter,
         _id: { $nin: posts.map((p: any) => p._id) },
       })
         .sort({ createdAt: -1 })
@@ -72,7 +79,7 @@ async function getLandingData() {
     }
 
     // Trending: Fetch top 5 viewed posts for ticker
-    const trending = await Post.find({ status: "published" })
+    const trending = await Post.find(publishedFilter)
       .sort({ views: -1 })
       .limit(5)
       .select("title slug")

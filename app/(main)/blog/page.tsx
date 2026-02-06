@@ -31,6 +31,13 @@ async function getBlogData(searchParams: {
 }) {
   try {
     await dbConnect();
+    const now = new Date();
+    const publishedFilter = {
+      $or: [
+        { status: "published" },
+        { status: "scheduled", scheduledPublishDate: { $lte: now } },
+      ],
+    };
 
     const postsPerPage = 12;
     const currentPage = Number(searchParams.page) || 1;
@@ -47,9 +54,7 @@ async function getBlogData(searchParams: {
     }>;
 
     // Get categories that actually have published posts
-    const activeCategoryIds = await Post.distinct("category", {
-      status: "published",
-    });
+    const activeCategoryIds = await Post.distinct("category", publishedFilter);
     const activeCategoryIdStrings = activeCategoryIds.map((id) =>
       id.toString(),
     );
@@ -95,7 +100,7 @@ async function getBlogData(searchParams: {
     }
 
     // 3. Build Query
-    const query: any = { status: "published" };
+    const query: any = { ...publishedFilter };
     if (searchParams.q) {
       query.$or = [
         { title: { $regex: searchParams.q, $options: "i" } },
@@ -161,14 +166,14 @@ async function getBlogData(searchParams: {
       .lean();
 
     // 6. Fetch Trending/Featured (Top 4)
-    const trendingPosts = await Post.find({ status: "published" })
+    const trendingPosts = await Post.find(publishedFilter)
       .sort({ featured: -1, views: -1 })
       .limit(4)
       .select("title slug views category")
       .populate("category", "name")
       .lean();
 
-    const latestBreaking = await Post.findOne({ status: "published" })
+    const latestBreaking = await Post.findOne(publishedFilter)
       .sort({ createdAt: -1 })
       .select("title slug")
       .lean();

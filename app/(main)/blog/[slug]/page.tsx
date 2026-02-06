@@ -20,7 +20,14 @@ export const dynamicParams = true; // Allow new posts not generated at build tim
 
 export async function generateStaticParams() {
   await dbConnect();
-  const posts = await Post.find({ status: "published" }).select("slug").lean();
+  const now = new Date();
+  const publishedFilter = {
+    $or: [
+      { status: "published" },
+      { status: "scheduled", scheduledPublishDate: { $lte: now } },
+    ],
+  };
+  const posts = await Post.find(publishedFilter).select("slug").lean();
 
   return posts.map((post: any) => ({
     slug: post.slug,
@@ -105,10 +112,18 @@ async function getRelatedPosts(category: any, currentId: any) {
   await dbConnect();
   const categoryId = category?._id || category;
 
+  const now = new Date();
+  const publishedFilter = {
+    $or: [
+      { status: "published" },
+      { status: "scheduled", scheduledPublishDate: { $lte: now } },
+    ],
+  };
+
   const related = await Post.find({
     category: categoryId,
     _id: { $ne: currentId },
-    status: "published",
+    ...publishedFilter,
   })
     .populate("author", "name image")
     .populate("category", "name")
@@ -119,10 +134,18 @@ async function getRelatedPosts(category: any, currentId: any) {
 
 // Fetch Author's recent posts
 async function getAuthorPosts(authorId: any, currentId: any) {
+  const now = new Date();
+  const publishedFilter = {
+    $or: [
+      { status: "published" },
+      { status: "scheduled", scheduledPublishDate: { $lte: now } },
+    ],
+  };
+
   return await Post.find({
     author: authorId,
     _id: { $ne: currentId },
-    status: "published",
+    ...publishedFilter,
   })
     .select("slug title image createdAt")
     .sort({ createdAt: -1 })
@@ -132,9 +155,17 @@ async function getAuthorPosts(authorId: any, currentId: any) {
 
 // Fetch Next Post
 async function getNextPost(date: Date) {
+  const now = new Date();
+  const publishedFilter = {
+    $or: [
+      { status: "published" },
+      { status: "scheduled", scheduledPublishDate: { $lte: now } },
+    ],
+  };
+
   return await Post.findOne({
     createdAt: { $gt: date },
-    status: "published",
+    ...publishedFilter,
   })
     .select("slug title")
     .sort({ createdAt: 1 })
@@ -143,9 +174,17 @@ async function getNextPost(date: Date) {
 
 // Fetch Previous Post
 async function getPrevPost(date: Date) {
+  const now = new Date();
+  const publishedFilter = {
+    $or: [
+      { status: "published" },
+      { status: "scheduled", scheduledPublishDate: { $lte: now } },
+    ],
+  };
+
   return await Post.findOne({
     createdAt: { $lt: date },
-    status: "published",
+    ...publishedFilter,
   })
     .select("slug title")
     .sort({ createdAt: -1 })
@@ -181,7 +220,13 @@ export default async function BlogPostPage({
   }
 
   // Hide unpublished posts from public
-  if (post.status !== "published" && !canPreview) {
+  const isScheduled =
+    post.status === "scheduled" &&
+    post.scheduledPublishDate &&
+    new Date(post.scheduledPublishDate) <= new Date();
+  const isLive = post.status === "published" || isScheduled;
+
+  if (!isLive && !canPreview) {
     notFound();
   }
 
