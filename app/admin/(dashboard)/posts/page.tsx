@@ -13,6 +13,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Image from "next/image";
 import { QuickStatusToggle } from "@/app/components/QuickStatusToggle";
 import { FeaturedToggle } from "@/app/components/FeaturedToggle";
+import { FormattedDate } from "@/app/components/ui/FormattedDate";
 
 export const revalidate = 0; // Always fresh for admin
 
@@ -238,14 +239,9 @@ export default async function PostsPage(props: {
                                     clipRule="evenodd"
                                   />
                                 </svg>
-                                {new Date(
-                                  post.scheduledPublishDate,
-                                ).toLocaleString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                })}
+                                <FormattedDate
+                                  date={post.scheduledPublishDate}
+                                />
                               </span>
                             ) : (
                               <span className="tabular-nums">

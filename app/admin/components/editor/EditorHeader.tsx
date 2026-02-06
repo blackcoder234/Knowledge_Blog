@@ -89,41 +89,46 @@ export function EditorHeader({
             <FileText size={20} />
           </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-white font-sans">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-bold text-white font-sans flex items-center gap-3">
             {isEdit ? "Edit Post" : "Create New Post"}
+            <span className="h-4 w-px bg-white/10 hidden md:block"></span>
+            <div className="flex items-center gap-2 text-xs font-normal">
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  status === "published"
+                    ? "bg-green-500"
+                    : status === "archived"
+                      ? "bg-red-500"
+                      : status === "scheduled"
+                        ? "bg-amber-500"
+                        : "bg-yellow-500"
+                }`}
+              ></span>
+              <span className="capitalize text-zinc-300">
+                {status === "scheduled" ? "Scheduled" : `${status} Mode`}
+              </span>
+            </div>
           </h1>
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
+
+          <div className="flex items-center gap-3 text-[11px] mt-1">
+            {status === "scheduled" && dateStr && (
+              <span className="text-amber-400 font-mono bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1.5">
+                <Calendar size={10} />
+                {new Date(dateStr).toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
             <span
-              className={`h-2 w-2 rounded-full ${
-                status === "published"
-                  ? "bg-green-500"
-                  : status === "archived"
-                    ? "bg-red-500"
-                    : status === "scheduled"
-                      ? "bg-amber-500"
-                      : "bg-yellow-500"
-              }`}
-            ></span>
-            <span className="capitalize font-medium">
-              {status === "scheduled" && dateStr ? (
-                <span className="text-amber-400 flex items-center gap-1">
-                  Scheduled for{" "}
-                  {new Date(dateStr).toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </span>
-              ) : (
-                `${status} Mode`
-              )}
-            </span>
-            <span className="text-zinc-600 mx-2">|</span>
-            <span
-              className={`transition-colors ${isDirty ? "text-yellow-500" : "text-zinc-500"}`}
+              className={`transition-colors flex items-center gap-1.5 ${isDirty ? "text-yellow-500" : "text-zinc-500"}`}
             >
+              <div
+                className={`w-1 h-1 rounded-full ${isDirty ? "bg-yellow-500" : "bg-zinc-600"}`}
+              ></div>
               {isDirty ? "Unsaved changes" : "All changes saved"}
             </span>
           </div>
