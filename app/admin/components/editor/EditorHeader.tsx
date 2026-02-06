@@ -79,7 +79,7 @@ export function EditorHeader({
   };
 
   return (
-    <div className="sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-xl border-b border-white/5 -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 py-6 mb-8 flex items-center justify-between shadow-2xl shadow-black/50">
+    <div className="sticky top-0 z-[100] bg-[#000000]/95 backdrop-blur-xl border-b border-white/5 -mx-4 lg:-mx-8 -mt-4 lg:-mt-8 px-4 lg:px-8 py-6 mb-8 flex items-center justify-between shadow-2xl shadow-black/50">
       <div className="flex items-center gap-4">
         <div
           onClick={() => router.back()}
