@@ -177,7 +177,7 @@ export const Footer = async () => {
             <ul className="flex flex-col gap-3 text-sm text-muted">
               <li>
                 <Link
-                  href="/blog?tag=science"
+                  href="/blog?genre=Science"
                   className="hover:text-accent transition-colors"
                 >
                   Science
@@ -185,7 +185,7 @@ export const Footer = async () => {
               </li>
               <li>
                 <Link
-                  href="/blog?tag=technology"
+                  href="/blog?genre=Technology"
                   className="hover:text-accent transition-colors"
                 >
                   Technology
@@ -193,7 +193,7 @@ export const Footer = async () => {
               </li>
               <li>
                 <Link
-                  href="/blog?tag=culture"
+                  href="/blog?genre=Culture"
                   className="hover:text-accent transition-colors"
                 >
                   Culture
@@ -201,7 +201,7 @@ export const Footer = async () => {
               </li>
               <li>
                 <Link
-                  href="/blog?tag=philosophy"
+                  href="/blog?genre=Philosophy"
                   className="hover:text-accent transition-colors"
                 >
                   Philosophy
@@ -268,7 +268,10 @@ export const Footer = async () => {
             >
               RSS
             </Link>
-            <Link href="#" className="hover:text-white transition-colors">
+            <Link
+              href="/sitemap.xml"
+              className="hover:text-white transition-colors"
+            >
               Sitemap
             </Link>
           </div>

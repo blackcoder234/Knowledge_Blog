@@ -56,29 +56,37 @@ export default function MediaLibraryPage() {
     if (!e.target.files || e.target.files.length === 0) return;
 
     setUploading(true);
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folder", "general"); // Or let user choose? Defaulting for simple UX.
+    let successCount = 0;
 
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+    for (let i = 0; i < e.target.files.length; i++) {
+      const file = e.target.files[i];
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "general");
 
-      if (res.ok) {
-        showToast("Image uploaded successfully", "success");
-        fetchMedia(); // Refresh list
-      } else {
-        throw new Error("Upload failed");
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          successCount++;
+        }
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}`, error);
       }
-    } catch (error) {
-      showToast("Failed to upload image", "error");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+
+    if (successCount > 0) {
+      showToast(`Uploaded ${successCount} files successfully`, "success");
+      fetchMedia(); // Refresh list
+    } else {
+      showToast("Failed to upload files", "error");
+    }
+
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleDelete = (id: string) => {
@@ -168,6 +176,7 @@ export default function MediaLibraryPage() {
             ref={fileInputRef}
             className="hidden"
             accept="image/*"
+            multiple // Support multiple files
             onChange={handleUpload}
           />
         </div>
