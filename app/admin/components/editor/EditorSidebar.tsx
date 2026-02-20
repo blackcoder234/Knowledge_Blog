@@ -298,10 +298,12 @@ export function EditorSidebar({
                 </div>
               </div>
               <div className="text-[#1a0dab] text-sm font-medium hover:underline truncate">
-                {formData.title || "Post Title..."}
+                {formData.seoTitle || formData.title || "Post Title..."}
               </div>
               <div className="text-xs text-[#4d5156] mt-1 line-clamp-2">
-                {formData.excerpt || "Description..."}
+                {formData.seoDescription ||
+                  formData.excerpt ||
+                  "Description..."}
               </div>
             </div>
           </div>
