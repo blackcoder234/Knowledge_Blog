@@ -113,21 +113,24 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
-      title: "Image",
-      description: "Upload an image from your computer.",
-      searchTerms: ["photo", "picture", "media"],
-      icon: "Image",
+      title: "Media Library",
+      description: "Browse existing media or upload new.",
+      searchTerms: ["photo", "picture", "media", "image", "library"],
+      icon: "Images",
       command: ({ editor, range }: any) => {
-        // Delete the slash command text first
         editor.chain().focus().deleteRange(range).run();
-
-        // Trigger the toolbar file input
-        // We find the input by ID or Class since we can't easily pass refs here without Context,
-        // but for now let's rely on a DOM lookup or a custom event if possible.
-        // EASIER: Just click the toolbar button programmatically if we can find it,
-        // OR better: dispatch a custom event that the Toolbar listens to.
-
-        // Let's use a simpler approach: dispatch a custom event "trigger-image-upload"
+        window.dispatchEvent(
+          new CustomEvent("open-media-modal", { detail: { field: "content" } }),
+        );
+      },
+    },
+    {
+      title: "Upload Image",
+      description: "Upload an image directly from your computer.",
+      searchTerms: ["upload", "file", "computer", "device", "image"],
+      icon: "Upload",
+      command: ({ editor, range }: any) => {
+        editor.chain().focus().deleteRange(range).run();
         window.dispatchEvent(new Event("trigger-image-upload"));
       },
     },

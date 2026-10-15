@@ -23,6 +23,7 @@ interface CMSEditorLayoutProps {
   title?: string;
   onTitleChange?: (val: string) => void;
   onImageUpload?: (file: File) => Promise<string>;
+  onOpenMediaLibrary?: () => void;
   modals: {
     link: {
       isOpen: boolean;
@@ -50,6 +51,7 @@ export const CMSEditorLayout = ({
   title,
   onTitleChange,
   onImageUpload,
+  onOpenMediaLibrary,
   modals,
 }: CMSEditorLayoutProps) => {
   const [isFocusMode, setFocusMode] = useState(false);
@@ -96,6 +98,7 @@ export const CMSEditorLayout = ({
           saveStatus={saveStatus}
           onExitZenMode={onToggleZenMode}
           onImageUpload={onImageUpload}
+          onOpenMediaLibrary={onOpenMediaLibrary}
         />
 
         <main className="flex-1 w-full flex justify-center p-4 md:p-8 pb-32 overflow-y-auto">

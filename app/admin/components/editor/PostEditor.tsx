@@ -333,18 +333,32 @@ export default function PostEditor({
       .finally(() => setLoadingCategories(false));
   }, [formData.language, isEdit]);
 
+  const fetchMedia = () => {
+    setLoadingMedia(true);
+    fetch("/api/admin/media")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setMediaLibrary(data);
+      })
+      .catch((err) => console.error(err))
+      .finally(() => setLoadingMedia(false));
+  };
+
   useEffect(() => {
-    if (isMediaModalOpen && mediaLibrary.length === 0) {
-      setLoadingMedia(true);
-      fetch("/api/admin/media")
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) setMediaLibrary(data);
-        })
-        .catch((err) => console.error(err))
-        .finally(() => setLoadingMedia(false));
+    if (isMediaModalOpen) {
+      fetchMedia();
     }
   }, [isMediaModalOpen]);
+
+  useEffect(() => {
+    const handleOpenMedia = (e: any) => {
+      const field = e?.detail?.field || "content";
+      openMediaModal(field);
+    };
+    window.addEventListener("open-media-modal", handleOpenMedia);
+    return () =>
+      window.removeEventListener("open-media-modal", handleOpenMedia);
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -492,7 +506,10 @@ export default function PostEditor({
 
   const selectMediaItem = (url: string) => {
     if (targetImageField === "content") {
-      editorInstance?.chain().focus().setImage({ src: url }).run();
+      const inst = editorInstance || editorRef.current;
+      if (inst?.chain) {
+        inst.chain().focus().setImage({ src: url }).run();
+      }
     } else {
       setFormData((prev) => ({ ...prev, [targetImageField]: url }));
     }
@@ -556,7 +573,11 @@ export default function PostEditor({
               <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
                 <h3 className="font-bold text-white flex items-center gap-2">
                   <ImageIcon size={18} className="text-cyan-400" />
-                  Select Media
+                  {targetImageField === "content"
+                    ? "Insert Image into Post"
+                    : targetImageField === "ogImage"
+                      ? "Select Social Share Image"
+                      : "Select Cover Image"}
                 </h3>
                 <button
                   onClick={() => setIsMediaModalOpen(false)}
@@ -601,6 +622,10 @@ export default function PostEditor({
                           },
                           ...prev,
                         ]);
+                        if (files.length === 1) {
+                          selectMediaItem(url);
+                          return;
+                        }
                       }
                     }
                   }}
@@ -624,6 +649,7 @@ export default function PostEditor({
                       <div
                         key={item._id}
                         onClick={() => selectMediaItem(item.url)}
+                        title={item.filename}
                         className="aspect-square relative group cursor-pointer border-2 border-transparent hover:border-cyan-500 rounded-xl overflow-hidden bg-black/50"
                       >
                         <img
@@ -631,7 +657,11 @@ export default function PostEditor({
                           alt={item.filename}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end p-1.5 opacity-0 group-hover:opacity-100">
+                          <p className="text-[10px] text-zinc-200 truncate w-full font-mono bg-black/70 px-1 py-0.5 rounded">
+                            {item.filename}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -729,6 +759,7 @@ export default function PostEditor({
                 className="h-[75vh] min-h-[500px]"
                 onImageUpload={uploadFile}
                 onEditorReady={setEditorInstance}
+                onOpenMediaLibrary={() => openMediaModal("content")}
               />
 
               {/* SEO Metadata Settings */}
@@ -748,6 +779,7 @@ export default function PostEditor({
                 className="h-full border-none bg-transparent"
                 onImageUpload={uploadFile}
                 onEditorReady={setEditorInstance}
+                onOpenMediaLibrary={() => openMediaModal("content")}
                 saveStatus={
                   isSubmitting ? "saving" : isDirty ? "unsaved" : "saved"
                 }

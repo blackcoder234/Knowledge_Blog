@@ -32,6 +32,7 @@ interface EditorProps {
   isZenMode?: boolean;
   title?: string;
   onTitleChange?: (val: string) => void;
+  onOpenMediaLibrary?: () => void;
 }
 
 export const Editor = forwardRef<any, EditorProps>(
@@ -49,6 +50,7 @@ export const Editor = forwardRef<any, EditorProps>(
       isZenMode = false,
       title,
       onTitleChange,
+      onOpenMediaLibrary,
     },
     ref,
   ) => {
@@ -285,10 +287,20 @@ export const Editor = forwardRef<any, EditorProps>(
 
       const handleOpenYoutubeModal = () => setIsYoutubeModalOpen(true);
       const handleOpenStatsModal = () => setIsStatsModalOpen(true);
+      const handleOpenMediaLibrary = () => {
+        if (onOpenMediaLibrary) {
+          onOpenMediaLibrary();
+        } else {
+          window.dispatchEvent(
+            new CustomEvent("open-media-modal", { detail: { field: "content" } }),
+          );
+        }
+      };
 
       window.addEventListener("open-link-modal", handleOpenLinkModal);
       window.addEventListener("open-youtube-modal", handleOpenYoutubeModal);
       window.addEventListener("open-stats-modal", handleOpenStatsModal);
+      window.addEventListener("open-media-library", handleOpenMediaLibrary);
 
       return () => {
         window.removeEventListener("open-link-modal", handleOpenLinkModal);
@@ -297,8 +309,12 @@ export const Editor = forwardRef<any, EditorProps>(
           handleOpenYoutubeModal,
         );
         window.removeEventListener("open-stats-modal", handleOpenStatsModal);
+        window.removeEventListener(
+          "open-media-library",
+          handleOpenMediaLibrary,
+        );
       };
-    }, [editor]);
+    }, [editor, onOpenMediaLibrary]);
 
     if (!editor) {
       return null;
@@ -315,6 +331,7 @@ export const Editor = forwardRef<any, EditorProps>(
           title={title}
           onTitleChange={onTitleChange}
           onImageUpload={handleImageFile}
+          onOpenMediaLibrary={onOpenMediaLibrary}
           modals={{
             link: {
               isOpen: isLinkModalOpen,
@@ -354,6 +371,7 @@ export const Editor = forwardRef<any, EditorProps>(
               onSave={onSave}
               saveStatus={saveStatus}
               onImageUpload={handleImageFile}
+              onOpenMediaLibrary={onOpenMediaLibrary}
             />
           </div>
 

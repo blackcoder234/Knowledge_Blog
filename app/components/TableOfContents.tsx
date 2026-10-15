@@ -23,9 +23,14 @@ export const TableOfContents = () => {
         if (!el.id) {
           el.id = `heading-${index}`;
         }
+        // Clone node to safely remove anchor link without mutating the actual DOM
+        const clone = el.cloneNode(true) as HTMLElement;
+        clone.querySelectorAll(".anchor-link").forEach((a) => a.remove());
+        const cleanText = (clone.textContent || "").trim().replace(/#\s*$/, "").trim();
+
         items.push({
           id: el.id,
-          text: el.textContent || "",
+          text: cleanText,
           level: parseInt(el.tagName.charAt(1)),
         });
       });

@@ -259,6 +259,9 @@
 }
 
 /* Standard Bullet Variants */
+.prose-article ul, .ProseMirror ul { list-style-type: disc; }
+.prose-article ol, .ProseMirror ol { list-style-type: decimal; }
+.prose-article li::marker, .ProseMirror li::marker { color: #a1a1aa; }
 .prose-article ul.list-disc > li, .ProseMirror ul.list-disc > li { list-style-type: disc; }
 .prose-article ul.list-circle > li, .ProseMirror ul.list-circle > li { list-style-type: circle; }
 .prose-article ul.list-square > li, .ProseMirror ul.list-square > li { list-style-type: square; }

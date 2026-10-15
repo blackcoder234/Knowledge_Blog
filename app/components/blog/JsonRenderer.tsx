@@ -85,6 +85,12 @@ const renderTextWithMarks = (node: JSONContent) => {
         case "highlight":
           element = <mark>{element}</mark>;
           break;
+        case "subscript":
+          element = <sub>{element}</sub>;
+          break;
+        case "superscript":
+          element = <sup>{element}</sup>;
+          break;
         case "textStyle":
           if (mark.attrs?.color) {
             element = (
@@ -237,6 +243,8 @@ export const JsonRenderer = ({
 };
 
 const NodeRenderer = ({ node }: { node: JSONContent }) => {
+  const { onImageClick } = useContext(RendererContext);
+
   switch (node.type) {
     case "doc":
       return <JsonRenderer content={node.content || []} />;
@@ -280,8 +288,6 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
       );
 
     case "image":
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const { onImageClick } = useContext(RendererContext);
       const { width, height, textAlign } = node.attrs || {};
 
       // Calculate alignment styles for the FIGURE container
@@ -360,6 +366,39 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
         </li>
       );
 
+    case "taskList":
+      return (
+        <ul data-type="taskList" className={sanitizeClass(node.attrs?.class)}>
+          {node.content?.map((c, i) => (
+            <NodeRenderer key={i} node={c} />
+          ))}
+        </ul>
+      );
+
+    case "taskItem":
+      const isChecked = !!node.attrs?.checked;
+      return (
+        <li
+          data-type="taskItem"
+          data-checked={isChecked ? "true" : "false"}
+          className="flex items-start gap-2 my-1.5"
+        >
+          <label className="flex items-center select-none cursor-default mt-1">
+            <input
+              type="checkbox"
+              checked={isChecked}
+              readOnly
+              className="rounded border-zinc-700 bg-zinc-900 text-yellow-500 focus:ring-0 cursor-default"
+            />
+          </label>
+          <div className="flex-1">
+            {node.content?.map((c, i) => (
+              <NodeRenderer key={i} node={c} />
+            ))}
+          </div>
+        </li>
+      );
+
     case "horizontalRule":
       return <hr />;
 
@@ -409,7 +448,15 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
 
     case "tableHeader":
       return (
-        <th>
+        <th
+          colSpan={node.attrs?.colspan}
+          rowSpan={node.attrs?.rowspan}
+          style={
+            node.attrs?.colwidth
+              ? { width: `${node.attrs.colwidth[0]}px` }
+              : undefined
+          }
+        >
           {node.content?.map((c, i) => (
             <NodeRenderer key={i} node={c} />
           ))}
@@ -418,7 +465,15 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
 
     case "tableCell":
       return (
-        <td>
+        <td
+          colSpan={node.attrs?.colspan}
+          rowSpan={node.attrs?.rowspan}
+          style={
+            node.attrs?.colwidth
+              ? { width: `${node.attrs.colwidth[0]}px` }
+              : undefined
+          }
+        >
           {node.content?.map((c, i) => (
             <NodeRenderer key={i} node={c} />
           ))}

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import cloudinary from '@/lib/cloudinary';
 import dbConnect from '@/lib/db';
 import Media from '@/models/Media';
@@ -26,6 +27,26 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Compute hash for deduplication
+    const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
+
+    // Check if identical media already exists (prevents duplicate storage)
+    const existingMedia = await Media.findOne({
+      $or: [
+        { hash: fileHash },
+        { filename: file.name, size: buffer.length }
+      ]
+    });
+
+    if (existingMedia) {
+      return NextResponse.json({ 
+        url: existingMedia.url,
+        public_id: existingMedia.publicId,
+        media_id: existingMedia._id,
+        reused: true
+      });
+    }
+
     // Upload to Cloudinary
     // We use a promise wrapper because cloudinary.uploader.upload_stream accepts a callback
     const result = await new Promise<any>((resolve, reject) => {
@@ -49,11 +70,12 @@ export async function POST(request: Request) {
         publicId: result.public_id,
         filename: file.name,
         format: result.format,
-        size: result.bytes,
+        size: result.bytes || buffer.length,
         width: result.width,
         height: result.height,
         folder: folderName,
-        altText: ''
+        altText: '',
+        hash: fileHash
     });
 
     return NextResponse.json({ 

@@ -239,17 +239,40 @@
   margin: 1.5em 0;
   padding-left: 2.5em; 
 }
+.prose-article ul {
+  list-style-type: disc;
+}
+.prose-article ol {
+  list-style-type: decimal;
+}
 .prose-article li {
   margin-bottom: -.2em; 
   padding-left: 0.4em; 
   line-height: 1.5; 
   display: list-item;
 }
+.prose-article li::marker {
+  color: #a1a1aa;
+}
 
 .prose-article li > ul,
 .prose-article li > ol {
   margin-top: -0.5em;
   margin-bottom: -0.5em;
+}
+
+/* Nested lists */
+.prose-article ul ul {
+  list-style-type: circle;
+}
+.prose-article ul ul ul {
+  list-style-type: square;
+}
+.prose-article ol ol {
+  list-style-type: lower-alpha;
+}
+.prose-article ol ol ol {
+  list-style-type: lower-roman;
 }
 
 /* --- Standard Bullet Variants --- */

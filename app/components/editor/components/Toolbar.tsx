@@ -13,6 +13,8 @@ import {
   List,
   ListOrdered,
   Image as ImageIcon,
+  Images,
+  Upload,
   Link as LinkIcon,
   Table as TableIcon,
   CheckSquare,
@@ -51,6 +53,7 @@ interface ToolbarProps {
   onSave?: () => void;
   saveStatus?: "saved" | "saving" | "unsaved";
   onExitZenMode?: () => void;
+  onOpenMediaLibrary?: () => void;
 }
 
 const ToolbarButton = ({
@@ -620,6 +623,157 @@ const HeadingDropdown = ({ editor }: { editor: Editor }) => {
   );
 };
 
+const ImageDropdown = ({
+  editor,
+  onImageUpload,
+  onOpenMediaLibrary,
+}: {
+  editor: Editor;
+  onImageUpload?: (file: File) => Promise<string>;
+  onOpenMediaLibrary?: () => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleTrigger = () => {
+      fileInputRef.current?.click();
+    };
+    window.addEventListener("trigger-image-upload", handleTrigger);
+    return () =>
+      window.removeEventListener("trigger-image-upload", handleTrigger);
+  }, []);
+
+  const handleOpenMedia = () => {
+    setIsOpen(false);
+    if (onOpenMediaLibrary) {
+      onOpenMediaLibrary();
+    } else {
+      window.dispatchEvent(
+        new CustomEvent("open-media-modal", { detail: { field: "content" } }),
+      );
+    }
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (onImageUpload) {
+        onImageUpload(file);
+      } else {
+        const url = URL.createObjectURL(file);
+        editor.chain().focus().setImage({ src: url }).run();
+      }
+    }
+    if (event.target.value) {
+      event.target.value = "";
+    }
+    setIsOpen(false);
+  };
+
+  const handleInsertUrl = () => {
+    setIsOpen(false);
+    const url = window.prompt("Enter image URL:");
+    if (url && url.trim()) {
+      editor.chain().focus().setImage({ src: url.trim() }).run();
+    }
+  };
+
+  return (
+    <div className="relative inline-flex items-center" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        title="Insert Image (Media Library, Device, URL)"
+        className={twMerge(
+          "p-2 rounded-lg transition-all text-gray-400 hover:bg-white/10 hover:text-white flex items-center gap-0.5 active:scale-95",
+          isOpen && "bg-white/15 text-white",
+        )}
+      >
+        <ImageIcon size={20} />
+        <ChevronDown size={12} className="opacity-60" />
+      </button>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileInputChange}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-64 bg-zinc-950/95 border border-zinc-800 rounded-xl shadow-2xl p-1.5 z-[60] flex flex-col gap-1 backdrop-blur-2xl">
+          <button
+            type="button"
+            onClick={handleOpenMedia}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500/20">
+              <Images size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-white">Media Library</span>
+              <span className="text-[10px] text-zinc-400">
+                Reuse uploaded or select existing
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              fileInputRef.current?.click();
+            }}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20">
+              <Upload size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-white">Upload from Computer</span>
+              <span className="text-[10px] text-zinc-400">
+                Upload image file from device
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleInsertUrl}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20">
+              <LinkIcon size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-white">Insert from URL</span>
+              <span className="text-[10px] text-zinc-400">
+                Paste an external image link
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const Toolbar = ({
   editor,
   isFocusMode,
@@ -628,40 +782,9 @@ export const Toolbar = ({
   saveStatus,
   onExitZenMode,
   onImageUpload,
+  onOpenMediaLibrary,
 }: ToolbarProps & { onImageUpload?: (file: File) => Promise<string> }) => {
   if (!editor) return null;
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (onImageUpload) {
-        // Fire and forget, parent Editor handles optimistic UI
-        onImageUpload(file);
-      } else {
-        const url = URL.createObjectURL(file);
-        editor.chain().focus().setImage({ src: url }).run();
-      }
-    }
-    // Reset value so same file can be selected again
-    if (event.target.value) {
-      event.target.value = "";
-    }
-  };
-
-  const triggerImageUpload = () => {
-    fileInputRef.current?.click();
-  };
-
-  useEffect(() => {
-    const handleTrigger = () => {
-      triggerImageUpload();
-    };
-    window.addEventListener("trigger-image-upload", handleTrigger);
-    return () =>
-      window.removeEventListener("trigger-image-upload", handleTrigger);
-  }, []);
 
   const setLink = () => {
     window.dispatchEvent(new Event("open-link-modal"));
@@ -777,15 +900,10 @@ export const Toolbar = ({
           >
             <LinkIcon size={20} />
           </ToolbarButton>
-          <ToolbarButton onClick={triggerImageUpload} title="Image">
-            <ImageIcon size={20} />
-          </ToolbarButton>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            accept="image/*"
-            className="hidden"
+          <ImageDropdown
+            editor={editor}
+            onImageUpload={onImageUpload}
+            onOpenMediaLibrary={onOpenMediaLibrary}
           />
           <ToolbarButton
             onClick={addYoutubeVideo}
