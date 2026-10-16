@@ -274,8 +274,116 @@ export default async function BlogPostPage({
     }
   }
 
+  const articleUrl =
+    post.canonicalUrl || `https://www.knowledgelog.blog/blog/${slug}`;
+  const articleImage =
+    post.ogImage ||
+    post.image ||
+    "https://www.knowledgelog.blog/images/Amarnath_Bera.jpg";
+
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "@id": `${articleUrl}#article`,
+    isPartOf: {
+      "@type": "WebSite",
+      "@id": "https://www.knowledgelog.blog/#website",
+      name: "KnowledgeLog",
+      url: "https://www.knowledgelog.blog",
+    },
+    headline: post.seoTitle || post.title,
+    description: post.seoDescription || post.excerpt,
+    url: articleUrl,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
+    },
+    image: articleImage,
+    datePublished: post.createdAt
+      ? new Date(post.createdAt).toISOString()
+      : undefined,
+    dateModified: post.updatedAt
+      ? new Date(post.updatedAt).toISOString()
+      : post.createdAt
+        ? new Date(post.createdAt).toISOString()
+        : undefined,
+    author: {
+      "@type": "Person",
+      name: post.author?.name || "KnowledgeLog Team",
+      image: post.author?.image || undefined,
+      url:
+        post.author?.name === "Amarnath Bera"
+          ? "https://amaranathbera.in"
+          : undefined,
+    },
+    publisher: {
+      "@type": "Organization",
+      "@id": "https://www.knowledgelog.blog/#organization",
+      name: "KnowledgeLog",
+      url: "https://www.knowledgelog.blog",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://www.knowledgelog.blog/icon.png",
+      },
+    },
+    keywords: Array.isArray(post.tags)
+      ? post.tags.join(", ")
+      : post.tags || undefined,
+    articleSection: post.category?.name || "Technology",
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: "https://www.knowledgelog.blog",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: "https://www.knowledgelog.blog/blog",
+      },
+      ...(post.category?.name
+        ? [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: post.category.name,
+              item: `https://www.knowledgelog.blog/blog?category=${post.category._id || ""}`,
+            },
+            {
+              "@type": "ListItem",
+              position: 4,
+              name: post.title,
+              item: articleUrl,
+            },
+          ]
+        : [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: post.title,
+              item: articleUrl,
+            },
+          ]),
+    ],
+  };
+
   return (
     <div className="bg-background min-h-screen pt-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <ReadingProgress />
       <ViewCounter slug={slug} />
       {/* Full Width Hero */}

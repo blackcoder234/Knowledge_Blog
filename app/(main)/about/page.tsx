@@ -3,6 +3,7 @@ import { Button } from "../../components/ui/Button";
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
+import { Globe, ExternalLink } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "About KnowledgeLog | Our Mission",
@@ -15,22 +16,13 @@ const teamMembers = [
     name: "Amarnath Bera",
     role: "Founder & Editor-in-Chief",
     bio: "Amarnath is a software engineer and writer who believes in the power of clear communication. He founded KnowledgeLog to create a space where complex ideas across science, technology, and culture could be explored with depth and nuance.",
-    image: "/images/amarnath.jpg",
+    image: "/images/Amarnath_Bera.jpg",
+    website: "https://amaranathbera.in",
     socials: {
+      website: "https://amaranathbera.in",
       github: "https://github.com/blackcoder234",
       twitter: "https://x.com/beraamarnath5",
       linkedin: "https://www.linkedin.com/in/amarnath-bera/",
-    },
-  },
-  {
-    name: "Suvendu Das Adhikari",
-    role: "Head of Engineering",
-    bio: "With over a decade of experience building scalable systems, Suvendu ensures KnowledgeLog remains fast, accessible, and secure. He is passionate about open-source software and digital minimalism.",
-    image: "/images/suvendu.jpg",
-    socials: {
-      github: "https://github.com/Suv2001",
-      twitter: "https://x.com/AdhikaryDash",
-      linkedin: "https://www.linkedin.com/in/suvendu-adhikary/",
     },
   },
 ];
@@ -194,49 +186,74 @@ export default function AboutPage() {
         <Container>
           <div className="mb-16 text-center border-b border-white/5 pb-10 max-w-2xl mx-auto">
             <span className="text-accent text-xs font-bold uppercase tracking-widest mb-2 block">
-              Our Team
+              Creator
             </span>
             <h2 className="text-4xl font-serif font-bold text-white mb-4">
-              Meet the Creators
+              Meet the Creator
             </h2>
             <p className="text-zinc-400 text-lg">
-              A small, dedicated team passionate about curation, clarity, and
-              code.
+              Dedicated to thoughtful curation, clarity, and code.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="max-w-xl mx-auto">
             {teamMembers.map((member, i) => (
               <div
                 key={i}
-                className="bg-[#121212] border border-white/5 rounded-2xl p-8 flex flex-col items-center text-center hover:border-white/10 transition-colors shadow-2xl"
+                className="bg-[#121212] border border-white/5 rounded-2xl p-8 md:p-10 flex flex-col items-center text-center hover:border-white/10 transition-colors shadow-2xl relative overflow-hidden"
               >
-                <div className="relative h-40 w-40 mb-6 rounded-full overflow-hidden border-4 border-zinc-900 shadow-xl">
+                <div className="relative h-44 w-44 mb-6 rounded-full overflow-hidden border-4 border-zinc-900 shadow-2xl ring-2 ring-accent/20">
                   <Image
                     src={member.image}
                     alt={member.name}
                     fill
-                    className="object-cover"
+                    className="object-cover object-top"
+                    priority
                   />
                 </div>
 
-                <h3 className="text-2xl font-bold text-white mb-1">
+                <h3 className="text-2xl md:text-3xl font-bold text-white mb-1">
                   {member.name}
                 </h3>
-                <p className="text-accent font-medium text-sm tracking-wide uppercase mb-6">
+                <p className="text-accent font-medium text-sm tracking-wide uppercase mb-3">
                   {member.role}
                 </p>
 
-                <p className="text-zinc-400 text-sm leading-relaxed mb-8 flex-1">
+                {/* Personal Website Link */}
+                <Link
+                  href={member.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-accent hover:text-white hover:bg-white/10 hover:border-accent/40 transition-all duration-200 mb-6 group"
+                >
+                  <Globe size={13} className="text-accent group-hover:scale-110 transition-transform" />
+                  <span>amaranathbera.in</span>
+                  <ExternalLink size={12} className="opacity-60 group-hover:opacity-100" />
+                </Link>
+
+                <p className="text-zinc-400 text-sm md:text-base leading-relaxed mb-8">
                   {member.bio}
                 </p>
 
                 <div className="flex gap-6 justify-center w-full pt-6 border-t border-white/5">
+                  {member.socials.website && (
+                    <Link
+                      href={member.socials.website}
+                      className="text-zinc-500 hover:text-accent transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Personal Website"
+                    >
+                      <span className="sr-only">Website</span>
+                      <Globe className="w-5 h-5" />
+                    </Link>
+                  )}
                   {member.socials.github && (
                     <Link
                       href={member.socials.github}
                       className="text-zinc-500 hover:text-white transition-colors"
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
                       <span className="sr-only">GitHub</span>
                       <svg
@@ -253,6 +270,7 @@ export default function AboutPage() {
                       href={member.socials.twitter}
                       className="text-zinc-500 hover:text-white transition-colors"
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
                       <span className="sr-only">Twitter</span>
                       <svg
@@ -269,6 +287,7 @@ export default function AboutPage() {
                       href={member.socials.linkedin}
                       className="text-zinc-500 hover:text-white transition-colors"
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
                       <span className="sr-only">LinkedIn</span>
                       <svg

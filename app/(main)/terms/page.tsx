@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Terms outlining the rules for using KnowledgeLog, including content ownership, user conduct, and liability disclaimers.",
   robots: {
-    index: false,
+    index: true,
     follow: true,
   },
 };

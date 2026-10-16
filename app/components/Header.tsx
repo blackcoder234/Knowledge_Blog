@@ -6,6 +6,7 @@ import { Container } from "./ui/Container";
 import { Button } from "./ui/Button";
 import { useSession, signOut } from "next-auth/react";
 import { UserBadge } from "./ui/UserBadge";
+import { UserNavDropdown } from "./UserNavDropdown";
 
 export const Header = () => {
   const { data: session } = useSession();
@@ -92,81 +93,9 @@ export const Header = () => {
           {/* CTA / User Menu */}
           <div className="hidden md:flex items-center gap-4">
             {session ? (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-                  {/* Write Post Button for Authors */}
-                  {["admin", "super_admin", "editor"].includes(
-                    (session.user as any).role,
-                  ) && (
-                    <Link
-                      href="/admin/posts/create"
-                      className="hidden lg:flex items-center justify-center w-9 h-9 rounded-full bg-zinc-900 border border-white/10 text-zinc-400 hover:text-amber-400 hover:border-amber-400/50 hover:bg-amber-400/10 hover:shadow-[0_0_15px_-3px_rgba(251,191,36,0.3)] transition-all duration-300 group mr-2 relative"
-                      title="Write New Post"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="group-hover:scale-110 transition-transform"
-                      >
-                        <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.375 2.625a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z" />
-                      </svg>
-                    </Link>
-                  )}
-
-                  <div className="text-right">
-                    <div className="flex items-center justify-end gap-2 mb-0.5">
-                      <div className="text-sm font-bold text-white leading-none">
-                        {session.user?.name}
-                      </div>
-                      <UserBadge
-                        role={(session.user as any).role}
-                        showLabel={false}
-                        className="scale-90"
-                      />
-                    </div>
-                    <div className="flex items-center justify-end gap-3 mt-1">
-                      {["admin", "super_admin"].includes(
-                        (session.user as any).role,
-                      ) && (
-                        <Link
-                          href="/admin/dashboard"
-                          className="text-[10px] text-zinc-500 hover:text-accent transition-colors uppercase font-bold tracking-wider"
-                        >
-                          Dashboard
-                        </Link>
-                      )}
-                      <button
-                        onClick={() => signOut()}
-                        className="text-[10px] text-zinc-500 hover:text-red-500 transition-colors uppercase font-bold tracking-wider"
-                      >
-                        Sign Out
-                      </button>
-                    </div>
-                  </div>
-                  <div className="h-10 w-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden relative cursor-pointer hover:border-accent transition-colors group">
-                    <Link href={`/profile/${(session.user as any).id}`}>
-                      {userImage ? (
-                        <img
-                          src={userImage}
-                          alt="User"
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center text-sm text-white font-bold uppercase">
-                          {session.user?.name?.charAt(0)}
-                        </div>
-                      )}
-                    </Link>
-                  </div>
-                </div>
+              <div className="flex items-center pl-4 border-l border-white/10">
+                {/* Modern User Nav Dropdown */}
+                <UserNavDropdown session={session} userImage={userImage} />
               </div>
             ) : (
               <div className="flex items-center gap-4">
@@ -248,7 +177,7 @@ export const Header = () => {
           <div className="flex flex-col items-center gap-6 p-8 border-t border-white/10 w-full max-w-xs">
             {session ? (
               <div className="text-center w-full">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden mx-auto mb-4 border-2 border-white/10">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 border-2 border-white/15">
                   {userImage ? (
                     <img
                       src={userImage}
@@ -261,35 +190,62 @@ export const Header = () => {
                     </div>
                   )}
                 </div>
-                <h4 className="text-xl font-bold text-white mb-2">
+                <h4 className="text-xl font-bold text-white mb-1">
                   {session.user?.name}
                 </h4>
-                <Link
-                  href={`/profile/${(session.user as any).id}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-sm text-accent hover:underline mb-6 block"
-                >
-                  View Profile
-                </Link>
+                <div className="mb-2 flex justify-center">
+                  <UserBadge role={(session.user as any).role} />
+                </div>
+                <p className="text-xs text-zinc-400 mb-6 truncate max-w-full">
+                  {session.user?.email}
+                </p>
 
-                <div className="grid grid-cols-2 gap-4 w-full">
-                  {(session.user as any).role === "admin" && (
+                <div className="flex flex-col gap-2.5 w-full">
+                  {["admin", "super_admin"].includes(
+                    (session.user as any).role,
+                  ) && (
                     <Link
                       href="/admin/dashboard"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <Button
-                        variant="outline"
-                        className="w-full justify-center"
+                        variant="primary"
+                        className="w-full justify-center text-sm font-semibold"
                       >
-                        Admin
+                        Admin Dashboard
                       </Button>
                     </Link>
                   )}
+                  {["admin", "super_admin", "editor"].includes(
+                    (session.user as any).role,
+                  ) && (
+                    <Link
+                      href="/admin/posts"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Button
+                        variant="outline"
+                        className="w-full justify-center text-sm font-semibold"
+                      >
+                        Writers Hub
+                      </Button>
+                    </Link>
+                  )}
+                  <Link
+                    href={`/profile/${(session.user as any).id}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Button
+                      variant="outline"
+                      className="w-full justify-center text-sm font-semibold"
+                    >
+                      View Profile
+                    </Button>
+                  </Link>
                   <Button
                     variant="ghost"
                     onClick={() => signOut()}
-                    className="w-full justify-center text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                    className="w-full justify-center text-red-500 hover:text-red-400 hover:bg-red-500/10 text-sm font-semibold"
                   >
                     Sign Out
                   </Button>

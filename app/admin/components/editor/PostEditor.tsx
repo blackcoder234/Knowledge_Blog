@@ -8,7 +8,7 @@ import { EditorGuide } from "./EditorGuide";
 import { Editor as TiptapEditor } from "@tiptap/react";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, X, Image as ImageIcon, Calendar } from "lucide-react";
+import { Search, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/app/components/ui/Button";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -83,9 +83,13 @@ export default function PostEditor({
   const [uploading, setUploading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
+  const [currentPostId, setCurrentPostId] = useState<string | null>(
+    initialData?._id || null,
+  );
+  const isEditing = Boolean(isEdit || currentPostId);
+
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [restoreDraftData, setRestoreDraftData] = useState<any>(null);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [manualImageUrl, setManualImageUrl] = useState("");
@@ -139,7 +143,6 @@ export default function PostEditor({
     canonicalUrl: "",
     ogImage: "",
     noindex: false,
-    scheduledPublishDate: "",
     contentJson: null as any,
   });
 
@@ -171,14 +174,6 @@ export default function PostEditor({
         canonicalUrl: initialData.canonicalUrl || "",
         ogImage: initialData.ogImage || "",
         noindex: initialData.noindex || false,
-        scheduledPublishDate: initialData.scheduledPublishDate
-          ? (() => {
-              // Convert DB UTC Date -> Local Time String (YYYY-MM-DDTHH:mm) for input
-              const d = new Date(initialData.scheduledPublishDate);
-              const pad = (n: number) => n.toString().padStart(2, "0");
-              return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-            })()
-          : "",
         contentJson: initialData.contentJson || null,
       });
       setIsDirty(false);
@@ -269,9 +264,10 @@ export default function PostEditor({
 
   useEffect(() => {
     if (!isDirty) return;
+    const activeId = currentPostId || initialData?._id;
     let storageKey = "";
-    if (initialData?._id) {
-      storageKey = `post_draft_${initialData._id}`;
+    if (activeId) {
+      storageKey = `post_draft_${activeId}`;
     } else if (tempDraftId) {
       storageKey = `post_draft_${tempDraftId}`;
     } else {
@@ -282,7 +278,7 @@ export default function PostEditor({
       localStorage.setItem(storageKey, JSON.stringify(payload));
     }, 1000);
     return () => clearTimeout(timer);
-  }, [formData, isDirty, initialData, tempDraftId]);
+  }, [formData, isDirty, initialData, tempDraftId, currentPostId]);
 
   const confirmRestore = () => {
     if (restoreDraftData) {
@@ -440,8 +436,9 @@ export default function PostEditor({
     }
     setIsSubmitting(true);
     try {
-      const url = isEdit ? `/api/posts/${initialData._id}` : "/api/posts";
-      const method = isEdit ? "PATCH" : "POST";
+      const activeId = currentPostId || initialData?._id;
+      const url = activeId ? `/api/posts/${activeId}` : "/api/posts";
+      const method = activeId ? "PATCH" : "POST";
       const submitData = {
         ...currentData,
         status: finalStatus,
@@ -458,10 +455,6 @@ export default function PostEditor({
         canonicalUrl:
           currentData.canonicalUrl ||
           `${window.location.origin}/blog/${currentData.slug}`,
-        // Ensure date is sent as ISO String (UTC) if it exists
-        scheduledPublishDate: currentData.scheduledPublishDate
-          ? new Date(currentData.scheduledPublishDate).toISOString()
-          : undefined,
       };
       const res = await fetch(url, {
         method: method,
@@ -470,23 +463,35 @@ export default function PostEditor({
       });
       if (res.ok) {
         const data = await res.json();
+        const savedId = activeId || data._id;
+        if (!activeId && data._id) {
+          setCurrentPostId(data._id);
+          window.history.replaceState(
+            {},
+            "",
+            `/admin/posts/create?id=${data._id}`,
+          );
+        }
         setIsDirty(false);
         setFormData((prev) => ({ ...prev, status: finalStatus }));
-        const storageKey = `post_draft_${isEdit ? initialData?._id : "new"}`;
-        localStorage.removeItem(storageKey);
-        showToast(
-          `Post ${finalStatus === "published" ? "Published" : "Saved"} successfully!`,
-          "success",
-        );
-        if (finalStatus === "published") {
-          router.push("/admin/posts");
-          router.refresh();
-        } else {
-          if (!isEdit && data._id) {
-            router.replace(`/admin/posts/create?id=${data._id}`);
-          }
-          router.refresh();
+
+        // Clear local draft caches
+        if (savedId) {
+          localStorage.removeItem(`post_draft_${savedId}`);
         }
+        if (tempDraftId) {
+          localStorage.removeItem(`post_draft_${tempDraftId}`);
+        }
+        localStorage.removeItem("post_draft_new");
+
+        const successMessage =
+          finalStatus === "published"
+            ? activeId
+              ? "Post updated successfully!"
+              : "Post published successfully!"
+            : "Draft saved successfully!";
+        showToast(successMessage, "success");
+        // Keep author on the editor page; do not redirect.
       } else {
         const error = await res.json();
         showToast(error.error || "Failed to save", "error");
@@ -521,38 +526,7 @@ export default function PostEditor({
       showToast("Please add a URL slug first.", "error");
       return;
     }
-    if (!isEdit && !initialData?._id) {
-      showToast(
-        "Please 'Save Draft' at least once to generate a preview.",
-        "error",
-      );
-      return;
-    }
     window.open(`/blog/${formData.slug}`, "_blank");
-  };
-
-  const handleScheduleConfirm = async (dateStr: string) => {
-    setFormData((prev) => ({ ...prev, scheduledPublishDate: dateStr }));
-    // We need to wait for state update or pass it directly. PASS DIRECTLY is safer.
-    // However, handleSubmit uses formData.
-    // So we will modify handleSubmit to accept overrides, or just leverage setFormData callback and a useEffect?
-    // Better: create a dedicated submit function that takes overrides.
-    // OR: just hacking it by manually merging in handleSubmit? No.
-    // Simplest: Update form data, then call submit.
-    // BUT React state updates are async.
-    // So:
-    const dataWithSchedule = { ...formData, scheduledPublishDate: dateStr };
-    try {
-      setIsSubmitting(true);
-      // Duplicate the submit logic essentially, or refactor handleSubmit to take data?
-      // Refactoring handleSubmit is best practice.
-      // Let's refactor handleSubmit to accept optional data override.
-      await handleSubmit("scheduled", dataWithSchedule);
-      setIsScheduleModalOpen(false);
-    } catch (e) {
-      console.error(e);
-      setIsSubmitting(false);
-    }
   };
 
   const filteredMedia = mediaLibrary.filter((item) =>
@@ -692,15 +666,15 @@ export default function PostEditor({
       </AnimatePresence>
 
       <EditorHeader
-        isEdit={isEdit}
+        isEdit={isEditing}
         status={formData.status}
+        slug={formData.slug}
         isDirty={isDirty}
         isZenMode={isZenMode}
         setIsZenMode={setIsZenMode}
         setShowGuide={setShowGuide}
         onPreview={handlePreview}
         onSaveDraft={() => handleSubmit("draft")}
-        onScheduleConfirm={handleScheduleConfirm}
         onValidate={() => {
           if (!formData.title) {
             showToast("Title is missing", "error");
@@ -724,13 +698,13 @@ export default function PostEditor({
         isSubmitting={isSubmitting}
         router={router}
         onHistory={() => setShowRevisions(true)}
-        showHistory={isEdit}
+        showHistory={isEditing}
       />
 
       <RevisionsModal
         isOpen={showRevisions}
         onClose={() => setShowRevisions(false)}
-        postId={initialData?._id}
+        postId={currentPostId || initialData?._id}
         onRestore={handleRevisionRestore}
       />
 

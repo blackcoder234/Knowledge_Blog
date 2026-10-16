@@ -46,7 +46,7 @@ export function EditorSEO({
             onChange={handleChange}
             placeholder={
               formData.slug
-                ? `https://knowledgelog.com/blog/${formData.slug}`
+                ? `https://www.knowledgelog.blog/blog/${formData.slug}`
                 : "https://..."
             }
             className="w-full bg-[#121212] border border-white/10 rounded-lg px-4 py-3 text-zinc-300 text-sm focus:outline-none focus:border-cyan-500/50"

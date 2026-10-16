@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     "Comprehensive details on how KnowledgeLog collects, stores, and protects user data, including Google Auth, newsletter subscriptions, and analytics.",
   robots: {
-    index: false,
+    index: true,
     follow: true,
   },
 };

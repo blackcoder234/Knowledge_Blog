@@ -293,7 +293,7 @@ export function EditorSidebar({
                     KnowledgeLog
                   </div>
                   <div className="text-[8px] text-zinc-500">
-                    https://knowledgelog.com/blog/{formData.slug || "..."}
+                    https://www.knowledgelog.blog/blog/{formData.slug || "..."}
                   </div>
                 </div>
               </div>

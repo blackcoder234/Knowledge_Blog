@@ -31,27 +31,27 @@ export async function GET() {
     id: "https://www.knowledgelog.blog/",
     link: "https://www.knowledgelog.blog/",
     language: "en", // optional, used only in RSS 2.0, possible values: http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
-    image: "https://knowledgelog.blog/icon.png",
-    favicon: "https://knowledgelog.blog/favicon.ico",
+    image: "https://www.knowledgelog.blog/icon.png",
+    favicon: "https://www.knowledgelog.blog/favicon.ico",
     copyright: `All rights reserved ${new Date().getFullYear()}, KnowledgeLog`,
     updated: posts[0] ? new Date(posts[0].createdAt) : new Date(),
     generator: "Feed for Node.js",
     feedLinks: {
-      json: "https://knowledgelog.blog/api/feed/json",
-      atom: "https://knowledgelog.blog/feed.xml"
+      json: "https://www.knowledgelog.blog/api/feed/json",
+      atom: "https://www.knowledgelog.blog/feed.xml"
     },
     author: {
       name: "KnowledgeLog Team",
       email: "hello@knowledgelog.blog",
-      link: "https://knowledgelog.blog/about"
+      link: "https://www.knowledgelog.blog/about"
     }
   });
 
   posts.forEach((post: any) => {
     feed.addItem({
       title: post.title,
-      id: `https://knowledgelog.blog/blog/${post.slug}`,
-      link: `https://knowledgelog.blog/blog/${post.slug}`,
+      id: `https://www.knowledgelog.blog/blog/${post.slug}`,
+      link: `https://www.knowledgelog.blog/blog/${post.slug}`,
       description: post.excerpt,
       content: post.content, // Ideally should be sanitized/rendered HTML, but raw string is often OK for basic readers or needs marked transform
       author: [
