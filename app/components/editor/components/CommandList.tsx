@@ -15,6 +15,7 @@ import {
   Table,
   Minus,
   AlertCircle,
+  Lightbulb,
   Sigma,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
@@ -36,6 +37,7 @@ const icons: Record<string, any> = {
   Table,
   Minus,
   AlertCircle,
+  Lightbulb,
   Sigma,
 };
 

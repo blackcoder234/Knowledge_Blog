@@ -18,6 +18,10 @@ import {
   Save,
   Loader2,
   CheckCircle2,
+  Lightbulb,
+  Info,
+  AlertTriangle,
+  XCircle,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { useRef, useState, useEffect } from "react";
@@ -214,6 +218,148 @@ const ImageDropdown = ({
   );
 };
 
+const CalloutDropdown = ({ editor }: { editor: Editor }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const setCallout = (type: "tip" | "info" | "success" | "warning" | "danger") => {
+    const calloutClass = `callout-${type}`;
+    if (editor.isActive("blockquote", { class: calloutClass })) {
+      editor.chain().focus().unsetBlockquote().run();
+      setIsOpen(false);
+      return;
+    }
+
+    if (!editor.isActive("blockquote")) {
+      editor.chain().focus().setBlockquote().run();
+    }
+
+    editor
+      .chain()
+      .focus()
+      .updateAttributes("blockquote", { class: calloutClass })
+      .run();
+
+    setIsOpen(false);
+  };
+
+  const isCalloutActive = editor.isActive("blockquote", { class: /callout-/ });
+
+  return (
+    <div className="relative inline-flex items-center" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        title="Callout Box (Tip, Info, Warning...)"
+        className={twMerge(
+          "p-1.5 rounded-md transition-all text-gray-400 hover:bg-white/10 hover:text-white flex items-center gap-0.5 active:scale-95",
+          (isOpen || isCalloutActive) && "bg-cyan-500/20 text-cyan-400 font-semibold",
+        )}
+      >
+        <Lightbulb size={18} />
+        <ChevronDown size={11} className="opacity-60" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-64 bg-zinc-950/95 border border-zinc-800 rounded-xl shadow-2xl p-1.5 z-[60] flex flex-col gap-1 backdrop-blur-2xl">
+          <button
+            type="button"
+            onClick={() => setCallout("tip")}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-cyan-500/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-cyan-500/15 text-cyan-400 group-hover:bg-cyan-500/25">
+              <Lightbulb size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-cyan-300">Tip Callout</span>
+              <span className="text-[10px] text-zinc-400">
+                Highlight helpful advice, pro-tips or insights
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCallout("info")}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-blue-500/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-blue-500/15 text-blue-400 group-hover:bg-blue-500/25">
+              <Info size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-blue-300">Info Note</span>
+              <span className="text-[10px] text-zinc-400">
+                Informational context or additional details
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCallout("success")}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-emerald-500/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-emerald-500/15 text-emerald-400 group-hover:bg-emerald-500/25">
+              <CheckCircle2 size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-emerald-300">Success</span>
+              <span className="text-[10px] text-zinc-400">
+                Key takeaway or positive recommendation
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCallout("warning")}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-amber-500/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-amber-500/15 text-amber-400 group-hover:bg-amber-500/25">
+              <AlertTriangle size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-amber-300">Warning</span>
+              <span className="text-[10px] text-zinc-400">
+                Important caution or things to avoid
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCallout("danger")}
+            className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-left text-zinc-200 hover:text-white hover:bg-red-500/10 rounded-lg transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-red-500/15 text-red-400 group-hover:bg-red-500/25">
+              <XCircle size={15} />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-semibold text-red-300">Danger</span>
+              <span className="text-[10px] text-zinc-400">
+                Critical alert or breaking warning
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const ToolbarMinimal = ({
   editor,
   onSave,
@@ -318,11 +464,12 @@ export const ToolbarMinimal = ({
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive("blockquote")}
+          isActive={editor.isActive("blockquote") && !editor.isActive("blockquote", { class: /callout-/ })}
           title="Quote"
         >
           <Quote size={18} />
         </ToolbarButton>
+        <CalloutDropdown editor={editor} />
       </div>
 
       <Divider />

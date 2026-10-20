@@ -301,6 +301,7 @@ export const Editor = forwardRef<any, EditorProps>(
       window.addEventListener("open-youtube-modal", handleOpenYoutubeModal);
       window.addEventListener("open-stats-modal", handleOpenStatsModal);
       window.addEventListener("open-media-library", handleOpenMediaLibrary);
+      window.addEventListener("open-media-modal", handleOpenMediaLibrary);
 
       return () => {
         window.removeEventListener("open-link-modal", handleOpenLinkModal);
@@ -313,6 +314,7 @@ export const Editor = forwardRef<any, EditorProps>(
           "open-media-library",
           handleOpenMediaLibrary,
         );
+        window.removeEventListener("open-media-modal", handleOpenMediaLibrary);
       };
     }, [editor, onOpenMediaLibrary]);
 

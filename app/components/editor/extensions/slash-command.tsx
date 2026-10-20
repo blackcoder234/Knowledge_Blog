@@ -168,14 +168,48 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
-      title: "Callout",
-      description: "Make text stand out.",
-      searchTerms: ["box", "note"],
-      icon: "AlertCircle",
-      // Note: We'll simulate callout with a styled blockquote for now as we don't have a dedicated callout extension installed yet
-      // Ideally you'd create a custom node for Callout. Using Blockquote with class for now if needed or just blockquote.
+      title: "Tip Callout",
+      description: "Highlight a helpful tip or insight.",
+      searchTerms: ["tip", "hint", "advice", "callout", "note", "idea"],
+      icon: "Lightbulb",
       command: ({ editor, range }: any) => {
-        editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setBlockquote()
+          .updateAttributes("blockquote", { class: "callout-tip" })
+          .run();
+      },
+    },
+    {
+      title: "Info Callout",
+      description: "Highlight useful context or details.",
+      searchTerms: ["callout", "info", "note", "box"],
+      icon: "AlertCircle",
+      command: ({ editor, range }: any) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setBlockquote()
+          .updateAttributes("blockquote", { class: "callout-info" })
+          .run();
+      },
+    },
+    {
+      title: "Warning Callout",
+      description: "Highlight a caution or warning.",
+      searchTerms: ["callout", "warning", "caution", "alert"],
+      icon: "AlertCircle",
+      command: ({ editor, range }: any) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .setBlockquote()
+          .updateAttributes("blockquote", { class: "callout-warning" })
+          .run();
       },
     },
   ]

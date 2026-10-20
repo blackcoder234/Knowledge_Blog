@@ -33,6 +33,7 @@ import {
   Outdent,
   FileCode,
   AlertCircle,
+  Lightbulb,
   Info,
   CheckCircle2,
   AlertTriangle,
@@ -300,7 +301,14 @@ const CalloutDropdown = ({ editor }: { editor: Editor }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const setCallout = (type: "info" | "warning" | "danger" | "success") => {
+  const setCallout = (type: "tip" | "info" | "warning" | "danger" | "success") => {
+    const calloutClass = `callout-${type}`;
+    if (editor.isActive("blockquote", { class: calloutClass })) {
+      editor.chain().focus().unsetBlockquote().run();
+      setIsOpen(false);
+      return;
+    }
+
     // Ensure we are in a blockquote first
     if (!editor.isActive("blockquote")) {
       editor.chain().focus().setBlockquote().run();
@@ -310,7 +318,7 @@ const CalloutDropdown = ({ editor }: { editor: Editor }) => {
     editor
       .chain()
       .focus()
-      .updateAttributes("blockquote", { class: `callout-${type}` })
+      .updateAttributes("blockquote", { class: calloutClass })
       .run();
 
     setIsOpen(false);
@@ -333,6 +341,12 @@ const CalloutDropdown = ({ editor }: { editor: Editor }) => {
 
       {isOpen && (
         <div className="absolute top-full left-0 mt-2 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[160px] flex flex-col z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
+          <button
+            onClick={() => setCallout("tip")}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-left rounded-lg hover:bg-white/10 text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            <Lightbulb size={16} /> Tip
+          </button>
           <button
             onClick={() => setCallout("info")}
             className="flex items-center gap-2 px-3 py-2 text-sm text-left rounded-lg hover:bg-white/10 text-blue-400 hover:text-blue-300 transition-colors"

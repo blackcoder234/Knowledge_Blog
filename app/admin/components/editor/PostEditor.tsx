@@ -8,7 +8,7 @@ import { EditorGuide } from "./EditorGuide";
 import { Editor as TiptapEditor } from "@tiptap/react";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, X, Image as ImageIcon } from "lucide-react";
+import { Search, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/app/components/ui/Button";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -98,7 +98,7 @@ export default function PostEditor({
   const [mediaSearchTerm, setMediaSearchTerm] = useState("");
   const [targetImageField, setTargetImageField] = useState<
     "image" | "ogImage" | "content"
-  >("image");
+  >("content");
 
   const [showGuide, setShowGuide] = useState(false);
   const [showRevisions, setShowRevisions] = useState(false);
@@ -332,11 +332,14 @@ export default function PostEditor({
   const fetchMedia = () => {
     setLoadingMedia(true);
     fetch("/api/admin/media")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load media");
+        return res.json();
+      })
       .then((data) => {
         if (Array.isArray(data)) setMediaLibrary(data);
       })
-      .catch((err) => console.error(err))
+      .catch((err) => console.error("Error loading media:", err))
       .finally(() => setLoadingMedia(false));
   };
 
@@ -507,13 +510,18 @@ export default function PostEditor({
   const openMediaModal = (field: "image" | "ogImage" | "content") => {
     setTargetImageField(field);
     setIsMediaModalOpen(true);
+    fetchMedia();
   };
 
   const selectMediaItem = (url: string) => {
     if (targetImageField === "content") {
       const inst = editorInstance || editorRef.current;
-      if (inst?.chain) {
-        inst.chain().focus().setImage({ src: url }).run();
+      if (inst) {
+        if (typeof inst.chain === "function") {
+          inst.chain().focus().setImage({ src: url }).run();
+        } else if (typeof inst.commands?.setImage === "function") {
+          inst.commands.setImage({ src: url });
+        }
       }
     } else {
       setFormData((prev) => ({ ...prev, [targetImageField]: url }));
@@ -530,140 +538,13 @@ export default function PostEditor({
   };
 
   const filteredMedia = mediaLibrary.filter((item) =>
-    item.filename.toLowerCase().includes(mediaSearchTerm.toLowerCase()),
+    (item?.filename || item?.url || "")
+      .toLowerCase()
+      .includes(mediaSearchTerm.toLowerCase()),
   );
 
   return (
     <div className="max-w-[1600px] mx-auto pb-20 font-sans animate-fade-in relative">
-      <AnimatePresence>
-        {isMediaModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-zinc-900 border border-zinc-800 w-full max-w-4xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl"
-            >
-              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
-                <h3 className="font-bold text-white flex items-center gap-2">
-                  <ImageIcon size={18} className="text-cyan-400" />
-                  {targetImageField === "content"
-                    ? "Insert Image into Post"
-                    : targetImageField === "ogImage"
-                      ? "Select Social Share Image"
-                      : "Select Cover Image"}
-                </h3>
-                <button
-                  onClick={() => setIsMediaModalOpen(false)}
-                  className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
-                >
-                  <X size={20} className="text-zinc-500" />
-                </button>
-              </div>
-
-              <div className="p-4 border-b border-zinc-800 flex gap-4 bg-zinc-900">
-                <div className="relative flex-1">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-                    size={16}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search media..."
-                    value={mediaSearchTerm}
-                    onChange={(e) => setMediaSearchTerm(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50"
-                  />
-                </div>
-                <input
-                  type="file"
-                  id="modal-upload"
-                  className="hidden"
-                  accept="image/*"
-                  multiple
-                  onChange={async (e) => {
-                    const files = e.target.files;
-                    if (!files || files.length === 0) return;
-                    for (let i = 0; i < files.length; i++) {
-                      const file = files[i];
-                      const url = await uploadFile(file);
-                      if (url) {
-                        setMediaLibrary((prev) => [
-                          {
-                            _id: `temp-${Date.now()}-${i}`,
-                            url,
-                            filename: file.name,
-                          },
-                          ...prev,
-                        ]);
-                        if (files.length === 1) {
-                          selectMediaItem(url);
-                          return;
-                        }
-                      }
-                    }
-                  }}
-                />
-                <label
-                  htmlFor="modal-upload"
-                  className="bg-white text-black px-4 py-2 rounded-lg text-sm font-bold cursor-pointer hover:bg-zinc-200 transition-colors flex items-center gap-2"
-                >
-                  {uploading ? "Uploading..." : "Upload New"}
-                </label>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 bg-zinc-950/50">
-                {loadingMedia ? (
-                  <div className="text-center py-20 text-zinc-500">
-                    Loading media library...
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {filteredMedia.map((item) => (
-                      <div
-                        key={item._id}
-                        onClick={() => selectMediaItem(item.url)}
-                        title={item.filename}
-                        className="aspect-square relative group cursor-pointer border-2 border-transparent hover:border-cyan-500 rounded-xl overflow-hidden bg-black/50"
-                      >
-                        <img
-                          src={item.url}
-                          alt={item.filename}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end p-1.5 opacity-0 group-hover:opacity-100">
-                          <p className="text-[10px] text-zinc-200 truncate w-full font-mono bg-black/70 px-1 py-0.5 rounded">
-                            {item.filename}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 border-t border-zinc-800 bg-zinc-900 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Or paste URL here..."
-                  value={manualImageUrl}
-                  onChange={(e) => setManualImageUrl(e.target.value)}
-                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white"
-                />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    if (manualImageUrl) selectMediaItem(manualImageUrl);
-                  }}
-                >
-                  Use URL
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       <EditorHeader
         isEdit={isEditing}
@@ -799,6 +680,165 @@ export default function PostEditor({
         )}
       </div>
       <EditorGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
+
+      {/* Media Library Modal — rendered at root level with high z-index to overlay both standard and Zen modes */}
+      <AnimatePresence>
+        {isMediaModalOpen && (
+          <div
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+            onClick={() => setIsMediaModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="bg-zinc-900 border border-zinc-800 w-full max-w-4xl h-[80vh] rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <ImageIcon size={18} className="text-cyan-400" />
+                  {targetImageField === "content"
+                    ? "Insert Image into Post"
+                    : targetImageField === "ogImage"
+                      ? "Select Social Share Image"
+                      : "Select Cover Image"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsMediaModalOpen(false)}
+                  className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-4 border-b border-zinc-800 flex gap-4 bg-zinc-900">
+                <div className="relative flex-1">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                    size={16}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search media by name or url..."
+                    value={mediaSearchTerm}
+                    onChange={(e) => setMediaSearchTerm(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50"
+                  />
+                </div>
+                <input
+                  type="file"
+                  id="modal-upload"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={async (e) => {
+                    const files = e.target.files;
+                    if (!files || files.length === 0) return;
+                    for (let i = 0; i < files.length; i++) {
+                      const file = files[i];
+                      const url = await uploadFile(file);
+                      if (url) {
+                        setMediaLibrary((prev) => [
+                          {
+                            _id: `temp-${Date.now()}-${i}`,
+                            url,
+                            filename: file.name,
+                          },
+                          ...prev,
+                        ]);
+                        if (files.length === 1) {
+                          selectMediaItem(url);
+                          return;
+                        }
+                      }
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="modal-upload"
+                  className="bg-white text-black px-4 py-2 rounded-lg text-sm font-bold cursor-pointer hover:bg-zinc-200 transition-colors flex items-center gap-2 select-none"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Upload New"
+                  )}
+                </label>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 bg-zinc-950/50">
+                {loadingMedia ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-zinc-400 gap-3">
+                    <Loader2 size={32} className="animate-spin text-cyan-400" />
+                    <p className="text-sm">Loading media library...</p>
+                  </div>
+                ) : filteredMedia.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-zinc-400 gap-2">
+                    <ImageIcon size={40} className="text-zinc-600 mb-2" />
+                    <p className="font-semibold text-white">No media found</p>
+                    <p className="text-xs text-zinc-500">
+                      {mediaSearchTerm
+                        ? `No images matching "${mediaSearchTerm}"`
+                        : "Your media library is empty. Click 'Upload New' above to add images."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {filteredMedia.map((item) => (
+                      <div
+                        key={item._id}
+                        onClick={() => selectMediaItem(item.url)}
+                        title={item.filename || "Select image"}
+                        className="aspect-square relative group cursor-pointer border-2 border-transparent hover:border-cyan-500 rounded-xl overflow-hidden bg-black/50 transition-all hover:scale-[1.02] shadow-md hover:shadow-cyan-500/20"
+                      >
+                        <img
+                          src={item.url}
+                          alt={item.filename || "Media asset"}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:opacity-100 opacity-0 transition-opacity flex flex-col justify-end p-2">
+                          <p className="text-[11px] text-white font-medium truncate w-full">
+                            {item.filename || "Image"}
+                          </p>
+                          <span className="text-[10px] text-cyan-400 font-semibold">
+                            Click to insert
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-zinc-800 bg-zinc-900 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Or paste URL here..."
+                  value={manualImageUrl}
+                  onChange={(e) => setManualImageUrl(e.target.value)}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (manualImageUrl) selectMediaItem(manualImageUrl);
+                  }}
+                >
+                  Use URL
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
