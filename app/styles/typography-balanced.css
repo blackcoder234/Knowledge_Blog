@@ -22,8 +22,16 @@
 }
 
 /* Dark Mode Optimization */
-.prose-article strong { color: #f4f4f5; font-weight: 600; }
-.prose-article em { color: var(--accent); font-style: italic; }
+.prose-article strong,
+.prose-article b {
+  color: #f4f4f5;
+  font-weight: 600;
+}
+.prose-article em,
+.prose-article i {
+  color: inherit;
+  font-style: italic;
+}
 
 /* ==========================================================================
    HEADINGS (Distinct Hierarchy)

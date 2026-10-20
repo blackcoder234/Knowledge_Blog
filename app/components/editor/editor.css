@@ -74,14 +74,46 @@
   font-weight: 300;
 }
 
-/* Blockquote Styles */
-.ProseMirror blockquote {
-  border-left: 3px solid var(--accent-primary);
-  color: var(--text-secondary);
-  background: rgba(250, 204, 21, 0.05);
-  padding: 0.5rem 0 0.5rem 1rem;
+.ProseMirror strong,
+.ProseMirror b {
+  color: #f4f4f5;
+  font-weight: 600;
+}
+
+.ProseMirror em,
+.ProseMirror i {
+  color: inherit;
   font-style: italic;
-  margin: 1.5em 0;
+}
+
+/* Blockquote Styles */
+.ProseMirror blockquote:not([class*="callout"]):not([class*="quote-"]) {
+  position: relative;
+  border-left: 3px solid var(--accent, #facc15);
+  margin: 2em 0;
+  padding-left: 2.25em;
+  padding-top: 0.3em;
+  padding-bottom: 0.3em;
+  padding-right: 1em;
+  border-radius: 0 4px 4px 0;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  font-style: italic;
+  font-size: 1.1em;
+  color: #e9e1e1;
+  background: rgba(250, 204, 21, 0.02);
+}
+
+.ProseMirror blockquote:not([class*="callout"]):not([class*="quote-"])::before {
+  content: "“";
+  position: absolute;
+  left: 0.2em;
+  top: 0.1em;
+  font-family: var(--font-lora, serif);
+  font-size: 3em;
+  line-height: 1;
+  color: var(--accent, #facc15);
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 /* Callout Base Layout */

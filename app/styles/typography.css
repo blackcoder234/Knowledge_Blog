@@ -81,6 +81,18 @@
   font-weight: 300;
 }
 
+.prose-article strong, .ProseMirror strong,
+.prose-article b, .ProseMirror b {
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+.prose-article em, .ProseMirror em,
+.prose-article i, .ProseMirror i {
+  font-style: italic;
+  color: inherit;
+}
+
 /* Blockquote Styles */
 .prose-article blockquote, .ProseMirror blockquote {
   border-left: 3px solid var(--accent-primary);
