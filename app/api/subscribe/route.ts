@@ -1,13 +1,54 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Subscriber from '@/models/Subscriber';
+import { readLimitedRequestText } from '@/lib/readLimitedRequestText';
+import { checkDistributedRateLimit } from '@/lib/ai-studio/rateLimiter';
+import { getRequestClientKey } from '@/lib/requestClientKey';
 
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json();
+    const bodyResult = await readLimitedRequestText(req, 2048);
+    if ('error' in bodyResult) {
+      const tooLarge = bodyResult.error === 'too_large';
+      return NextResponse.json(
+        { error: tooLarge ? 'Subscription request too large.' : 'Request body is required.' },
+        { status: tooLarge ? 413 : 400 },
+      );
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(bodyResult.text);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    }
+    const rawEmail = body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as { email?: unknown }).email
+      : undefined;
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
 
-    if (!email || !email.includes('@')) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
       return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+
+    const clientKey = getRequestClientKey(req, email);
+    if (!clientKey) {
+      return NextResponse.json(
+        { error: 'Subscription service is temporarily unavailable.' },
+        { status: 503 },
+      );
+    }
+    const rateLimit = await checkDistributedRateLimit(clientKey, 'subscribe');
+    if (!rateLimit.allowed) {
+      const status = rateLimit.isServiceUnavailable ? 503 : 429;
+      return NextResponse.json(
+        { error: rateLimit.isServiceUnavailable ? 'Subscription service is temporarily unavailable.' : 'Too many subscription attempts. Try again later.' },
+        {
+          status,
+          headers: rateLimit.isServiceUnavailable
+            ? undefined
+            : { 'Retry-After': String(rateLimit.retryAfterSeconds) },
+        },
+      );
     }
 
     await dbConnect();

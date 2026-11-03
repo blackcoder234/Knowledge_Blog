@@ -4,7 +4,7 @@ import User from '@/models/User';
 import Post from '@/models/Post';
 import Comment from '@/models/Comment';
 import Subscriber from '@/models/Subscriber';
-import Settings from '@/models/Settings';
+import Setting from '@/models/Setting';
 import Visitor from '@/models/Visitor';
 import PageView from '@/models/PageView';
 import Contact from '@/models/Contact';
@@ -43,7 +43,7 @@ export async function GET() {
       referrerStats,
       unreadCount,
       totalComments,
-      settings
+      maintenanceSetting
     ] = await Promise.all([
       User.countDocuments({}),
       Post.countDocuments({}),
@@ -87,7 +87,7 @@ export async function GET() {
       // Unread Messages
       Contact.countDocuments({ read: false }),
       Comment.countDocuments({}),
-      Settings.findOne()
+      Setting.findOne({ key: 'maintenance_mode' }).select('value').lean()
     ]);
 
     // Chart Data (Page Views Last 7 Days)
@@ -146,7 +146,7 @@ export async function GET() {
         uptime: process.uptime(),
         dbStatus: mongoose.connection.readyState === 1,
         unreadMessages: unreadCount,
-        maintenanceMode: settings?.maintenanceMode || false,
+        maintenanceMode: maintenanceSetting?.value === true,
         
         charts: {
             visitors: chartData

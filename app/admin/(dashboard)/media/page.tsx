@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   Image as ImageIcon,
   Copy,
@@ -35,11 +35,7 @@ export default function MediaLibraryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast() || { showToast: console.log };
 
-  useEffect(() => {
-    fetchMedia();
-  }, []);
-
-  const fetchMedia = async () => {
+  const fetchMedia = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/media");
       if (res.ok) {
@@ -50,7 +46,11 @@ export default function MediaLibraryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void fetchMedia();
+  }, [fetchMedia]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;

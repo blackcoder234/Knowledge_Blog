@@ -3,6 +3,9 @@ import dbConnect from "@/lib/db";
 import Newsletter from "@/models/Newsletter";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { readLimitedRequestText } from "@/lib/readLimitedRequestText";
+
+const MAX_NEWSLETTER_BODY_BYTES = 256 * 1024;
 
 export async function GET() {
   try {
@@ -34,11 +37,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const { subject, content } = await req.json();
-
-    if (!subject) {
+    const bodyResult = await readLimitedRequestText(req, MAX_NEWSLETTER_BODY_BYTES);
+    if ("error" in bodyResult) {
+      const tooLarge = bodyResult.error === "too_large";
       return NextResponse.json(
-        { error: "Subject is required" },
+        { error: tooLarge ? "Newsletter content exceeds the size limit." : "Request body is required." },
+        { status: tooLarge ? 413 : 400 },
+      );
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(bodyResult.text);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ error: "Invalid newsletter data." }, { status: 400 });
+    }
+    const { subject, content } = body as { subject?: unknown; content?: unknown };
+    if (typeof subject !== "string" || !subject.trim() || subject.length > 200 ||
+        (content !== undefined && typeof content !== "string")) {
+      return NextResponse.json(
+        { error: "A valid subject and text content are required." },
         { status: 400 },
       );
     }
@@ -46,7 +66,7 @@ export async function POST(req: Request) {
     await dbConnect();
 
     const newsletter = await Newsletter.create({
-      subject,
+      subject: subject.trim(),
       content: content || "",
       status: "draft",
     });

@@ -2,10 +2,13 @@ import PostEditor from "../../../../components/editor/PostEditor";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
 import { notFound } from "next/navigation";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
 async function getPost(id: string) {
+  if (!mongoose.isValidObjectId(id)) return null;
+
   await dbConnect();
   const post = await Post.findById(id).lean();
   if (!post) return null;

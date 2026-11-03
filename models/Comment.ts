@@ -11,4 +11,6 @@ const CommentSchema = new Schema(
   { timestamps: true }
 );
 
+CommentSchema.index({ post: 1, status: 1, createdAt: -1 });
+
 export default mongoose.models.Comment || mongoose.model('Comment', CommentSchema);

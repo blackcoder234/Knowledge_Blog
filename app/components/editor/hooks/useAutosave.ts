@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Editor } from '@tiptap/react';
 import { debounce } from 'lodash'; // You might need to install lodash or write a simple debounce
 
@@ -12,24 +12,25 @@ export const useAutosave = ({ editor, onSave, debounceMs = 1000 }: UseAutosavePr
   const [status, setStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
-  const debouncedSave = useCallback(
-    debounce(async (json: any) => {
-      setStatus('saving');
-      try {
-        if (onSave) {
-          await onSave(json);
+  const debouncedSave = useMemo(
+    () =>
+      debounce(async (json: any) => {
+        setStatus('saving');
+        try {
+          if (onSave) {
+            await onSave(json);
+          }
+          setLastSaved(new Date());
+          setStatus('saved');
+
+          // Mock save for localStorage just in case
+          localStorage.setItem('editor-content', JSON.stringify(json));
+
+        } catch (error) {
+          console.error('Autosave failed:', error);
+          setStatus('unsaved');
         }
-        setLastSaved(new Date());
-        setStatus('saved');
-        
-        // Mock save for localStorage just in case
-        localStorage.setItem('editor-content', JSON.stringify(json));
-        
-      } catch (error) {
-        console.error('Autosave failed:', error);
-        setStatus('unsaved');
-      }
-    }, debounceMs),
+      }, debounceMs),
     [onSave, debounceMs]
   );
 

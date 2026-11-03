@@ -6,27 +6,20 @@ import { Button } from "@/app/components/ui/Button";
 import Link from "next/link";
 import dbConnect from "@/lib/db";
 import Post from "@/models/Post";
-import Category from "@/models/Category"; // Required for population
-import User from "@/models/User"; // Required for population
 import { notFound } from "next/navigation";
 import { CommentsSection } from "@/app/components/blog/CommentsSection";
 import { SocialShare } from "@/app/components/blog/SocialShare";
 
 import { Metadata } from "next";
 import Setting from "@/models/Setting";
+import { sanitizeArticleHtml, serializeJsonForHtml } from "@/lib/sanitizeHtml";
 
 export const revalidate = 60;
 export const dynamicParams = true; // Allow new posts not generated at build time
 
 export async function generateStaticParams() {
   await dbConnect();
-  const now = new Date();
-  const publishedFilter = {
-    $or: [
-      { status: "published" },
-      { status: "scheduled", scheduledPublishDate: { $lte: now } },
-    ],
-  };
+  const publishedFilter = { status: "published" };
   const posts = await Post.find(publishedFilter).select("slug").lean();
 
   return posts.map((post: any) => ({
@@ -42,7 +35,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await getPost(slug);
 
-  if (!post) {
+  if (!post || post.status !== "published") {
     return {
       title: "Article Not Found",
       description: "The requested article could not be found.",
@@ -79,7 +72,7 @@ export async function generateMetadata({
       modifiedTime: post.updatedAt
         ? new Date(post.updatedAt).toISOString()
         : undefined,
-      authors: [post.author?.name || "KnowledgeLog Team"],
+      authors: [post.author?.name || "KnowledgeLog Editorial Team"],
     },
     twitter: {
       card: "summary_large_image",
@@ -112,13 +105,7 @@ async function getRelatedPosts(category: any, currentId: any) {
   await dbConnect();
   const categoryId = category?._id || category;
 
-  const now = new Date();
-  const publishedFilter = {
-    $or: [
-      { status: "published" },
-      { status: "scheduled", scheduledPublishDate: { $lte: now } },
-    ],
-  };
+  const publishedFilter = { status: "published" };
 
   const related = await Post.find({
     category: categoryId,
@@ -134,13 +121,7 @@ async function getRelatedPosts(category: any, currentId: any) {
 
 // Fetch Author's recent posts
 async function getAuthorPosts(authorId: any, currentId: any) {
-  const now = new Date();
-  const publishedFilter = {
-    $or: [
-      { status: "published" },
-      { status: "scheduled", scheduledPublishDate: { $lte: now } },
-    ],
-  };
+  const publishedFilter = { status: "published" };
 
   return await Post.find({
     author: authorId,
@@ -155,13 +136,7 @@ async function getAuthorPosts(authorId: any, currentId: any) {
 
 // Fetch Next Post
 async function getNextPost(date: Date) {
-  const now = new Date();
-  const publishedFilter = {
-    $or: [
-      { status: "published" },
-      { status: "scheduled", scheduledPublishDate: { $lte: now } },
-    ],
-  };
+  const publishedFilter = { status: "published" };
 
   return await Post.findOne({
     createdAt: { $gt: date },
@@ -174,13 +149,7 @@ async function getNextPost(date: Date) {
 
 // Fetch Previous Post
 async function getPrevPost(date: Date) {
-  const now = new Date();
-  const publishedFilter = {
-    $or: [
-      { status: "published" },
-      { status: "scheduled", scheduledPublishDate: { $lte: now } },
-    ],
-  };
+  const publishedFilter = { status: "published" };
 
   return await Post.findOne({
     createdAt: { $lt: date },
@@ -220,15 +189,15 @@ export default async function BlogPostPage({
   }
 
   // Hide unpublished posts from public
-  const isScheduled =
-    post.status === "scheduled" &&
-    post.scheduledPublishDate &&
-    new Date(post.scheduledPublishDate) <= new Date();
-  const isLive = post.status === "published" || isScheduled;
-
-  if (!isLive && !canPreview) {
+  if (post.status !== "published" && !canPreview) {
     notFound();
   }
+
+  const authorName =
+    post.author?.name?.trim() || "KnowledgeLog Editorial Team";
+  const authorImage = post.author?.image || "/icon";
+  const authorRole = post.author?.role || "Staff";
+  const hasAuthor = Boolean(post.author?._id);
 
   let initialEmail = "";
   let isSubscribed = false;
@@ -246,7 +215,9 @@ export default async function BlogPostPage({
   const relatedPosts = await getRelatedPosts(post.category, post._id);
   const nextPost = await getNextPost(post.createdAt);
   const prevPost = await getPrevPost(post.createdAt);
-  const authorPosts = await getAuthorPosts(post.author._id, post._id);
+  const authorPosts = hasAuthor
+    ? await getAuthorPosts(post.author._id, post._id)
+    : [];
 
   // Fetch Global Comment Settings
   await dbConnect();
@@ -309,7 +280,7 @@ export default async function BlogPostPage({
         : undefined,
     author: {
       "@type": "Person",
-      name: post.author?.name || "KnowledgeLog Team",
+      name: authorName,
       image: post.author?.image || undefined,
       url:
         post.author?.name === "Amarnath Bera"
@@ -378,11 +349,11 @@ export default async function BlogPostPage({
     <div className="bg-background min-h-screen pt-20">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonForHtml(articleJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonForHtml(breadcrumbJsonLd) }}
       />
       <ReadingProgress />
       <ViewCounter slug={slug} />
@@ -439,15 +410,15 @@ export default async function BlogPostPage({
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full overflow-hidden border border-white/20 relative">
                 <Image
-                  src={post.author.image}
-                  alt={post.author.name}
+                  src={authorImage}
+                  alt={authorName}
                   fill
                   className="object-cover"
                 />
               </div>
               <div>
-                <p className="text-white font-medium">{post.author.name}</p>
-                <p className="text-xs text-muted">{post.author.role}</p>
+                <p className="text-white font-medium">{authorName}</p>
+                <p className="text-xs text-muted">{authorRole}</p>
               </div>
             </div>
             <div className="h-10 w-px bg-white/20" />
@@ -488,13 +459,15 @@ export default async function BlogPostPage({
               </p>
 
               <ArticleContent
-                content={post.content}
+                content={sanitizeArticleHtml(post.content)}
                 contentJson={post.contentJson}
               />
 
-              <div className="mt-32">
-                <AuthorBio author={post.author} authorPosts={authorPosts} />
-              </div>
+              {hasAuthor && (
+                <div className="mt-32">
+                  <AuthorBio author={post.author} authorPosts={authorPosts} />
+                </div>
+              )}
 
               {/* Tags & Share */}
               <div className="mt-16 pt-10 border-t border-white/5 flex flex-wrap gap-6 justify-between items-center">

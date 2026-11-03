@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Button } from "../ui/Button";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -10,11 +10,11 @@ interface Comment {
   _id: string;
   content: string;
   createdAt: string;
-  author: {
+  author?: {
     name: string;
     image?: string;
-    role: "user" | "admin";
-  };
+    role?: "user" | "admin";
+  } | null;
 }
 
 export const CommentsSection = ({
@@ -32,11 +32,7 @@ export const CommentsSection = ({
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    fetchComments();
-  }, [postId]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/comments?postId=${postId}`);
@@ -49,7 +45,11 @@ export const CommentsSection = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId]);
+
+  useEffect(() => {
+    void fetchComments();
+  }, [fetchComments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,46 +160,51 @@ export const CommentsSection = ({
             Loading comments...
           </div>
         ) : comments.length > 0 ? (
-          comments.map((comment) => (
-            <div key={comment._id} className="flex gap-4 group">
-              <div className="h-10 w-10 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden ring-2 ring-white/5">
-                {comment.author.image &&
-                comment.author.image.startsWith("http") ? (
-                  <img
-                    src={comment.author.image}
-                    alt={comment.author.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center text-white text-xs">
-                    {comment.author.name.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-white text-sm">
-                    {comment.author.name}
-                  </span>
-                  {comment.author.role === "admin" && (
-                    <span className="bg-accent/10 text-accent text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-accent/20">
-                      Admin
-                    </span>
+          comments.map((comment) => {
+            const authorName =
+              comment.author?.name?.trim() || "Anonymous Reader";
+            const authorImage = comment.author?.image;
+
+            return (
+              <div key={comment._id} className="flex gap-4 group">
+                <div className="h-10 w-10 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden ring-2 ring-white/5">
+                  {authorImage && authorImage.startsWith("http") ? (
+                    <img
+                      src={authorImage}
+                      alt={authorName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-white text-xs">
+                      {authorName.charAt(0).toUpperCase()}
+                    </div>
                   )}
-                  <span className="text-zinc-500 text-xs">
-                    •{" "}
-                    {new Date(comment.createdAt).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
                 </div>
-                <div className="text-zinc-300 text-sm leading-relaxed">
-                  {comment.content}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-white text-sm">
+                      {authorName}
+                    </span>
+                    {comment.author?.role === "admin" && (
+                      <span className="bg-accent/10 text-accent text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border border-accent/20">
+                        Admin
+                      </span>
+                    )}
+                    <span className="text-zinc-500 text-xs">
+                      •{" "}
+                      {new Date(comment.createdAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div className="text-zinc-300 text-sm leading-relaxed">
+                    {comment.content}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="text-center py-10">
             <p className="text-zinc-500 italic">

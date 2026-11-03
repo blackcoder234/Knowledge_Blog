@@ -9,6 +9,7 @@ import Post from "@/models/Post";
 import Category from "@/models/Category";
 import User from "@/models/User"; // Required for population
 import { JoinCommunityCard } from "@/app/components/blog/JoinCommunityCard";
+import { escapeRegex } from "@/lib/regex";
 
 import { Metadata } from "next";
 
@@ -31,13 +32,7 @@ async function getBlogData(searchParams: {
 }) {
   try {
     await dbConnect();
-    const now = new Date();
-    const publishedFilter = {
-      $or: [
-        { status: "published" },
-        { status: "scheduled", scheduledPublishDate: { $lte: now } },
-      ],
-    };
+    const publishedFilter = { status: "published" };
 
     const postsPerPage = 12;
     const currentPage = Number(searchParams.page) || 1;
@@ -102,11 +97,16 @@ async function getBlogData(searchParams: {
     // 3. Build Query
     const query: any = { ...publishedFilter };
     if (searchParams.q) {
-      query.$or = [
-        { title: { $regex: searchParams.q, $options: "i" } },
-        { content: { $regex: searchParams.q, $options: "i" } },
-        { excerpt: { $regex: searchParams.q, $options: "i" } },
+      const searchRegex = escapeRegex(searchParams.q);
+      query.$and = [
+        { status: "published" },
+        { $or: [
+        { title: { $regex: searchRegex, $options: "i" } },
+        { content: { $regex: searchRegex, $options: "i" } },
+        { excerpt: { $regex: searchRegex, $options: "i" } },
+        ] },
       ];
+      delete query.$or;
     }
 
     if (searchParams.category && searchParams.category !== "All") {

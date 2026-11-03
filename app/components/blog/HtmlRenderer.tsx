@@ -14,7 +14,7 @@ if (typeof window !== "undefined") {
     m.initialize({
       startOnLoad: false,
       theme: "dark",
-      securityLevel: "loose",
+      securityLevel: "strict",
       fontFamily: "Inter, system-ui, sans-serif",
     });
   }

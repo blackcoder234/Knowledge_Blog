@@ -3,25 +3,18 @@ import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
 import Category from '@/models/Category';
 import User from '@/models/User';
+import { sanitizeArticleHtml } from '@/lib/sanitizeHtml';
 
 export async function GET() {
   await dbConnect();
 
-  const now = new Date();
-  const publishedFilter = {
-      $or: [
-        { status: "published" },
-        { status: "scheduled", scheduledPublishDate: { $lte: now } },
-      ],
-  };
-
   const posts = await Post.find({ 
-    ...publishedFilter,
+    status: "published",
     noindex: { $ne: true } 
   })
   .sort({ createdAt: -1 })
   .limit(20)
-  .populate({ path: 'author', model: User, select: 'name email link' })
+  .populate({ path: 'author', model: User, select: 'name link' })
   .populate({ path: 'category', model: Category, select: 'name' })
   .lean();
 
@@ -53,11 +46,10 @@ export async function GET() {
       id: `https://www.knowledgelog.blog/blog/${post.slug}`,
       link: `https://www.knowledgelog.blog/blog/${post.slug}`,
       description: post.excerpt,
-      content: post.content, // Ideally should be sanitized/rendered HTML, but raw string is often OK for basic readers or needs marked transform
+      content: sanitizeArticleHtml(post.content),
       author: [
         {
           name: post.author?.name || 'KnowledgeLog Team',
-          email: post.author?.email,
           link: post.author?.link
         }
       ],

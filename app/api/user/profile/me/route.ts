@@ -20,7 +20,8 @@ export async function GET() {
     }
 
     return NextResponse.json(user);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('Failed to fetch current user profile:', error);
+    return NextResponse.json({ error: 'Failed to fetch profile.' }, { status: 500 });
   }
 }

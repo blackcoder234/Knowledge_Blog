@@ -20,7 +20,8 @@ export async function GET(req: Request) {
                                   .sort({ createdAt: -1 });
 
     return NextResponse.json(comments);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('Failed to fetch user comments:', error);
+    return NextResponse.json({ error: 'Failed to fetch comments.' }, { status: 500 });
   }
 }

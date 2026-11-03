@@ -1,7 +1,7 @@
-import { ImageResponse } from "next/og";
+﻿import { ImageResponse } from "next/og";
 
 // Route segment config
-export const runtime = "edge";
+// "edge" runtime is deprecated in Next.js 16 � use "nodejs" instead
 
 // Image metadata
 export const size = {

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Subscriber from '@/models/Subscriber';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { escapeRegex } from '@/lib/regex';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     let filter = {};
     if (query) {
       filter = { 
-        email: { $regex: query, $options: 'i' } 
+        email: { $regex: escapeRegex(query), $options: 'i' }
       };
     }
 

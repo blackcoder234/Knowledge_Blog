@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container } from "./ui/Container";
 import dbConnect from "@/lib/db";
 import Setting from "@/models/Setting";
+import { safeExternalUrl } from "@/lib/safeExternalUrl";
 
 export const Footer = async () => {
   let siteTitle = "KnowledgeLog";
@@ -29,7 +30,7 @@ export const Footer = async () => {
       if (s.key === "site_title" && s.value) siteTitle = s.value;
       if (s.key === "site_tagline" && s.value) siteTagline = s.value;
       if (s.key.startsWith("social_") && s.value) {
-        socialLinks[s.key] = s.value;
+        socialLinks[s.key] = safeExternalUrl(s.value) || "";
       }
     });
   } catch (err) {

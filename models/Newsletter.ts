@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+export const NEWSLETTER_STALE_SEND_AFTER_MS = 15 * 60 * 1000;
+
 const NewsletterSchema = new mongoose.Schema(
   {
     subject: {
@@ -13,8 +15,11 @@ const NewsletterSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "sent", "scheduled"],
+      enum: ["draft", "sending", "sent", "scheduled"],
       default: "draft",
+    },
+    sendingAt: {
+      type: Date,
     },
     sentAt: {
       type: Date,

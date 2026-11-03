@@ -8,6 +8,7 @@ import { Container } from "@/app/components/ui/Container";
 import GlobalLoading from "@/app/loading";
 import { useToast } from "@/app/context/ToastContext";
 import { BlogCard } from "@/app/components/BlogCard";
+import { safeExternalUrl } from "@/lib/safeExternalUrl";
 import Image from "next/image";
 import {
   Twitter,
@@ -117,22 +118,27 @@ export default function UserProfilePage({
   const isPortfolioRole = ["editor", "admin", "super_admin"].includes(
     user.role,
   );
+  const socialUrls = {
+    twitter: safeExternalUrl(user.socialLinks?.twitter),
+    linkedin: safeExternalUrl(user.socialLinks?.linkedin),
+    github: safeExternalUrl(user.socialLinks?.github),
+    website: safeExternalUrl(user.socialLinks?.website),
+  };
 
-  const SocialLinks = () => {
+  const renderSocialLinks = () => {
     if (
-      !user.socialLinks ||
-      (!user.socialLinks.twitter &&
-        !user.socialLinks.linkedin &&
-        !user.socialLinks.github &&
-        !user.socialLinks.website)
+      !socialUrls.twitter &&
+      !socialUrls.linkedin &&
+      !socialUrls.github &&
+      !socialUrls.website
     )
       return null;
 
     return (
       <div className="flex gap-4 pt-4 border-t border-white/5 mt-6">
-        {user.socialLinks.twitter && (
+        {socialUrls.twitter && (
           <a
-            href={user.socialLinks.twitter}
+            href={socialUrls.twitter}
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-400 hover:text-[#1DA1F2] transition-colors"
@@ -140,9 +146,9 @@ export default function UserProfilePage({
             <Twitter size={20} />
           </a>
         )}
-        {user.socialLinks.linkedin && (
+        {socialUrls.linkedin && (
           <a
-            href={user.socialLinks.linkedin}
+            href={socialUrls.linkedin}
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-400 hover:text-[#0A66C2] transition-colors"
@@ -150,9 +156,9 @@ export default function UserProfilePage({
             <Linkedin size={20} />
           </a>
         )}
-        {user.socialLinks.github && (
+        {socialUrls.github && (
           <a
-            href={user.socialLinks.github}
+            href={socialUrls.github}
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-400 hover:text-white transition-colors"
@@ -160,9 +166,9 @@ export default function UserProfilePage({
             <Github size={20} />
           </a>
         )}
-        {user.socialLinks.website && (
+        {socialUrls.website && (
           <a
-            href={user.socialLinks.website}
+            href={socialUrls.website}
             target="_blank"
             rel="noopener noreferrer"
             className="text-zinc-400 hover:text-accent transition-colors"
@@ -246,7 +252,7 @@ export default function UserProfilePage({
                     </div>
                   )}
                 </div>
-                <SocialLinks />
+                {renderSocialLinks()}
               </div>
             </div>
           </div>
@@ -510,7 +516,7 @@ export default function UserProfilePage({
                 )}
               </div>
 
-              <SocialLinks />
+              {renderSocialLinks()}
             </div>
           </div>
 

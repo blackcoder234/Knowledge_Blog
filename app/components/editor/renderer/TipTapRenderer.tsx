@@ -132,20 +132,22 @@ const RenderNode = ({ node }: { node: JSONContent }) => {
     case "mathEquation": {
       const latex = node.attrs?.latex || "";
       const isBlock = node.attrs?.isBlock || false;
+      let html: string | null = null;
       try {
-        const html = katex.renderToString(latex, {
+        html = katex.renderToString(latex, {
           throwOnError: false,
           displayMode: isBlock,
         });
-        return (
-          <span
-            dangerouslySetInnerHTML={{ __html: html }}
-            className={isBlock ? "block my-4 text-center" : "mx-1 inline-block"}
-          />
-        );
-      } catch (e) {
-        return <code className="text-red-400">{latex}</code>;
+      } catch {
+        html = null;
       }
+      if (html === null) return <code className="text-red-400">{latex}</code>;
+      return (
+        <span
+          dangerouslySetInnerHTML={{ __html: html }}
+          className={isBlock ? "block my-4 text-center" : "mx-1 inline-block"}
+        />
+      );
     }
 
     case "horizontalRule":

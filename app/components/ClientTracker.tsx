@@ -1,26 +1,33 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function ClientTracker() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Debounce or just fire? Fire once per navigation.
-    const url = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+    let visitorId: string | undefined;
+    try {
+      visitorId = localStorage.getItem("visitor_id") || undefined;
+      if (!visitorId) {
+        visitorId = crypto.randomUUID();
+        localStorage.setItem("visitor_id", visitorId);
+      }
+    } catch (error) {
+      console.error("Could not persist analytics visitor ID:", error);
+    }
 
-    // Send hit to API
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        path: url,
+        path: pathname,
         referrer: document.referrer,
+        visitorId,
       }),
     }).catch((err) => console.error("Tracking error:", err));
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return null;
 }

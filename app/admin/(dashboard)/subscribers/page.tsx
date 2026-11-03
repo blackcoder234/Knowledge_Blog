@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Users,
   Search,
@@ -34,19 +34,7 @@ export default function SubscribersPage() {
   } | null>(null);
   const { showToast } = useToast() || { showToast: console.log };
 
-  useEffect(() => {
-    fetchSubscribers();
-  }, []);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchSubscribers(searchTerm);
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
-
-  const fetchSubscribers = async (query = "") => {
+  const fetchSubscribers = useCallback(async (query = "") => {
     setLoading(true);
     try {
       const url = query
@@ -63,7 +51,15 @@ export default function SubscribersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      void fetchSubscribers(searchTerm);
+    }, searchTerm ? 500 : 0);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [fetchSubscribers, searchTerm]);
 
   const handleDelete = (id: string, email: string) => {
     setConfirmData({ id, email });

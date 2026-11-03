@@ -58,7 +58,7 @@ export default function SignupPage() {
         setSuccess(true);
         // Auto login
         const loginRes = await signIn("credentials", {
-          email: formData.email,
+          email: formData.email.trim(),
           password: formData.password,
           redirect: false,
         });
@@ -177,6 +177,7 @@ export default function SignupPage() {
             value={formData.name}
             onChange={handleChange}
             placeholder="John Doe"
+            maxLength={80}
           />
 
           <AuthInput
@@ -186,6 +187,7 @@ export default function SignupPage() {
             value={formData.email}
             onChange={handleChange}
             placeholder="john@example.com"
+            maxLength={254}
           />
 
           <AuthInput
@@ -195,6 +197,8 @@ export default function SignupPage() {
             value={formData.password}
             onChange={handleChange}
             placeholder="••••••••"
+            minLength={8}
+            maxLength={72}
           />
 
           {error && (

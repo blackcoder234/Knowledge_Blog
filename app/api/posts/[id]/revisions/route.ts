@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import PostRevision from '@/models/PostRevision';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import mongoose from 'mongoose';
 
 export async function GET(
     request: Request,
@@ -19,6 +20,9 @@ export async function GET(
          }
 
         const { id } = await params;
+        if (!mongoose.isValidObjectId(id)) {
+            return NextResponse.json({ error: 'Invalid post ID.' }, { status: 400 });
+        }
         await dbConnect();
         
         // Fetch revisions for this post
@@ -29,7 +33,8 @@ export async function GET(
             .limit(20); // Limit to last 20 revisions to save bandwidth
 
         return NextResponse.json(revisions);
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error) {
+        console.error('Failed to fetch post revisions:', error);
+        return NextResponse.json({ error: 'Failed to fetch post revisions.' }, { status: 500 });
     }
 }

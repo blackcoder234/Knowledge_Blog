@@ -10,12 +10,8 @@ const BASE_URL = 'https://www.knowledgelog.blog'; // Production URL
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   await dbConnect();
   
-  // Fetch Published AND 'Lazy Published' Scheduled Posts
   const posts = await Post.find({ 
-    $or: [
-      { status: 'published' },
-      { status: 'scheduled', scheduledPublishDate: { $lte: new Date() } }
-    ],
+    status: 'published',
     noindex: { $ne: true } 
   }).sort({ updatedAt: -1 }).select('slug updatedAt').lean();
 

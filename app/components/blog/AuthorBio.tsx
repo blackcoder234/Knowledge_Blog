@@ -8,6 +8,7 @@ import {
   Facebook,
   Instagram,
 } from "lucide-react";
+import { safeExternalUrl } from "@/lib/safeExternalUrl";
 
 interface AuthorBioProps {
   author: {
@@ -31,6 +32,13 @@ interface AuthorBioProps {
 
 export const AuthorBio = ({ author, authorPosts = [] }: AuthorBioProps) => {
   const defaultSignature = `${author.name} is a contributor at KnowledgeLog, exploring the intersection of modern technology, scientific discovery, and human philosophy.`;
+  const socialUrls = {
+    twitter: safeExternalUrl(author.socialLinks?.twitter),
+    linkedin: safeExternalUrl(author.socialLinks?.linkedin),
+    github: safeExternalUrl(author.socialLinks?.github),
+    facebook: safeExternalUrl(author.socialLinks?.facebook),
+    instagram: safeExternalUrl(author.socialLinks?.instagram),
+  };
 
   return (
     <div className="mt-24 space-y-12 text-left">
@@ -77,46 +85,51 @@ export const AuthorBio = ({ author, authorPosts = [] }: AuthorBioProps) => {
             </Link>
 
             <div className="flex items-center gap-3 opacity-40 hover:opacity-100 transition-opacity">
-              {author.socialLinks?.twitter && (
+              {socialUrls.twitter && (
                 <a
-                  href={author.socialLinks.twitter}
+                  href={socialUrls.twitter}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
                   <Twitter size={14} />
                 </a>
               )}
-              {author.socialLinks?.linkedin && (
+              {socialUrls.linkedin && (
                 <a
-                  href={author.socialLinks.linkedin}
+                  href={socialUrls.linkedin}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
                   <Linkedin size={14} />
                 </a>
               )}
-              {author.socialLinks?.github && (
+              {socialUrls.github && (
                 <a
-                  href={author.socialLinks.github}
+                  href={socialUrls.github}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
                   <Github size={14} />
                 </a>
               )}
-              {author.socialLinks?.facebook && (
+              {socialUrls.facebook && (
                 <a
-                  href={author.socialLinks.facebook}
+                  href={socialUrls.facebook}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
                   <Facebook size={14} />
                 </a>
               )}
-              {author.socialLinks?.instagram && (
+              {socialUrls.instagram && (
                 <a
-                  href={author.socialLinks.instagram}
+                  href={socialUrls.instagram}
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
                   <Instagram size={14} />

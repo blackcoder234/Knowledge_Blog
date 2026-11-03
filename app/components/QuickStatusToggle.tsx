@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 interface QuickStatusToggleProps {
   id: string;
-  initialStatus: "published" | "draft" | "archived";
+  initialStatus: "published" | "draft" | "archived" | "scheduled";
 }
 
 export const QuickStatusToggle = ({
@@ -82,7 +82,7 @@ export const QuickStatusToggle = ({
           }`}
         ></span>
         <span className="text-xs font-semibold capitalize tracking-wide select-none">
-          {status}
+          {status === "scheduled" ? "scheduled (disabled)" : status}
         </span>
         <svg
           xmlns="http://www.w3.org/2000/svg"

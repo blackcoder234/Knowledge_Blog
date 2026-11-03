@@ -38,6 +38,23 @@ type RendererContextType = {
 
 const RendererContext = createContext<RendererContextType>({});
 
+function safeContentUrl(value: unknown, allowMailto = false): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  const url = value.trim();
+  if (url.startsWith("/") && !url.startsWith("//")) return url;
+  if (url.startsWith("#")) return url;
+
+  try {
+    const parsed = new URL(url);
+    const allowedProtocols = allowMailto
+      ? ["https:", "http:", "mailto:", "tel:"]
+      : ["https:", "http:"];
+    return allowedProtocols.includes(parsed.protocol) ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 /* --------------------------------------------------------------------------------
  * HELPER: Render Marks (Bold, Italic, Link, etc.)
  * -------------------------------------------------------------------------------- */
@@ -67,11 +84,11 @@ const renderTextWithMarks = (node: JSONContent) => {
           element = <code>{element}</code>;
           break;
         case "link":
-          // Uses Next.js Link for optimized routing, but relies on Prose for styling
+          const href = safeContentUrl(mark.attrs?.href, true);
           element = (
             <Link
-              href={mark.attrs?.href || "#"}
-              target={mark.attrs?.target}
+              href={href || "#"}
+              target={mark.attrs?.target === "_blank" ? "_blank" : undefined}
               rel={
                 mark.attrs?.target === "_blank"
                   ? "noopener noreferrer"
@@ -289,10 +306,21 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
 
     case "image":
       const { width, height, textAlign } = node.attrs || {};
+      const imageSrc = safeContentUrl(node.attrs?.src);
+      if (!imageSrc) return null;
+      const imageDimension = (value: unknown, fallback: string | number) => {
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return Math.max(1, Math.min(4000, value));
+        }
+        if (typeof value === "string" && /^\d{1,4}(?:px|%)?$/.test(value)) {
+          return value;
+        }
+        return fallback;
+      };
 
       // Calculate alignment styles for the FIGURE container
       const figureStyle: React.CSSProperties = {
-        textAlign: (textAlign as any) || "center",
+        textAlign: ["left", "center", "right"].includes(textAlign) ? textAlign : "center",
         // If the editor saves specific alignments, handle them (e.g. float? usually just text-align for simple block images)
         display: "block",
         margin: "2em auto", // Default vertical spacing
@@ -300,19 +328,19 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
 
       // Calculate image specific styles
       const imgStyle: React.CSSProperties = {
-        width: width || "100%",
+        width: imageDimension(width, "100%"),
         maxWidth: "100%",
-        height: height || "auto",
+        height: imageDimension(height, "auto"),
         display: "inline-block", // Allows text-align on parent to work
       };
 
       return (
         <figure style={figureStyle}>
           <img
-            src={node.attrs?.src}
+            src={imageSrc}
             alt={node.attrs?.alt || ""}
             title={node.attrs?.title}
-            onClick={() => onImageClick?.(node.attrs?.src)}
+            onClick={() => onImageClick?.(imageSrc)}
             style={imgStyle}
             className={onImageClick ? "cursor-zoom-in" : ""}
           />
@@ -403,10 +431,23 @@ const NodeRenderer = ({ node }: { node: JSONContent }) => {
       return <hr />;
 
     case "youtube":
+      const videoSrc = safeContentUrl(node.attrs?.src);
+      if (!videoSrc) return null;
+      const videoUrl = new URL(
+        videoSrc.startsWith("/") ? `https://www.youtube.com${videoSrc}` : videoSrc,
+      );
+      if (
+        !["youtube.com", "www.youtube.com", "www.youtube-nocookie.com"].includes(
+          videoUrl.hostname,
+        ) ||
+        !videoUrl.pathname.startsWith("/embed/")
+      ) {
+        return null;
+      }
       return (
         <div className="relative aspect-video my-10 rounded-xl overflow-hidden shadow-xl border border-white/10 bg-black">
           <iframe
-            src={node.attrs?.src}
+            src={videoUrl.toString()}
             className="absolute inset-0 w-full h-full"
             allowFullScreen
             title="YouTube video"

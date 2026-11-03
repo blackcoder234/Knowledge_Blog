@@ -4,6 +4,8 @@ import User from '@/models/User';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import bcrypt from 'bcryptjs';
+import { readLimitedRequestText } from '@/lib/readLimitedRequestText';
+import { isValidPassword } from '@/lib/passwordValidation';
 
 export async function PATCH(req: Request) {
   try {
@@ -12,15 +14,47 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { currentPassword, newPassword } = await req.json();
-    const userId = (session.user as any).id;
-    
-    if (!currentPassword || !newPassword) {
-         return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    const bodyResult = await readLimitedRequestText(req, 4096);
+    if ('error' in bodyResult) {
+      const tooLarge = bodyResult.error === 'too_large';
+      return NextResponse.json(
+        { error: tooLarge ? 'Password request exceeds the size limit.' : 'Request body is required.' },
+        { status: tooLarge ? 413 : 400 },
+      );
     }
+    let body: unknown;
+    try {
+      body = JSON.parse(bodyResult.text);
+    } catch {
+      return NextResponse.json({ error: 'Request body must be valid JSON.' }, { status: 400 });
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return NextResponse.json({ error: 'Request body must be an object.' }, { status: 400 });
+    }
+    const { currentPassword, newPassword } = body as {
+      currentPassword?: unknown;
+      newPassword?: unknown;
+    };
+    if (
+      typeof currentPassword !== 'string' ||
+      !currentPassword ||
+      Buffer.byteLength(currentPassword, 'utf8') > 72 ||
+      !isValidPassword(newPassword)
+    ) {
+      return NextResponse.json(
+        { error: 'Current password is required; new password must be 8-72 bytes.' },
+        { status: 400 },
+      );
+    }
+
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     await dbConnect();
     const user = await User.findById(userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
 
     // Verify current password
     if (!user.password) {
@@ -34,10 +68,15 @@ export async function PATCH(req: Request) {
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await User.findByIdAndUpdate(userId, { password: hashedPassword });
+    await User.findByIdAndUpdate(
+      userId,
+      { password: hashedPassword },
+      { runValidators: true },
+    );
 
     return NextResponse.json({ message: 'Password updated successfully' });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('Password update failed:', error);
+    return NextResponse.json({ error: 'Unable to update password.' }, { status: 500 });
   }
 }

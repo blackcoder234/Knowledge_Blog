@@ -23,6 +23,8 @@ export interface IPost extends Document {
   canonicalUrl?: string;
   ogImage?: string;
   noindex?: boolean;
+  isAiAssisted?: boolean;
+  aiOpportunityId?: any;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,8 +62,25 @@ const PostSchema: Schema = new Schema(
     canonicalUrl: { type: String },
     ogImage: { type: String },
     noindex: { type: Boolean, default: false },
+    // AI Editorial Studio fields
+    isAiAssisted: { type: Boolean, default: false },
+    aiOpportunityId: {
+      type: Schema.Types.ObjectId,
+      ref: "AIContentOpportunity",
+    },
   },
   { timestamps: true },
+);
+
+PostSchema.index({ status: 1, createdAt: -1 });
+PostSchema.index({ category: 1, status: 1, createdAt: -1 });
+
+PostSchema.index(
+  { aiOpportunityId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { aiOpportunityId: { $type: "objectId" } },
+  },
 );
 
 // Prevent overwrite model error in development

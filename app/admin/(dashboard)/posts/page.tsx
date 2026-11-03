@@ -14,6 +14,7 @@ import Image from "next/image";
 import { QuickStatusToggle } from "@/app/components/QuickStatusToggle";
 import { FeaturedToggle } from "@/app/components/FeaturedToggle";
 import { FormattedDate } from "@/app/components/ui/FormattedDate";
+import { escapeRegex } from "@/lib/regex";
 
 export const revalidate = 0; // Always fresh for admin
 
@@ -30,7 +31,7 @@ async function getPosts(
   const dbQuery: any = {};
 
   if (query) {
-    const searchRegex = new RegExp(query, "i");
+    const searchRegex = new RegExp(escapeRegex(query), "i");
 
     // Find users who match the search query
     const matchingAuthors = await User.find({
@@ -239,6 +240,7 @@ export default async function PostsPage(props: {
                                     clipRule="evenodd"
                                   />
                                 </svg>
+                                <span>Scheduling disabled ·</span>
                                 <FormattedDate
                                   date={post.scheduledPublishDate}
                                 />
@@ -376,7 +378,9 @@ export default async function PostsPage(props: {
                                   }`}
                                 ></span>
                                 <span className="text-xs font-semibold capitalize tracking-wide">
-                                  {post.status}
+                                  {post.status === "scheduled"
+                                    ? "scheduled (disabled)"
+                                    : post.status}
                                 </span>
                               </span>
                             </span>

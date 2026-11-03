@@ -17,13 +17,7 @@ import Setting from "@/models/Setting";
 async function getLandingData() {
   try {
     await dbConnect();
-    const now = new Date();
-    const publishedFilter = {
-      $or: [
-        { status: "published" },
-        { status: "scheduled", scheduledPublishDate: { $lte: now } },
-      ],
-    };
+    const publishedFilter = { status: "published" };
 
     // Fetch Quote Settings
     const settings = await Setting.find({

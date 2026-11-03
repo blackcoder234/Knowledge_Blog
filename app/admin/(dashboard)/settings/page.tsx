@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   AlertTriangle,
@@ -74,19 +74,7 @@ export default function SettingsPage() {
 
   const isSuperAdmin = (session?.user as any)?.role === "super_admin";
 
-  useEffect(() => {
-    if (status === "loading") return;
-
-    const role = (session?.user as any)?.role;
-    if (role !== "admin" && role !== "super_admin") {
-      router.replace("/admin/dashboard");
-      return;
-    }
-
-    fetchSettings();
-  }, [session, status, router]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/settings");
       if (res.ok) {
@@ -139,7 +127,19 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (status === "loading") return;
+
+    const role = (session?.user as any)?.role;
+    if (role !== "admin" && role !== "super_admin") {
+      router.replace("/admin/dashboard");
+      return;
+    }
+
+    void fetchSettings();
+  }, [fetchSettings, session, status, router]);
 
   const updateSetting = async (key: string, value: any) => {
     setUpdating(true);
@@ -251,7 +251,7 @@ export default function SettingsPage() {
     setNotificationType(type as any); // Optimistic update
   };
 
-  const AuditTrail = ({ keys }: { keys: string[] }) => {
+  const renderAuditTrail = (keys: string[]) => {
     const relevantSettings = keys
       .map((k) => settingsMetadata[k])
       .filter((s) => s && s.updatedAt)
@@ -451,14 +451,12 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <AuditTrail
-            keys={[
+          {renderAuditTrail([
               "site_title",
               "site_tagline",
               "admin_email",
               "newsletter_subject",
-            ]}
-          />
+            ])}
         </div>
 
         {/* --- 1. Social Presence --- */}
@@ -572,15 +570,13 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <AuditTrail
-            keys={[
+          {renderAuditTrail([
               "social_twitter",
               "social_github",
               "social_linkedin",
               "social_facebook",
               "social_instagram",
-            ]}
-          />
+            ])}
         </div>
 
         {/* --- 2. Real-time Notification Banner --- */}
@@ -654,13 +650,11 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <AuditTrail
-            keys={[
+          {renderAuditTrail([
               "general_notification_active",
               "general_notification",
               "general_notification_type",
-            ]}
-          />
+            ])}
         </div>
 
         {/* --- 2.5 Homepage Interactions (Featured Quote) --- */}
@@ -782,9 +776,7 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <AuditTrail
-            keys={["home_quote_text", "home_quote_author", "home_quote_link"]}
-          />
+          {renderAuditTrail(["home_quote_text", "home_quote_author", "home_quote_link"])}
         </div>
 
         {/* --- 3. Communication Hub (Announcement) --- */}
@@ -849,7 +841,7 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-          <AuditTrail keys={["announcement_active", "announcement_message"]} />
+          {renderAuditTrail(["announcement_active", "announcement_message"])}
         </div>
 
         {/* --- 4. Community Controls --- */}
@@ -945,13 +937,11 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-          <AuditTrail
-            keys={[
+          {renderAuditTrail([
               "comments_enabled",
               "auto_close_days",
               "registration_enabled",
-            ]}
-          />
+            ])}
         </div>
 
         {/* --- 5. Technical & SEO --- */}
@@ -1014,7 +1004,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <AuditTrail keys={["public_indexing", "ga_measurement_id"]} />
+            {renderAuditTrail(["public_indexing", "ga_measurement_id"])}
           </div>
         )}
 
@@ -1087,7 +1077,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
-            <AuditTrail keys={["maintenance_mode", "last_cache_purge"]} />
+            {renderAuditTrail(["maintenance_mode", "last_cache_purge"])}
           </div>
         )}
       </div>

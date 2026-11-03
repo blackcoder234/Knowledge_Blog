@@ -23,8 +23,11 @@ export function FormattedDate({
   useEffect(() => {
     if (!date) return;
     const d = new Date(date);
-    // This will run in the browser, using the browser's timezone
-    setFormatted(d.toLocaleString("en-US", options));
+    // Defer state update to next tick to comply with React 19 effect purity rules
+    const timer = setTimeout(() => {
+      setFormatted(d.toLocaleString("en-US", options));
+    }, 0);
+    return () => clearTimeout(timer);
   }, [date, options]);
 
   // Return a placeholder or empty string during SSR to avoid hydration mismatch,

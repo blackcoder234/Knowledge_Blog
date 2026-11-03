@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Editor } from "@/app/components/editor/Editor";
 import { useToast } from "@/app/context/ToastContext";
@@ -30,12 +30,7 @@ export default function NewsletterPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  // Fetch List
-  useEffect(() => {
-    fetchNewsletters();
-  }, []);
-
-  const fetchNewsletters = async () => {
+  const fetchNewsletters = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/newsletter");
       if (res.ok) {
@@ -47,7 +42,12 @@ export default function NewsletterPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Fetch List
+  useEffect(() => {
+    void fetchNewsletters();
+  }, [fetchNewsletters]);
 
   const handleEdit = (n: Newsletter) => {
     setDraftId(n._id);

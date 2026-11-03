@@ -10,6 +10,7 @@ import { UserFilter } from "../../components/UserFilter";
 import { Pagination } from "@/app/components/ui/Pagination";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/Button";
+import { escapeRegex } from "@/lib/regex";
 
 export const revalidate = 0; // Always fresh
 
@@ -25,7 +26,7 @@ async function getUsers(
   const dbQuery: any = {};
 
   if (query) {
-    const searchRegex = new RegExp(query, "i");
+    const searchRegex = new RegExp(escapeRegex(query), "i");
     dbQuery.$or = [{ name: searchRegex }, { email: searchRegex }];
   }
 

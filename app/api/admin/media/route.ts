@@ -4,6 +4,7 @@ import Media from '@/models/Media';
 import cloudinary from '@/lib/cloudinary';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import mongoose from 'mongoose';
 
 export async function GET(request: Request) {
   try {
@@ -39,6 +40,9 @@ export async function DELETE(request: Request) {
 
     if (!id) {
         return NextResponse.json({ error: "ID required" }, { status: 400 });
+    }
+    if (!mongoose.isValidObjectId(id)) {
+        return NextResponse.json({ error: "Invalid media ID" }, { status: 400 });
     }
 
     await dbConnect();

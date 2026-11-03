@@ -3,7 +3,13 @@ import mongoose, { Schema } from 'mongoose';
 const UserSchema = new Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     password: { type: String }, // Hashed, optional for social login
     role: { type: String, enum: ['user', 'admin', 'editor', 'super_admin'], default: 'user' },
     image: { type: String, default: 'https://placehold.co/100x100/111/FFF?text=User' },

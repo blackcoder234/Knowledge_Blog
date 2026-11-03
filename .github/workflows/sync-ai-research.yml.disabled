@@ -1,0 +1,26 @@
+# Disabled: AI research synchronization is manual and can be initiated in AI Studio.
+# To preserve the previous configuration for reference, remove the comments
+# only after intentionally restoring a scheduler and the cron endpoint.
+#
+# name: Sync AI Research Sources
+# on:
+#   schedule:
+#     - cron: "15 */6 * * *"
+#   workflow_dispatch:
+#
+# concurrency:
+#   group: ai-research-sync
+#   cancel-in-progress: false
+#
+# jobs:
+#   sync_research:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Trigger AI research sync
+#         env:
+#           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+#         run: |
+#           curl --fail-with-body --silent --show-error \
+#             -X GET \
+#             -H "Authorization: Bearer $CRON_SECRET" \
+#             "https://knowledgelog.blog/api/cron/ai-research-sync"

@@ -1,6 +1,25 @@
 import type { NextConfig } from "next";
+import { CONTENT_SECURITY_POLICY_REPORT_ONLY } from "./lib/contentSecurityPolicy";
 
 const nextConfig: NextConfig = {
+  async headers() {
+    const securityHeaders = [
+      { key: "Content-Security-Policy-Report-Only", value: CONTENT_SECURITY_POLICY_REPORT_ONLY },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+    ];
+
+    if (process.env.NODE_ENV === "production") {
+      securityHeaders.push({
+        key: "Strict-Transport-Security",
+        value: "max-age=31536000",
+      });
+    }
+
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
   images: {
     remotePatterns: [
       {
@@ -22,6 +41,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com",
       },
     ],
     dangerouslyAllowSVG: true,

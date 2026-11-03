@@ -1,7 +1,7 @@
 "use client";
 
 import { Editor as RichTextEditor } from "@/app/components/editor/Editor";
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/app/context/ToastContext";
 import { EditorGuide } from "./EditorGuide";
@@ -343,6 +343,14 @@ export default function PostEditor({
       .finally(() => setLoadingMedia(false));
   };
 
+  const openMediaModal = useCallback(
+    (field: "image" | "ogImage" | "content") => {
+      setTargetImageField(field);
+      setIsMediaModalOpen(true);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (isMediaModalOpen) {
       fetchMedia();
@@ -357,7 +365,7 @@ export default function PostEditor({
     window.addEventListener("open-media-modal", handleOpenMedia);
     return () =>
       window.removeEventListener("open-media-modal", handleOpenMedia);
-  }, []);
+  }, [openMediaModal]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -505,12 +513,6 @@ export default function PostEditor({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const openMediaModal = (field: "image" | "ogImage" | "content") => {
-    setTargetImageField(field);
-    setIsMediaModalOpen(true);
-    fetchMedia();
   };
 
   const selectMediaItem = (url: string) => {

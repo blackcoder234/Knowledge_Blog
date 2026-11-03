@@ -1,0 +1,25 @@
+# Disabled: automated scheduled publishing is no longer used.
+# To preserve the previous configuration for reference, remove the comments
+# only after intentionally restoring a scheduler and the cron endpoint.
+#
+# name: Trigger Post Schedule
+# on:
+#   schedule:
+#     - cron: "0 * * * *"
+#   workflow_dispatch:
+#
+# jobs:
+#   cron_job:
+#     concurrency:
+#       group: publish-scheduled
+#       cancel-in-progress: false
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Trigger Vercel Cron
+#         env:
+#           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+#         run: |
+#           curl --fail-with-body --silent --show-error \
+#             -X GET \
+#             -H "Authorization: Bearer $CRON_SECRET" \
+#             "https://knowledgelog.blog/api/cron/publish-scheduled"
